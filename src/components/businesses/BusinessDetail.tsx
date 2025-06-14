@@ -10,11 +10,11 @@ interface BusinessDetailProps {
   business: {
     id: number;
     name: string;
-    nameEn?: string;
-    description?: string;
+    nameEn?: string | null;
+    description?: string | null;
     address: string;
-    phone?: string;
-    website?: string;
+    phone?: string | null;
+    website?: string | null;
     rating: number;
     reviewCount: number;
     languages: string[];
@@ -33,16 +33,16 @@ interface BusinessDetailProps {
     };
     photos: {
       url: string;
-      caption?: string;
+      caption?: string | null;
     }[];
     reviews: {
       id: number;
       rating: number;
-      comment?: string;
+      comment?: string | null;
       createdAt: Date;
       user: {
         firstName: string;
-        lastName?: string;
+        lastName?: string | null;
       };
     }[];
     _count: {

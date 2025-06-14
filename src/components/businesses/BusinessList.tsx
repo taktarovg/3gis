@@ -7,11 +7,11 @@ import { BusinessCard } from './BusinessCard';
 interface Business {
   id: number;
   name: string;
-  nameEn?: string;
-  description?: string;
+  nameEn?: string | null;
+  description?: string | null;
   address: string;
-  phone?: string;
-  website?: string;
+  phone?: string | null;
+  website?: string | null;
   rating: number;
   reviewCount: number;
   languages: string[];
