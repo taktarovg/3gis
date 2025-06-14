@@ -1,0 +1,420 @@
+/* src/app/telegram-styles.css
+ * Стили для Telegram Mini App - адаптированные для 3GIS
+ */
+
+/* Скрыть полосы прокрутки */
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  overflow-x: hidden;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+  width: 0;
+  height: 0;
+}
+
+/* Основной контейнер 3GIS */
+.threegis-app-container {
+  width: 100vw;
+  max-width: 100%;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--tg-theme-bg-color, #ffffff);
+  color: var(--tg-theme-text-color, #000000);
+}
+
+/* Основной контент */
+.threegis-app-main {
+  flex: 1;
+  width: 100%;
+  overflow-x: hidden;
+  padding-bottom: 80px;
+}
+
+/* 3GIS Safe area */
+.threegis-safe-area {
+  padding-top: env(safe-area-inset-top, 0);
+  padding-right: env(safe-area-inset-right, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-left: env(safe-area-inset-left, 0);
+}
+
+/* Фиксированный хедер 3GIS */
+.threegis-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  min-height: var(--total-header-height);
+  background: var(--threegis-primary);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: none;
+  border-radius: 0 0 16px 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding-top: var(--safe-area-top);
+}
+
+/* Навигация 3GIS */
+.threegis-navigation {
+  position: fixed;
+  bottom: calc(var(--safe-area-bottom) - 20px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--threegis-primary);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding-bottom: max(8px, var(--safe-area-bottom));
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding-top: 12px;
+  color: white;
+}
+
+/* Fullscreen оптимизация */
+.fullscreen-optimized {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: pan-y;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 3GIS кнопка */
+.threegis-button {
+  background-color: var(--threegis-accent);
+  color: var(--threegis-text);
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  padding: 12px 20px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+}
+
+.threegis-button:active {
+  opacity: 0.8;
+  transform: translateY(1px);
+}
+
+.threegis-button:hover {
+  background-color: #e6c200;
+  transform: translateY(-1px);
+}
+
+/* 3GIS карточка */
+.threegis-card {
+  background-color: var(--threegis-card);
+  border: 1px solid var(--threegis-border);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
+}
+
+.threegis-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* 3GIS список элементов */
+.threegis-list-item {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Категории 3GIS */
+.threegis-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 16px;
+}
+
+.threegis-category-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  border: 1px solid var(--threegis-border);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.threegis-category-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  border-color: var(--threegis-accent);
+}
+
+.threegis-category-icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.threegis-category-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--threegis-text);
+}
+
+/* Search box */
+.threegis-search-box {
+  background: white;
+  border: 2px solid var(--threegis-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 16px;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.threegis-search-box:focus {
+  outline: none;
+  border-color: var(--threegis-accent);
+  box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.1);
+}
+
+/* Business card для 3GIS */
+.threegis-business-card {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--threegis-border);
+  transition: all 0.2s ease;
+}
+
+.threegis-business-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.threegis-business-image {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.threegis-business-name {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--threegis-text);
+  margin-bottom: 4px;
+}
+
+.threegis-business-category {
+  font-size: 0.875rem;
+  color: var(--threegis-secondary);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.threegis-business-rating {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.threegis-business-rating .stars {
+  color: #ffd700;
+  margin-right: 8px;
+}
+
+.threegis-business-address {
+  font-size: 0.875rem;
+  color: var(--threegis-secondary);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.threegis-business-features {
+  display: flex;
+  flex-wrap: gap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.threegis-feature-tag {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.threegis-feature-tag.russian {
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+.threegis-business-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.threegis-action-button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.threegis-action-button.primary {
+  background: var(--threegis-primary);
+  color: white;
+}
+
+.threegis-action-button.secondary {
+  background: var(--threegis-card);
+  color: var(--threegis-text);
+  border: 1px solid var(--threegis-border);
+}
+
+/* Фильтры */
+.threegis-filters {
+  display: flex;
+  gap: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+}
+
+.threegis-filter-chip {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.threegis-filter-chip.active {
+  background: var(--threegis-accent);
+  color: var(--threegis-text);
+  border-color: var(--threegis-accent);
+}
+
+/* iOS оптимизация */
+@supports (-webkit-touch-callout: none) {
+  .threegis-navigation {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 30px));
+  }
+  
+  .ios-circle-fix {
+    -webkit-mask-image: -webkit-radial-gradient(white, black);
+    border-radius: 50% !important;
+    overflow: hidden;
+  }
+}
+
+/* Адаптивность */
+@media (max-width: 390px) {
+  .threegis-category-grid {
+    gap: 10px;
+    padding: 12px;
+  }
+  
+  .threegis-category-card {
+    padding: 16px;
+  }
+  
+  .threegis-category-icon {
+    font-size: 1.75rem;
+  }
+  
+  .threegis-business-card {
+    padding: 12px;
+  }
+  
+  .threegis-filters {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 375px) {
+  .threegis-category-grid {
+    gap: 8px;
+    padding: 10px;
+  }
+  
+  .threegis-category-card {
+    padding: 14px;
+  }
+  
+  .threegis-category-icon {
+    font-size: 1.5rem;
+  }
+}
+
+/* Анимации */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+/* Desktop режим */
+@media (min-width: 501px) and (hover: hover) and (pointer: fine) {
+  .threegis-desktop-wrapper {
+    background-color: #f5f5f5;
+    min-height: 100vh;
+    padding: 20px 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  
+  .threegis-desktop-container {
+    max-width: 390px;
+    width: 100%;
+    background: white;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    min-height: calc(100vh - 40px);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+}
