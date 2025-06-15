@@ -16,8 +16,24 @@ model User {
   lastName   String             @default("")
   role       UserRole           @default(USER)
   avatar     String?
+  
+  // Геолокация пользователя
+  latitude   Float?
+  longitude  Float?
   cityId     Int?
+  
+  // Премиум статус и активность
+  isPremium  Boolean            @default(false)
+  premiumUntil DateTime?
+  lastSeenAt DateTime           @default(now())
+  
+  // Настройки пользователя
+  settings   Json?              // {notifications: {...}, privacy: {...}}
+  
   createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  
+  // Связи
   favorites  BusinessFavorite[]
   reviews    BusinessReview[]
   businesses Business[]         @relation("BusinessOwner")
