@@ -28,7 +28,7 @@ export function TelegramProvider({
     const initializeWebApp = async () => {
       try {
         if (debug) {
-          logger.info('🚀 Initializing Telegram WebApp...');
+          logger.log('🚀 Initializing Telegram WebApp...');
         }
         
         // Проверяем доступность Telegram WebApp
@@ -53,11 +53,11 @@ export function TelegramProvider({
               }
               
               if (debug) {
-                logger.info('✅ Telegram WebApp configured for 3GIS');
+                logger.log('✅ Telegram WebApp configured for 3GIS');
               }
             } catch (configError) {
               if (debug) {
-                logger.warn('⚠️ Some WebApp features not available:', configError);
+              logger.warn('⚠️ Some WebApp features not available:', configError);
               }
             }
           } else {
@@ -71,7 +71,7 @@ export function TelegramProvider({
         if (isMounted) {
           setIsInitialized(true);
           if (debug) {
-            logger.info('✅ 3GIS Telegram initialization completed');
+            logger.log('✅ 3GIS Telegram initialization completed');
           }
         }
       } catch (error) {
