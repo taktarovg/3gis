@@ -15,7 +15,7 @@ const DEFAULT_AVATAR_URL = `https://avatar.iran.liara.run/public`;
  * Функция для загрузки аватара пользователя в AWS S3
  * Заглушка - будет заменена при настройке AWS S3
  */
-async function uploadUserAvatar(imageUrl: string, telegramId: string): Promise<string> {
+async function uploadUserAvatar(imageUrl: string | null, telegramId: string): Promise<string> {
   try {
     // TODO: Интеграция с AWS S3 для загрузки аватаров
     // Пока возвращаем оригинальный URL или дефолтный
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
               firstName: testUser.firstName,
               lastName: testUser.lastName || '',
               username: testUser.username || null,
-              avatar: await uploadUserAvatar(testUser.photoUrl, testUser.telegramId),
+              avatar: testUser.photoUrl ? await uploadUserAvatar(testUser.photoUrl, testUser.telegramId) : DEFAULT_AVATAR_URL,
               role: 'USER',
               isPremium: false,
               createdAt: new Date(),
@@ -218,12 +218,13 @@ export async function POST(request: NextRequest) {
     });
     
     // Загружаем аватар в AWS S3
-    let avatarUrl = userData.photoUrl;
+    let avatarUrl: string | null = userData.photoUrl;
     if (userData.photoUrl) {
       try {
         avatarUrl = await uploadUserAvatar(userData.photoUrl, userData.telegramId);
       } catch (error) {
         console.error('3GIS Auth: Ошибка при загрузке аватара:', error);
+        avatarUrl = null;
         // Продолжаем процесс аутентификации даже если не удалось загрузить аватар
       }
     }
