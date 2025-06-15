@@ -3,6 +3,7 @@ import React from 'react';
 import { CategoryGrid } from '@/components/categories/CategoryGrid';
 import { SearchBox } from '@/components/search/SearchBox';
 import { FilterChips } from '@/components/filters/FilterChips';
+import { NearbyButton } from '@/components/location/NearbyButton';
 
 async function getCategories() {
   try {
@@ -58,9 +59,16 @@ export default async function ThreeGISHomePage() {
           <SearchBox placeholder="Поиск ресторанов, врачей, услуг..." />
         </div>
         
-        {/* Быстрые фильтры */}
+        {/* Быстрые фильтры + кнопка геолокации */}
         <div className="mb-6">
-          <FilterChips />
+          <div className="px-4 mb-4">
+            <FilterChips />
+          </div>
+          
+          {/* Кнопка "Рядом со мной" */}
+          <div className="px-4">
+            <NearbyButton className="w-full" />
+          </div>
         </div>
         
         {/* Сетка категорий */}

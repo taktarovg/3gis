@@ -20,6 +20,9 @@ interface Business {
   languages: string[];
   hasParking: boolean;
   premiumTier: string;
+  latitude?: number;
+  longitude?: number;
+  distance?: number; // Расстояние в км
   category: {
     name: string;
     icon: string;
@@ -104,10 +107,20 @@ export function BusinessCard({ business }: BusinessCardProps) {
           </div>
         )}
 
-        {/* Address */}
+        {/* Address + Distance */}
         <div className="threegis-business-address">
           <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
-          {business.address}, {business.city.name}
+          <div>
+            <div>{business.address}, {business.city.name}</div>
+            {business.distance !== undefined && (
+              <div className="text-sm text-threegis-accent font-medium mt-1">
+                📍 {business.distance < 1 
+                  ? `${Math.round(business.distance * 1000)} м` 
+                  : `${business.distance.toFixed(1)} км`
+                } от вас
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Description */}

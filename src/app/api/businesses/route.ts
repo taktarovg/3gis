@@ -1,6 +1,7 @@
 // src/app/api/businesses/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { DistanceCalculator } from '@/lib/maps/distance-calculator';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,6 +14,11 @@ export async function GET(request: NextRequest) {
     const filter = searchParams.get('filter');
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
+    
+    // Параметры геолокации
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+    const radius = parseInt(searchParams.get('radius') || '10'); // км
 
     // Строим where условие
     const where: any = {
@@ -35,10 +41,18 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Фильтр по городу
-    where.city = {
-      name: city
-    };
+    // Если есть координаты пользователя, ищем заведения с координатами
+    if (lat && lng) {
+      where.AND = [
+        { latitude: { not: null } },
+        { longitude: { not: null } }
+      ];
+    } else {
+      // Если координат нет, фильтруем по городу
+      where.city = {
+        name: city
+      };
+    }
 
     // Специальные фильтры
     if (filter === 'russian') {
@@ -56,7 +70,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Получаем заведения
-    const businesses = await prisma.business.findMany({
+    let businesses = await prisma.business.findMany({
       where,
       include: {
         category: true,
@@ -72,25 +86,46 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: [
+      orderBy: lat && lng ? [] : [ // Если есть геолокация, сортировку делаем потом
         { premiumTier: 'desc' }, // Премиум заведения сначала
         { rating: 'desc' },
         { reviewCount: 'desc' },
         { createdAt: 'desc' }
-      ],
-      take: limit,
-      skip: offset
+      ]
     });
 
-    // Получаем общее количество для пагинации
-    const total = await prisma.business.count({ where });
+    // Если есть координаты пользователя, сортируем по расстоянию
+    if (lat && lng) {
+      const userLat = parseFloat(lat);
+      const userLng = parseFloat(lng);
+      
+      // Фильтруем заведения в радиусе и добавляем расстояние
+      const businessesWithDistance = DistanceCalculator.sortByDistance(
+        businesses,
+        userLat,
+        userLng,
+        radius
+      );
+      
+      businesses = businessesWithDistance;
+    }
+
+    // Применяем пагинацию после сортировки
+    const paginatedBusinesses = businesses.slice(offset, offset + limit);
+    const total = businesses.length;
 
     return NextResponse.json({
-      businesses,
+      businesses: paginatedBusinesses,
       total,
       limit,
       offset,
-      hasMore: offset + limit < total
+      hasMore: offset + limit < total,
+      // Дополнительная информация для геолокационных запросов
+      ...(lat && lng && {
+        userLocation: { lat: parseFloat(lat), lng: parseFloat(lng) },
+        radius,
+        nearbyCount: businesses.length
+      })
     });
 
   } catch (error) {

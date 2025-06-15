@@ -17,6 +17,9 @@ interface Business {
   languages: string[];
   hasParking: boolean;
   premiumTier: string;
+  latitude?: number;
+  longitude?: number;
+  distance?: number; // Расстояние в км
   category: {
     name: string;
     icon: string;

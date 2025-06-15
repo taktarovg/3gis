@@ -11,6 +11,9 @@ interface BusinessesPageProps {
     search?: string;
     filter?: string;
     city?: string;
+    lat?: string;
+    lng?: string;
+    radius?: string;
   }>;
 }
 
@@ -19,66 +22,36 @@ async function getBusinesses(params: {
   search?: string;
   filter?: string;
   city?: string;
+  lat?: string;
+  lng?: string;
+  radius?: string;
 }) {
   try {
-    const where: any = {
-      status: 'ACTIVE'
-    };
-
-    // Filter by category
-    if (params.category) {
-      where.category = {
-        slug: params.category
-      };
-    }
-
-    // Search filter
-    if (params.search) {
-      where.OR = [
-        { name: { contains: params.search, mode: 'insensitive' } },
-        { description: { contains: params.search, mode: 'insensitive' } },
-        { nameEn: { contains: params.search, mode: 'insensitive' } }
-      ];
-    }
-
-    // Russian language filter
-    if (params.filter === 'russian') {
-      where.languages = {
-        has: 'ru'
-      };
-    }
-
-    // City filter (default to New York for now)
-    const cityName = params.city || 'New York';
-    where.city = {
-      name: cityName
-    };
-
-    const businesses = await prisma.business.findMany({
-      where,
-      include: {
-        category: true,
-        city: true,
-        photos: {
-          take: 1,
-          orderBy: { order: 'asc' }
-        },
-        _count: {
-          select: {
-            reviews: true,
-            favorites: true
-          }
-        }
-      },
-      orderBy: [
-        { premiumTier: 'desc' }, // Premium first
-        { rating: 'desc' },
-        { createdAt: 'desc' }
-      ],
-      take: 50 // Limit to 50 results for now
+    // Используем API endpoint для унифицированной логики
+    const baseUrl = process.env.NODE_ENV === 'development' 
+      ? 'http://localhost:3000'
+      : process.env.NEXT_PUBLIC_APP_URL;
+    
+    const searchParams = new URLSearchParams();
+    
+    if (params.category) searchParams.set('category', params.category);
+    if (params.search) searchParams.set('search', params.search);
+    if (params.filter) searchParams.set('filter', params.filter);
+    if (params.city) searchParams.set('city', params.city);
+    if (params.lat) searchParams.set('lat', params.lat);
+    if (params.lng) searchParams.set('lng', params.lng);
+    if (params.radius) searchParams.set('radius', params.radius);
+    
+    const response = await fetch(`${baseUrl}/api/businesses?${searchParams.toString()}`, {
+      cache: 'no-store' // Не кэшируем геолокационные запросы
     });
-
-    return businesses;
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch businesses');
+    }
+    
+    const data = await response.json();
+    return data.businesses || [];
   } catch (error) {
     console.error('Error fetching businesses:', error);
     return [];
@@ -107,7 +80,9 @@ export default async function BusinessesPage({ searchParams }: BusinessesPagePro
   
   // Build page title
   let pageTitle = 'Заведения';
-  if (categoryName) {
+  if (params.lat && params.lng) {
+    pageTitle = 'Рядом со мной';
+  } else if (categoryName) {
     pageTitle = categoryName;
   } else if (params.search) {
     pageTitle = `Поиск: ${params.search}`;
