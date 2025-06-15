@@ -7,29 +7,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
-// Типы для Telegram WebApp
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp: {
-        ready: () => void;
-        openLink: (url: string) => void;
-        sendData: (data: string) => void;
-        initData: string;
-        initDataUnsafe: any;
-        platform: string;
-        version: string;
-        setHeaderColor?: (color: string) => void;
-        setBackgroundColor?: (color: string) => void;
-        requestFullscreen?: () => void;
-        HapticFeedback?: {
-          impactOccurred: (style: 'light' | 'medium' | 'heavy') => void;
-        };
-      };
-    };
-  }
-}
-
 // Создаем разные клиенты для разных контекстов
 const createQueryClient = (context: 'website' | 'telegram' | 'admin') => new QueryClient({
   defaultOptions: {
@@ -78,9 +55,9 @@ function TelegramInitializer() {
           try {
             webApp.ready();
             
-            // ✅ ИСПРАВЛЕНО: Используем requestFullscreen вместо expand
-            if (typeof webApp.requestFullscreen === 'function') {
-              webApp.requestFullscreen();
+            // ✅ ИСПРАВЛЕНО: Используем expand() из существующего API
+            if (typeof webApp.expand === 'function') {
+              webApp.expand();
             }
             
             // Цвета для 3GIS

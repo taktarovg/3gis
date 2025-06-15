@@ -2,26 +2,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 
-// Добавляем объявление типов для Telegram
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp: {
-        openLink: (url: string) => void;
-        sendData: (data: string) => void;
-        initData: string;
-        initDataUnsafe: any;
-        platform: string;
-        version: string;
-        ready: () => void;
-        HapticFeedback?: {
-          impactOccurred: (style: 'light' | 'medium' | 'heavy') => void;
-        };
-      };
-    };
-  }
-}
-
 export type Platform = 'telegram-mobile' | 'telegram-desktop' | 'web-mobile' | 'web-desktop';
 
 interface PlatformInfo {
