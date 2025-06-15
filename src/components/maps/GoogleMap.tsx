@@ -37,7 +37,7 @@ export function GoogleMap({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Определяем центр карты
+  // Определяем центр карты - мемоизируем для стабильности
   const mapCenter = useMemo(() => {
     return center || (businesses.length > 0 
       ? { lat: businesses[0].latitude, lng: businesses[0].longitude }
@@ -67,7 +67,7 @@ export function GoogleMap({
     };
 
     initMap();
-  }, [mapCenter.lat, mapCenter.lng, zoom]); // Добавлены все зависимости
+  }, [mapCenter, zoom]); // Включаем mapCenter в зависимости
 
   // Добавление маркеров заведений
   const addMarkers = useCallback(async () => {
@@ -110,7 +110,7 @@ export function GoogleMap({
 
   useEffect(() => {
     addMarkers();
-  }, [addMarkers]);
+  }, [map, businesses, onBusinessClick]); // Убираем markers из зависимостей чтобы избежать циклов
 
   if (error) {
     return (

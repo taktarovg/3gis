@@ -1,7 +1,6 @@
 'use client';
 
-import { useLaunchParams } from '@telegram-apps/sdk-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 // Добавляем объявление типов для Telegram
 declare global {
@@ -11,86 +10,105 @@ declare global {
         openLink: (url: string) => void;
         sendData: (data: string) => void;
         initData: string;
+        initDataUnsafe: any;
+        platform: string;
+        version: string;
         ready: () => void;
+        HapticFeedback?: {
+          impactOccurred: (style: 'light' | 'medium' | 'heavy') => void;
+        };
       };
     };
   }
 }
 
+export type Platform = 'telegram-mobile' | 'telegram-desktop' | 'web-mobile' | 'web-desktop';
+
+interface PlatformInfo {
+  platform: Platform;
+  isTelegram: boolean;
+  isMobile: boolean;
+  isDesktop: boolean;
+  canMakeCall: boolean;
+  canOpenMaps: boolean;
+  canUseHaptics: boolean;
+}
+
 /**
  * Хук для определения контекста запуска приложения
+ * Безопасно работает в SSR и CSR окружениях
  */
-export function usePlatformDetection() {
-  const [platform, setPlatform] = useState<{
-    isTelegram: boolean;
-    isMobile: boolean;
-    isDesktop: boolean;
-    canMakeCall: boolean;
-    canOpenMaps: boolean;
-    platform: 'telegram-mobile' | 'telegram-desktop' | 'web-mobile' | 'web-desktop';
-  }>({
+export function usePlatformDetection(): PlatformInfo {
+  const [platform, setPlatform] = useState<PlatformInfo>({
+    platform: 'web-desktop',
     isTelegram: false,
     isMobile: false,
-    isDesktop: false,
+    isDesktop: true,
     canMakeCall: false,
     canOpenMaps: false,
-    platform: 'web-desktop'
+    canUseHaptics: false,
   });
 
-  // Всегда вызываем хук на верхнем уровне
-  let launchParams: any = null;
-  let hasLaunchParamsError = false;
-  
-  try {
-    launchParams = useLaunchParams();
-  } catch (error) {
-    // В случае ошибки считаем что это не Telegram окружение
-    hasLaunchParamsError = true;
-    console.log('Not in Telegram environment:', error);
-  }
+  const [isClient, setIsClient] = useState(false);
+
+  // Определяем что мы на клиенте
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
-    const userAgent = navigator.userAgent;
-    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    const isTelegram = !hasLaunchParamsError && (!!launchParams || !!window?.Telegram?.WebApp);
-    
-    // Более точное определение Telegram контекста
-    const isTelegramMobile = isTelegram && isMobile;
-    const isTelegramDesktop = isTelegram && !isMobile;
-    
-    // Возможности платформы
-    const canMakeCall = isTelegramMobile || (isMobile && 'tel:' in navigator);
-    const canOpenMaps = isTelegramMobile || isMobile;
+    if (!isClient) return;
 
-    let detectedPlatform: typeof platform.platform = 'web-desktop';
-    if (isTelegramMobile) detectedPlatform = 'telegram-mobile';
-    else if (isTelegramDesktop) detectedPlatform = 'telegram-desktop';
-    else if (isMobile) detectedPlatform = 'web-mobile';
+    const detectPlatform = (): PlatformInfo => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMobile = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+      
+      // Проверяем наличие Telegram WebApp
+      const hasTelegramWebApp = !!(window?.Telegram?.WebApp);
+      const isTelegram = hasTelegramWebApp;
+      
+      // Определяем платформу
+      let detectedPlatform: Platform = 'web-desktop';
+      if (isTelegram && isMobile) {
+        detectedPlatform = 'telegram-mobile';
+      } else if (isTelegram && !isMobile) {
+        detectedPlatform = 'telegram-desktop';
+      } else if (!isTelegram && isMobile) {
+        detectedPlatform = 'web-mobile';
+      }
 
-    const newPlatform = {
-      isTelegram,
-      isMobile,
-      isDesktop: !isMobile,
-      canMakeCall,
-      canOpenMaps,
-      platform: detectedPlatform
+      // Возможности платформы
+      const canMakeCall = isTelegram || isMobile;
+      const canOpenMaps = true; // Все платформы могут открывать карты
+      const canUseHaptics = isTelegram && isMobile && !!(window?.Telegram?.WebApp?.HapticFeedback);
+
+      const result: PlatformInfo = {
+        platform: detectedPlatform,
+        isTelegram,
+        isMobile,
+        isDesktop: !isMobile,
+        canMakeCall,
+        canOpenMaps,
+        canUseHaptics,
+      };
+
+      console.log('🔍 Platform Detection:', {
+        userAgent: userAgent.substring(0, 100),
+        hasTelegramWebApp,
+        detectedPlatform,
+        capabilities: {
+          canMakeCall,
+          canOpenMaps,
+          canUseHaptics,
+        }
+      });
+
+      return result;
     };
 
-    // Обновляем только если изменилось
+    const newPlatform = detectPlatform();
     setPlatform(newPlatform);
-
-    // Логирование для отладки
-    console.log('🔍 Platform Detection:', {
-      userAgent: userAgent.substring(0, 100),
-      isTelegram,
-      isMobile,
-      launchParamsAvailable: !!launchParams,
-      telegramWebAppAvailable: !!window?.Telegram?.WebApp,
-      platform: detectedPlatform,
-      hasError: hasLaunchParamsError
-    });
-
-  }, [launchParams, hasLaunchParamsError]); // Убрали platform из зависимостей
+  }, [isClient]);
 
   return platform;
 }
@@ -100,31 +118,20 @@ export function usePlatformDetection() {
  */
 export function usePlatformActions() {
   const platform = usePlatformDetection();
-  
-  // Всегда вызываем хук на верхнем уровне
-  let launchParams: any = null;
-  let hasLaunchParamsError = false;
-  
-  try {
-    launchParams = useLaunchParams();
-  } catch (error) {
-    // Игнорируем ошибку если не в Telegram окружении
-    hasLaunchParamsError = true;
-  }
 
-  const makeCall = (phoneNumber: string) => {
+  const makeCall = useCallback((phoneNumber: string) => {
     const cleanPhone = phoneNumber.replace(/\D/g, '');
     
     if (platform.isTelegram && window?.Telegram?.WebApp) {
       // В Telegram используем WebApp API
-      window.Telegram.WebApp.openLink(`tel:${cleanPhone}`);
+      window.Telegram.WebApp.openLink(`tel:+${cleanPhone}`);
     } else {
       // В обычном браузере
-      window.open(`tel:${cleanPhone}`, '_self');
+      window.location.href = `tel:+${cleanPhone}`;
     }
-  };
+  }, [platform.isTelegram]);
 
-  const openMaps = (address: string) => {
+  const openMaps = useCallback((address: string) => {
     const query = encodeURIComponent(address);
     const mapsUrl = `https://maps.google.com/?q=${query}`;
     
@@ -135,34 +142,104 @@ export function usePlatformActions() {
       // В обычном браузере
       window.open(mapsUrl, '_blank');
     }
-  };
+  }, [platform.isTelegram]);
 
-  const shareLocation = (businessName: string, url: string) => {
+  const shareLocation = useCallback((businessName: string, url: string) => {
     if (platform.isTelegram && window?.Telegram?.WebApp) {
       // В Telegram можем отправить сообщение
-      window.Telegram.WebApp.sendData(JSON.stringify({
-        type: 'share_business',
-        name: businessName,
-        url: url
-      }));
-    } else if (navigator.share) {
+      try {
+        window.Telegram.WebApp.sendData(JSON.stringify({
+          type: 'share_business',
+          name: businessName,
+          url: url
+        }));
+      } catch (error) {
+        console.error('Error sharing via Telegram:', error);
+        // Fallback к обычному шерингу
+        fallbackShare(businessName, url);
+      }
+    } else {
+      fallbackShare(businessName, url);
+    }
+  }, [platform.isTelegram]);
+
+  const triggerHaptic = useCallback((type: 'light' | 'medium' | 'heavy' = 'medium') => {
+    if (platform.canUseHaptics && window?.Telegram?.WebApp?.HapticFeedback) {
+      try {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred(type);
+      } catch (error) {
+        console.error('Error triggering haptic feedback:', error);
+      }
+    }
+  }, [platform.canUseHaptics]);
+
+  const fallbackShare = (businessName: string, url: string) => {
+    if (navigator.share) {
       // Web Share API
       navigator.share({
         title: businessName,
         text: `Посмотри это место: ${businessName}`,
         url: url
+      }).catch(error => {
+        console.error('Error sharing:', error);
+        copyToClipboard(url);
       });
     } else {
       // Fallback - копирование в буфер
-      navigator.clipboard.writeText(url);
-      alert('Ссылка скопирована в буфер обмена');
+      copyToClipboard(url);
     }
+  };
+
+  const copyToClipboard = (text: string) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Ссылка скопирована в буфер обмена');
+      }).catch(() => {
+        fallbackCopyToClipboard(text);
+      });
+    } else {
+      fallbackCopyToClipboard(text);
+    }
+  };
+
+  const fallbackCopyToClipboard = (text: string) => {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      alert('Ссылка скопирована в буфер обмена');
+    } catch (err) {
+      console.error('Fallback: Oops, unable to copy', err);
+      alert(`Ссылка: ${text}`);
+    }
+    document.body.removeChild(textArea);
   };
 
   return {
     platform,
     makeCall,
     openMaps,
-    shareLocation
+    shareLocation,
+    triggerHaptic,
   };
+}
+
+/**
+ * Хук для получения launch параметров безопасно
+ */
+export function useTelegramLaunchParams() {
+  const [launchParams, setLaunchParams] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+      setLaunchParams(window.Telegram.WebApp.initDataUnsafe || null);
+    }
+    setIsLoading(false);
+  }, []);
+
+  return { launchParams, isLoading };
 }
