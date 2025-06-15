@@ -45,31 +45,7 @@ export function GoogleMap({
     );
   }, [center, businesses]);
 
-  // Инициализация карты
-  useEffect(() => {
-    if (!mapRef.current) return;
-
-    const initMap = async () => {
-      try {
-        setIsLoading(true);
-        const googleMap = await initializeMap(mapRef.current!, {
-          center: mapCenter,
-          zoom,
-        });
-        setMap(googleMap);
-        setError(null);
-      } catch (error) {
-        console.error('Error initializing map:', error);
-        setError('Не удалось загрузить карту');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initMap();
-  }, [mapCenter, zoom]); // Включаем mapCenter в зависимости
-
-  // Добавление маркеров заведений
+  // ✅ ИСПРАВЛЕНО: Мемоизируем функцию добавления маркеров
   const addMarkers = useCallback(async () => {
     if (!map || businesses.length === 0) return;
 
@@ -108,9 +84,34 @@ export function GoogleMap({
     }
   }, [map, businesses, onBusinessClick, markers]);
 
+  // Инициализация карты
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    const initMap = async () => {
+      try {
+        setIsLoading(true);
+        const googleMap = await initializeMap(mapRef.current!, {
+          center: mapCenter,
+          zoom,
+        });
+        setMap(googleMap);
+        setError(null);
+      } catch (error) {
+        console.error('Error initializing map:', error);
+        setError('Не удалось загрузить карту');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initMap();
+  }, [mapCenter, zoom]); // Включаем mapCenter в зависимости
+
+  // ✅ ИСПРАВЛЕНО: Используем addMarkers с правильными зависимостями
   useEffect(() => {
     addMarkers();
-  }, [map, businesses, onBusinessClick]); // Убираем markers из зависимостей чтобы избежать циклов
+  }, [addMarkers]); // Включаем addMarkers в зависимости
 
   if (error) {
     return (

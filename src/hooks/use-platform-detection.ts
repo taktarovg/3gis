@@ -119,6 +119,52 @@ export function usePlatformDetection(): PlatformInfo {
 export function usePlatformActions() {
   const platform = usePlatformDetection();
 
+  // ✅ ИСПРАВЛЕНО: Вынесли fallback функции наверх чтобы избежать циклических зависимостей
+  const fallbackCopyToClipboard = useCallback((text: string) => {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      alert('Ссылка скопирована в буфер обмена');
+    } catch (err) {
+      console.error('Fallback: Oops, unable to copy', err);
+      alert(`Ссылка: ${text}`);
+    }
+    document.body.removeChild(textArea);
+  }, []);
+
+  const copyToClipboard = useCallback((text: string) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Ссылка скопирована в буфер обмена');
+      }).catch(() => {
+        fallbackCopyToClipboard(text);
+      });
+    } else {
+      fallbackCopyToClipboard(text);
+    }
+  }, [fallbackCopyToClipboard]);
+
+  const fallbackShare = useCallback((businessName: string, url: string) => {
+    if (navigator.share) {
+      // Web Share API
+      navigator.share({
+        title: businessName,
+        text: `Посмотри это место: ${businessName}`,
+        url: url
+      }).catch(error => {
+        console.error('Error sharing:', error);
+        copyToClipboard(url);
+      });
+    } else {
+      // Fallback - копирование в буфер
+      copyToClipboard(url);
+    }
+  }, [copyToClipboard]);
+
   const makeCall = useCallback((phoneNumber: string) => {
     const cleanPhone = phoneNumber.replace(/\D/g, '');
     
@@ -161,7 +207,7 @@ export function usePlatformActions() {
     } else {
       fallbackShare(businessName, url);
     }
-  }, [platform.isTelegram]);
+  }, [platform.isTelegram, fallbackShare]); // ✅ ИСПРАВЛЕНО: Добавили fallbackShare в зависимости
 
   const triggerHaptic = useCallback((type: 'light' | 'medium' | 'heavy' = 'medium') => {
     if (platform.canUseHaptics && window?.Telegram?.WebApp?.HapticFeedback) {
@@ -172,51 +218,6 @@ export function usePlatformActions() {
       }
     }
   }, [platform.canUseHaptics]);
-
-  const fallbackShare = (businessName: string, url: string) => {
-    if (navigator.share) {
-      // Web Share API
-      navigator.share({
-        title: businessName,
-        text: `Посмотри это место: ${businessName}`,
-        url: url
-      }).catch(error => {
-        console.error('Error sharing:', error);
-        copyToClipboard(url);
-      });
-    } else {
-      // Fallback - копирование в буфер
-      copyToClipboard(url);
-    }
-  };
-
-  const copyToClipboard = (text: string) => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(() => {
-        alert('Ссылка скопирована в буфер обмена');
-      }).catch(() => {
-        fallbackCopyToClipboard(text);
-      });
-    } else {
-      fallbackCopyToClipboard(text);
-    }
-  };
-
-  const fallbackCopyToClipboard = (text: string) => {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    try {
-      document.execCommand('copy');
-      alert('Ссылка скопирована в буфер обмена');
-    } catch (err) {
-      console.error('Fallback: Oops, unable to copy', err);
-      alert(`Ссылка: ${text}`);
-    }
-    document.body.removeChild(textArea);
-  };
 
   return {
     platform,
