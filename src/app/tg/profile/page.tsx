@@ -27,7 +27,7 @@ import Image from 'next/image';
 export default function ProfilePage() {
   const { user, logout } = useTelegramAuth();
   const updateUserLocation = useAuthStore((state) => state.updateUserLocation);
-  const { location, requestLocation, isLoading: locationLoading } = useGeolocation();
+  const { latitude, longitude, requestLocation, isLoading: locationLoading, hasLocation } = useGeolocation();
   
   const [notifications, setNotifications] = useState({
     newPlaces: true,
@@ -38,8 +38,8 @@ export default function ProfilePage() {
   // Обновление геолокации
   const handleUpdateLocation = async () => {
     await requestLocation();
-    if (location) {
-      updateUserLocation(location.lat, location.lng);
+    if (hasLocation && latitude && longitude) {
+      updateUserLocation(latitude, longitude);
       // TODO: Отправить на сервер
     }
   };
