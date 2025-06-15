@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { User } from '@prisma/client';
+import { User, Prisma } from '@prisma/client';
 import { useAuthStore } from '@/store/auth-store';
 import { useTokenManager } from '@/hooks/use-token-manager';
 import { TokenRefreshService } from '@/services/token-refresh-service';
@@ -10,29 +10,30 @@ import { apiClient, ApiError } from '@/lib/api-client';
 import { AUTH_CONSTANTS } from '@/lib/auth';
 import { logger } from '@/utils/logger';
 
-// Тип пользователя с данными из API /api/auth/me
-interface UserWithRelations extends User {
-  city?: {
-    id: number;
-    name: string;
-    state: string;
-  } | null;
-  businesses?: Array<{
-    id: number;
-    name: string;
-    status: string;
-    category: { name: string; icon: string };
-    city: { name: string; state: string };
-  }>;
-  favorites?: Array<{
-    id: number;
-    business: {
-      id: number;
-      name: string;
-      category: { name: string; icon: string };
-    };
-  }>;
-}
+// Используем Prisma.UserGetPayload для правильного типирования
+const userWithRelationsPayload = Prisma.validator<Prisma.UserDefaultArgs>()({
+  include: {
+    city: true,
+    businesses: {
+      include: {
+        category: true,
+        city: true
+      }
+    },
+    favorites: {
+      include: {
+        business: {
+          include: {
+            category: true
+          }
+        }
+      }
+    }
+  }
+});
+
+// Правильный тип пользователя с отношениями
+type UserWithRelations = Prisma.UserGetPayload<typeof userWithRelationsPayload>;
 
 interface AuthState {
   user: UserWithRelations | null;

@@ -1,33 +1,38 @@
 // src/store/auth-store.ts
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { User, City } from '@prisma/client';
+import { User, City, Prisma } from '@prisma/client';
 import { AUTH_CONSTANTS } from '@/lib/auth';
 import { logger } from '@/utils/logger';
 
-// Типы данных для хранилища 3GIS
-interface UserWithRelations extends User {
-  city?: City | null;
-  // Поля из Prisma include
-  businesses?: Array<{
-    id: number;
-    name: string;
-    status: string;
-    category: { name: string; icon: string };
-    city: { name: string; state: string };
-  }>;
-  favorites?: Array<{
-    id: number;
-    business: {
-      id: number;
-      name: string;
-      category: { name: string; icon: string };
-    };
-  }>;
+// Используем Prisma.UserGetPayload для правильного типирования
+const userWithRelationsPayload = Prisma.validator<Prisma.UserDefaultArgs>()({
+  include: {
+    city: true,
+    businesses: {
+      include: {
+        category: true,
+        city: true
+      }
+    },
+    favorites: {
+      include: {
+        business: {
+          include: {
+            category: true
+          }
+        }
+      }
+    }
+  }
+});
+
+// Правильный тип пользователя с отношениями
+type UserWithRelations = Prisma.UserGetPayload<typeof userWithRelationsPayload> & {
   // Для совместимости с кодом страниц
   favoriteBusinesses?: Array<{ id: number; name: string }>;
   ownedBusinesses?: Array<{ id: number; name: string; status: string }>;
-}
+};
 
 interface AuthState {
   user: UserWithRelations | null;
