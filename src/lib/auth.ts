@@ -36,7 +36,7 @@ interface CreateTokenParams {
  * @param params - Параметры для создания токена
  * @returns JWT токен
  */
-export function createJWTToken({ user, expiresIn = '7d' }: CreateTokenParams): string {
+export function createToken({ user, expiresIn = '7d' }: CreateTokenParams): string {
   const secret = process.env.JWT_SECRET;
   
   if (!secret) {
@@ -68,7 +68,7 @@ export function createJWTToken({ user, expiresIn = '7d' }: CreateTokenParams): s
  * @param token - JWT токен для проверки
  * @returns Декодированный payload или null
  */
-export function verifyJWTToken(token: string): JWTPayload | null {
+export function verifyToken(token: string): JWTPayload | null {
   try {
     const secret = process.env.JWT_SECRET;
     
@@ -161,7 +161,7 @@ export function requireAuth(token: string | null): JWTPayload {
     throw new Error('Токен авторизации отсутствует');
   }
 
-  const payload = verifyJWTToken(token);
+  const payload = verifyToken(token);
   
   if (!payload) {
     throw new Error('Недействительный или истекший токен');

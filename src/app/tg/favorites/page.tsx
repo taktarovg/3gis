@@ -7,6 +7,7 @@ import { useTelegramAuth } from '@/hooks/use-telegram-auth';
 import { useAuthStore } from '@/store/auth-store';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface FavoriteBusiness {
   id: number;
@@ -154,9 +155,11 @@ export default function FavoritesPage() {
               {/* Фото и основная информация */}
               <div className="flex space-x-3">
                 {business.photos[0] && (
-                  <img
+                  <Image
                     src={business.photos[0].url}
                     alt={business.name}
+                    width={64}
+                    height={64}
                     className="w-16 h-16 rounded-lg object-cover"
                   />
                 )}

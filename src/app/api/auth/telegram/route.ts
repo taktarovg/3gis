@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
         }
         
         // Создаем токен для тестового пользователя
-        const token = createToken(user);
+        const token = createToken({ user });
         console.log('3GIS Auth: Token created successfully for test user');
         
         // Отправляем ответ с данными пользователя и токеном
@@ -293,7 +293,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Создаем JWT токен
-    const token = createToken(user);
+    const token = createToken({ user });
     
     // Отправляем ответ с данными пользователя и токеном
     const response = NextResponse.json({ user, token }, {

@@ -19,6 +19,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useGeolocation } from '@/hooks/use-geolocation';
+import Image from 'next/image';
 
 /**
  * Страница профиля пользователя для 3GIS MVP
@@ -67,9 +68,11 @@ export default function ProfilePage() {
         <div className="flex items-center space-x-4">
           {/* Аватар */}
           <div className="relative">
-            <img
+            <Image
               src={user.avatar || `https://avatar.iran.liara.run/public/${user.telegramId}`}
               alt={`${user.firstName} ${user.lastName}`}
+              width={64}
+              height={64}
               className="w-16 h-16 rounded-full border-4 border-blue-100"
             />
             <button className="absolute -bottom-1 -right-1 bg-blue-500 text-white p-1.5 rounded-full">

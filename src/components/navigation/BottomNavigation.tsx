@@ -3,7 +3,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, Heart, Building2, User } from 'lucide-react';
-import { useTelegramWebApp } from '@telegram-apps/sdk-react';
+import { backButton, useSignal, hapticFeedback } from '@telegram-apps/sdk-react';
 import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -18,11 +18,12 @@ interface NavItem {
 /**
  * Нижнее навигационное меню для 3GIS MVP
  * Простое и эффективное меню с 4 основными разделами
+ * Использует актуальные хуки @telegram-apps/sdk-react v3.3.1
  */
 export function BottomNavigation() {
   const pathname = usePathname();
   const router = useRouter();
-  const webApp = useTelegramWebApp();
+  const isBackButtonVisible = useSignal(backButton.isVisible);
 
   // Навигационные элементы MVP
   const navItems: NavItem[] = [
@@ -53,13 +54,24 @@ export function BottomNavigation() {
     },
   ];
 
-  // Telegram haptic feedback при нажатии
-  const handleNavigation = (path: string) => {
-    // Haptic feedback для лучшего UX в Telegram
-    if (webApp && webApp.HapticFeedback) {
-      webApp.HapticFeedback.impactOccurred('light');
+  // Haptic feedback для SDK v3.x
+  const triggerHaptic = () => {
+    try {
+      // В SDK v3.x hapticFeedback доступен как модуль
+      if (hapticFeedback?.impactOccurred) {
+        hapticFeedback.impactOccurred('light');
+      }
+    } catch (error) {
+      // Fallback для браузера - используем нативный Telegram API
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+      }
     }
-    
+  };
+
+  // Telegram navigation с SDK v3.x
+  const handleNavigation = (path: string) => {
+    triggerHaptic();
     router.push(path);
   };
 
@@ -78,35 +90,31 @@ export function BottomNavigation() {
 
   const activeItem = getActiveItem();
 
-  // Настройка Telegram WebApp для навигации
+  // Настройка Telegram Back Button для SDK v3.x
   useEffect(() => {
-    if (webApp) {
+    if (backButton.isSupported()) {
       // Показываем back button для всех страниц кроме главной
       if (pathname !== '/tg') {
-        webApp.BackButton.show();
-        webApp.BackButton.onClick(() => {
+        backButton.show();
+        
+        const handleBackClick = () => {
           if (pathname.split('/').length > 2) {
             router.back();
           } else {
             router.push('/tg');
           }
-        });
+        };
+        
+        backButton.onClick(handleBackClick);
+        
+        return () => {
+          backButton.offClick(handleBackClick);
+        };
       } else {
-        webApp.BackButton.hide();
-      }
-
-      // Устанавливаем цвет header bar
-      if (webApp.setHeaderColor) {
-        webApp.setHeaderColor('#ffffff');
+        backButton.hide();
       }
     }
-
-    return () => {
-      if (webApp?.BackButton) {
-        webApp.BackButton.hide();
-      }
-    };
-  }, [pathname, router, webApp]);
+  }, [pathname, router]);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 safe-area-padding-bottom z-50">

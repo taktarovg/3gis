@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { initAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
@@ -23,9 +24,8 @@ const createQueryClient = (context: 'website' | 'telegram' | 'admin') => new Que
           ? error.message
           : 'Произошла неизвестная ошибка';
 
-        toast.error(errorMessage, {
-          description: 'Пожалуйста, попробуйте еще раз или обратитесь в поддержку',
-        });
+        // Используем console.error вместо toast для совместимости
+        console.error('3GIS Mutation Error:', errorMessage);
       },
     },
   },
@@ -146,6 +146,11 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setIsMounted(true);
     console.log(`3GIS ClientProvider initialized for context: ${context}, path: ${pathname}`);
+    
+    // Инициализируем auth store после монтирования
+    if (context === 'telegram') {
+      initAuthStore();
+    }
   }, [context, pathname]);
 
   if (!isMounted) {

@@ -4,6 +4,7 @@
 import { useTelegramAuth } from '@/hooks/use-telegram-auth';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image';
 
 interface TelegramAuthProps {
   children: React.ReactNode;
@@ -138,9 +139,11 @@ export function UserInfo() {
   return (
     <div className="flex items-center space-x-3">
       {user.avatar && (
-        <img 
+        <Image 
           src={user.avatar} 
           alt={`${user.firstName} ${user.lastName}`}
+          width={32}
+          height={32}
           className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
         />
       )}
