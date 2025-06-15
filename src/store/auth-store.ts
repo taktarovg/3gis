@@ -8,7 +8,23 @@ import { logger } from '@/utils/logger';
 // Типы данных для хранилища 3GIS
 interface UserWithRelations extends User {
   city?: City | null;
-  // Добавляем поля специфичные для 3GIS
+  // Поля из Prisma include
+  businesses?: Array<{
+    id: number;
+    name: string;
+    status: string;
+    category: { name: string; icon: string };
+    city: { name: string; state: string };
+  }>;
+  favorites?: Array<{
+    id: number;
+    business: {
+      id: number;
+      name: string;
+      category: { name: string; icon: string };
+    };
+  }>;
+  // Для совместимости с кодом страниц
   favoriteBusinesses?: Array<{ id: number; name: string }>;
   ownedBusinesses?: Array<{ id: number; name: string; status: string }>;
 }

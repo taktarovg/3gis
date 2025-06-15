@@ -125,7 +125,7 @@ export default function ProfilePage() {
             <div className="flex items-center justify-center mb-1">
               <Star className="h-4 w-4 text-yellow-500 mr-1" />
               <span className="font-semibold text-lg">
-                {user.reviews?.length || 0}
+                {0}
               </span>
             </div>
             <p className="text-xs text-gray-500">Отзывы</p>
