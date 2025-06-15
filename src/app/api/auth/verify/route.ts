@@ -62,13 +62,14 @@ export async function GET(request: NextRequest) {
       valid: true,
       telegramId: payload.telegramId,
       userId: payload.userId,
-      role: payload.role,
+      // role: payload.role, // Удаляем, так как нет в JWTPayload
       user: {
         id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
         username: user.username,
         avatar: user.avatar,
+        role: user.role, // Берем role из базы данных
         city: user.city,
         businessCount: user.businesses.length,
         favoritesCount: user.favorites.length,

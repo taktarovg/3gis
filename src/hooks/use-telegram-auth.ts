@@ -171,7 +171,20 @@ export function useTelegramAuth(): AuthState & AuthActions {
       }
       
       // Если обновление не удалось, очищаем данные
-      await logoutUser();
+      try {
+        clearToken();
+        clearAuth();
+        setAuthState({
+          user: null,
+          token: null,
+          isLoading: false,
+          error: null,
+          isAuthenticated: false,
+        });
+      } catch (logoutError) {
+        logger.error('Error during logout:', logoutError);
+      }
+      
       return false;
     } catch (error) {
       logger.error('Token refresh failed:', error);
