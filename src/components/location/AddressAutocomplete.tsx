@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, MapPin, Loader2 } from 'lucide-react';
-import { useDebounce } from '@/hooks/use-geolocation';
+import { useDebounce } from '@/hooks/use-debounce';
 
 interface AddressAutocompleteProps {
   onAddressSelect: (address: string) => void;

@@ -27,7 +27,8 @@ export {
 } from '@/lib/maps/distance-calculator';
 
 // Хуки
-export { useGeolocation, useDebounce } from '@/hooks/use-geolocation';
+export { useGeolocation } from '@/hooks/use-geolocation';
+export { useDebounce } from '@/hooks/use-debounce';
 
 // Типы
 export type {

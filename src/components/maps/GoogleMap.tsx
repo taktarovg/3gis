@@ -77,7 +77,7 @@ export function GoogleMap({
     };
 
     initMap();
-  }, [center, zoom]);
+  }, [center, zoom, businesses]);
 
   // Добавление маркеров заведений
   useEffect(() => {
@@ -120,7 +120,7 @@ export function GoogleMap({
     };
 
     addMarkers();
-  }, [map, businesses, onBusinessClick]);
+  }, [map, businesses, onBusinessClick, markers]);
 
   if (error) {
     return (

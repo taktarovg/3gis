@@ -99,9 +99,16 @@ export async function GET(request: NextRequest) {
       const userLat = parseFloat(lat);
       const userLng = parseFloat(lng);
       
+      // Преобразуем businesses для совместимости с DistanceCalculator
+      const businessesForSorting = businesses.map(business => ({
+        ...business,
+        latitude: business.latitude ?? undefined,
+        longitude: business.longitude ?? undefined
+      }));
+      
       // Фильтруем заведения в радиусе и добавляем расстояние
       const businessesWithDistance = DistanceCalculator.sortByDistance(
-        businesses,
+        businessesForSorting,
         userLat,
         userLng,
         radius

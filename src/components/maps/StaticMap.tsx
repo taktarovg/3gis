@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { getStaticMapUrl } from '@/lib/maps/google-maps';
 
 interface StaticMapProps {
@@ -32,7 +33,7 @@ export function StaticMap({
   });
 
   return (
-    <img
+    <Image
       src={mapUrl}
       alt="Карта местоположения"
       width={width}
