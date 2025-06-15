@@ -4,7 +4,7 @@ import { Loader } from '@googlemaps/js-api-loader';
 const GOOGLE_MAPS_CONFIG = {
   apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
   version: 'weekly',
-  libraries: ['places', 'geometry'] as const,
+  libraries: ['places', 'geometry'],
   language: 'ru',
   region: 'US',
 };
