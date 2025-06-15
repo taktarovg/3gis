@@ -4,8 +4,9 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { MapPin, Phone, Star, Globe } from 'lucide-react';
+import { MapPin, Phone, Star, Globe, ExternalLink } from 'lucide-react';
 import { formatRating, formatPhoneNumber } from '@/lib/utils';
+import { usePlatformActions } from '@/hooks/use-platform-detection';
 
 interface Business {
   id: number;
@@ -45,21 +46,27 @@ interface BusinessCardProps {
 }
 
 export function BusinessCard({ business }: BusinessCardProps) {
+  const { platform, makeCall, openMaps } = usePlatformActions();
+
   const handleCall = () => {
     if (business.phone) {
-      const cleanPhone = business.phone.replace(/\D/g, '');
-      window.open(`tel:${cleanPhone}`, '_self');
+      makeCall(business.phone);
     }
   };
 
   const handleRoute = () => {
-    const query = encodeURIComponent(`${business.address}, ${business.city.name}, ${business.city.state}`);
-    window.open(`https://maps.google.com/?q=${query}`, '_blank');
+    const fullAddress = `${business.address}, ${business.city.name}, ${business.city.state}`;
+    openMaps(fullAddress);
   };
 
   const handleWebsite = () => {
     if (business.website) {
-      window.open(business.website, '_blank');
+      if (platform.isTelegram) {
+        // В Telegram всегда открываем в новой вкладке
+        window.open(business.website, '_blank');
+      } else {
+        window.open(business.website, '_blank');
+      }
     }
   };
 
@@ -150,27 +157,33 @@ export function BusinessCard({ business }: BusinessCardProps) {
             <button
               onClick={handleCall}
               className="threegis-action-button primary"
+              title={platform.canMakeCall ? 'Позвонить' : 'Откроется в новой вкладке'}
             >
               <Phone className="h-4 w-4 mr-1" />
               Позвонить
+              {!platform.canMakeCall && <ExternalLink className="h-3 w-3 ml-1" />}
             </button>
           )}
           
           <button
             onClick={handleRoute}
             className="threegis-action-button secondary"
+            title={platform.canOpenMaps ? 'Открыть карты' : 'Откроется в новой вкладке'}
           >
             <MapPin className="h-4 w-4 mr-1" />
             Маршрут
+            {!platform.canOpenMaps && <ExternalLink className="h-3 w-3 ml-1" />}
           </button>
 
           {business.website && (
             <button
               onClick={handleWebsite}
               className="threegis-action-button secondary"
+              title="Откроется в новой вкладке"
             >
               <Globe className="h-4 w-4 mr-1" />
               Сайт
+              <ExternalLink className="h-3 w-3 ml-1" />
             </button>
           )}
         </div>

@@ -4,6 +4,7 @@ import { CategoryGrid } from '@/components/categories/CategoryGrid';
 import { SearchBox } from '@/components/search/SearchBox';
 import { FilterChips } from '@/components/filters/FilterChips';
 import { NearbyButton } from '@/components/location/NearbyButton';
+import { PlatformDebug } from '@/components/debug/PlatformDebug';
 
 async function getCategories() {
   try {
@@ -109,6 +110,9 @@ export default async function ThreeGISHomePage() {
           </div>
         </div>
       </div>
+      
+      {/* Debug информация */}
+      <PlatformDebug />
     </div>
   );
 }
