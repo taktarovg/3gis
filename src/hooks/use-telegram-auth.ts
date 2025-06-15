@@ -5,8 +5,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { User } from '@prisma/client';
 import { useAuthStore } from '@/store/auth-store';
 import { useLaunchParams, useRawInitData } from '@telegram-apps/sdk-react';
-import { telegramSDKService } from '@/services/telegram-sdk-service';
-import { getHashFromUrl, getInitDataFromStorage, saveInitDataToStorage } from '@/lib/telegram';
+import { useTokenManager } from '@/hooks/use-token-manager';
+import { TokenRefreshService } from '@/services/token-refresh-service';
+import { apiClient, ApiError } from '@/lib/api-client';
+import { AUTH_CONSTANTS } from '@/lib/auth';
 import { logger } from '@/utils/logger';
 
 interface AuthState {
@@ -14,346 +16,398 @@ interface AuthState {
   token: string | null;
   isLoading: boolean;
   error: string | null;
+  isAuthenticated: boolean;
+}
+
+interface AuthActions {
+  logout: () => void;
+  refreshToken: () => Promise<boolean>;
+  updateLocation: (latitude: number, longitude: number) => Promise<void>;
+  clearError: () => void;
 }
 
 /**
- * ХУК ДЛЯ АВТОРИЗАЦИИ ЧЕРЕЗ SDK V3.X ДЛЯ 3GIS
- * ✅ Адаптирован под 3GIS User модель
- * ✅ Поддержка геолокации пользователя
- * ✅ Использование AWS S3 для аватаров
+ * СОВРЕМЕННЫЙ ХУК АВТОРИЗАЦИИ ДЛЯ 3GIS
+ * ✅ Интегрирован с системой управления токенами
+ * ✅ Автоматическое обновление истекающих токенов
+ * ✅ Безопасная обработка ошибок
+ * ✅ Поддержка @telegram-apps/sdk v3.x
+ * ✅ SSR совместимость для Next.js
  */
-export function useTelegramAuth() {
-  const { setAuth, setLoading, setError, updateUserLocation } = useAuthStore();
+export function useTelegramAuth(): AuthState & AuthActions {
+  const { setAuth, setLoading, setError, updateUserLocation, clearAuth } = useAuthStore();
+  const {
+    token,
+    payload,
+    isValid,
+    needsRefresh,
+    setToken,
+    clearToken,
+    shouldRefreshToken,
+    markRefreshTime,
+  } = useTokenManager();
+
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     token: null,
     isLoading: true,
     error: null,
+    isAuthenticated: false,
   });
-  
-  // SDK v3.x хуки
-  const launchParams = useLaunchParams(true); // SSR поддержка для Next.js
-  const initDataRaw = useRawInitData();
-  
-  // Безопасное извлечение данных пользователя
-  const initDataUser = launchParams?.tgWebAppData?.user || null;
-  
-  // Логируем состояние хуков после инициализации
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      logger.logAuth(`3GIS SDK Hooks state - launchParams: ${!!launchParams}, initDataRaw: ${!!initDataRaw}`);
-      if (launchParams) {
-        logger.logAuth('launchParams structure:', Object.keys(launchParams));
-      }
-    }
-  }, [launchParams, initDataRaw]);
-  
-  // Функция для сохранения данных аутентификации
-  const saveAuthData = useCallback((user: User, token: string) => {
-    if (typeof window === 'undefined') return;
-    
+
+  // SDK v3.x хуки - правильное использование без параметров
+  const launchParams = useLaunchParams(); // v3.x: без параметров, возвращает правильную структуру
+  const initDataRaw = useRawInitData(); // v3.x: без параметров, возвращает строку initData
+
+  /**
+   * Загрузка пользователя по токену из БД
+   */
+  const loadUserFromToken = useCallback(async (authToken: string): Promise<User | null> => {
     try {
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      setAuth(user, token);
-      setAuthState({
-        user,
-        token,
-        isLoading: false,
-        error: null,
+      const user = await apiClient.get<User>('/api/auth/me', {
+        headers: { Authorization: `Bearer ${authToken}` },
+        skipAutoRefresh: true, // Избегаем рекурсии
       });
       
-      logger.logAuth('3GIS Authentication data saved successfully');
+      logger.logAuth('User loaded from token successfully');
+      return user;
     } catch (error) {
-      logger.error('Error saving authentication data:', error);
-      setError(error instanceof Error ? error.message : 'Ошибка сохранения данных авторизации');
-    }
-  }, [setAuth, setError]);
-  
-  // Функция для обновления геолокации пользователя
-  const updateLocation = useCallback(async (latitude: number, longitude: number) => {
-    const { user, token } = useAuthStore.getState();
-    
-    if (user && token) {
-      try {
-        // Обновляем в БД
-        const response = await fetch('/api/user/location', {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ latitude, longitude }),
-        });
-
-        if (response.ok) {
-          // Обновляем в store
-          updateUserLocation(latitude, longitude);
-          logger.logAuth('User location updated successfully');
-        }
-      } catch (error) {
-        logger.error('Error updating user location:', error);
-      }
-    }
-  }, [updateUserLocation]);
-  
-  // Функция для проверки существования токена в localStorage и его валидности
-  const checkExistingAuth = useCallback(async () => {
-    if (typeof window === 'undefined') return false;
-    
-    try {
-      const storedToken = localStorage.getItem('auth_token');
-      const storedUser = localStorage.getItem('user');
-      const initDataStorage = getInitDataFromStorage();
-
-      if (!storedToken || !storedUser) {
-        logger.logAuth('No stored authentication data found');
-        return false;
+      if (error instanceof ApiError && error.isAuthError) {
+        logger.warn('Token invalid, user not found');
+        return null;
       }
       
-      // Проверяем валидность токена
-      try {
-        logger.logAuth('Validating stored token');
-        const response = await fetch('/api/auth/verify', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${storedToken}`
-          }
-        });
+      logger.error('Error loading user from token:', error);
+      throw error;
+    }
+  }, []);
 
-        if (response.ok) {
-          // Токен валидный
-          const user = JSON.parse(storedUser);
-          setAuth(user, storedToken);
-          setAuthState({
+  /**
+   * Аутентификация через Telegram initData
+   */
+  const authenticateWithTelegram = useCallback(async (): Promise<{ user: User; token: string } | null> => {
+    try {
+      // Получаем initData из SDK v3.x
+      let initDataString = '';
+
+      if (initDataRaw && typeof initDataRaw === 'string') {
+        initDataString = initDataRaw;
+        logger.logAuth('Using initData from useRawInitData hook');
+      } else if (launchParams?.tgWebAppData) {
+        // В SDK v3.x tgWebAppData уже содержит правильную структуру
+        // Нужно правильно сериализовать в формат Telegram initData
+        const webAppData = launchParams.tgWebAppData;
+        
+        // Создаем initData строку в правильном формате
+        const initDataParts: string[] = [];
+        
+        if (webAppData.user) {
+          initDataParts.push(`user=${encodeURIComponent(JSON.stringify(webAppData.user))}`);
+        }
+        if (webAppData.auth_date) {
+          initDataParts.push(`auth_date=${webAppData.auth_date}`);
+        }
+        if (webAppData.query_id) {
+          initDataParts.push(`query_id=${encodeURIComponent(webAppData.query_id)}`);
+        }
+        if (webAppData.hash) {
+          initDataParts.push(`hash=${encodeURIComponent(webAppData.hash)}`);
+        }
+        
+        initDataString = initDataParts.join('&');
+        logger.logAuth('Properly formatted initData from tgWebAppData');
+      }
+
+      if (!initDataString) {
+        throw new Error('No Telegram initData available');
+      }
+
+      // Аутентификация через API
+      const response = await apiClient.post<{ user: User; token: string }>('/api/auth/telegram', {
+        initData: initDataString,
+      }, {
+        skipAuth: true,
+        skipAutoRefresh: true,
+      });
+
+      logger.logAuth('Telegram authentication successful');
+      return response;
+    } catch (error) {
+      logger.error('Telegram authentication failed:', error);
+      
+      if (error instanceof ApiError) {
+        throw new Error(`Ошибка авторизации: ${error.message}`);
+      }
+      
+      throw new Error('Не удалось выполнить авторизацию через Telegram');
+    }
+  }, [initDataRaw, launchParams]);
+
+  /**
+   * Обновление токена
+   */
+  const refreshToken = useCallback(async (): Promise<boolean> => {
+    try {
+      setAuthState(prev => ({ ...prev, isLoading: true }));
+      
+      const newToken = await TokenRefreshService.refreshToken();
+      
+      if (newToken) {
+        setToken(newToken);
+        markRefreshTime();
+        
+        // Загружаем обновленные данные пользователя
+        const user = await loadUserFromToken(newToken);
+        if (user) {
+          setAuth(user, newToken);
+          setAuthState(prev => ({
+            ...prev,
             user,
-            token: storedToken,
-            isLoading: false,
+            token: newToken,
+            isAuthenticated: true,
             error: null,
-          });
-          logger.logAuth('Stored token is valid');
+          }));
+          
+          logger.logAuth('Token refresh completed successfully');
           return true;
         }
-        
-        // Токен невалидный или истек, пробуем перезапросить
-        logger.logAuth('Token expired or invalid, attempting reauthorization');
-        localStorage.removeItem('auth_token');
-        
-        // Если есть сохраненные данные Telegram, пробуем автоматически переавторизоваться
-        if (initDataStorage) {
-          try {
-            logger.logAuth('Attempting to use stored Telegram data for reauthorization');
-            const refreshResponse = await fetch('/api/auth/telegram', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ initData: initDataStorage }),
-            });
-
-            if (refreshResponse.ok) {
-              const { user, token } = await refreshResponse.json();
-              saveAuthData(user, token);
-              logger.logAuth('Automatic reauthorization successful');
-              return true;
-            } else {
-              const errorData = await refreshResponse.json();
-              logger.error('Reauthorization failed:', errorData.error || 'Unknown error');
-            }
-          } catch (refreshError) {
-            logger.error('Error during automatic reauthorization:', refreshError);
-          }
-        } else {
-          logger.logAuth('No initData available for reauthorization');
-        }
-      } catch (error) {
-        logger.error('Error validating stored token:', error);
-        localStorage.removeItem('auth_token');
       }
       
+      // Если обновление не удалось, очищаем данные
+      await logout();
       return false;
     } catch (error) {
-      logger.error('Error reading authentication from localStorage:', error);
+      logger.error('Token refresh failed:', error);
+      setAuthState(prev => ({
+        ...prev,
+        error: 'Не удалось обновить токен авторизации',
+        isLoading: false,
+      }));
       return false;
     }
-  }, [setAuth, saveAuthData]);
+  }, [setToken, markRefreshTime, loadUserFromToken, setAuth]);
 
-  // Функция для удаления данных аутентификации при выходе
-  const logout = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    
+  /**
+   * Выход из системы
+   */
+  const logout = useCallback(async () => {
     try {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('telegramInitData');
+      clearToken();
+      clearAuth();
+      
       setAuthState({
         user: null,
         token: null,
         isLoading: false,
         error: null,
+        isAuthenticated: false,
       });
       
-      // Сообщаем Telegram о выходе через SDK сервис
-      if (telegramSDKService.isAvailable()) {
-        telegramSDKService.sendData({ type: 'auth_logout' });
-        logger.logAuth('Logout event sent to Telegram via SDK');
-      }
-      
-      logger.logAuth('3GIS user logged out successfully');
+      logger.logAuth('User logged out successfully');
     } catch (error) {
       logger.error('Error during logout:', error);
     }
-  }, []);
+  }, [clearToken, clearAuth]);
 
-  // Основная логика авторизации через SDK v3.x
-  useEffect(() => {
-    // Инициализируем SDK только на стороне клиента
-    if (typeof window === 'undefined') return;
-
-    let isMounted = true;
-    logger.logAuth('3GIS Auth Hook initialized with SDK v3.x');
-
-    // Проверяем наличие Telegram WebApp API через SDK сервис
-    const isTelegramAvailable = telegramSDKService.isAvailable();
-    logger.logAuth(`Telegram WebApp availability via SDK: ${isTelegramAvailable ? 'Available' : 'Not available'}`);
-
-    // Инициализация SDK сервиса
-    if (isTelegramAvailable) {
-      telegramSDKService.initialize();
-      logger.logAuth('Telegram SDK service initialized in 3GIS auth hook');
+  /**
+   * Обновление геолокации пользователя
+   */
+  const updateLocation = useCallback(async (latitude: number, longitude: number) => {
+    if (!authState.token) {
+      logger.warn('Cannot update location: no auth token');
+      return;
     }
 
-    const authenticate = async () => {
+    try {
+      await apiClient.patch('/api/user/location', {
+        latitude,
+        longitude,
+      });
+
+      updateUserLocation(latitude, longitude);
+      logger.logAuth('User location updated successfully');
+    } catch (error) {
+      logger.error('Error updating user location:', error);
+    }
+  }, [authState.token, updateUserLocation]);
+
+  /**
+   * Очистка ошибок
+   */
+  const clearError = useCallback(() => {
+    setAuthState(prev => ({ ...prev, error: null }));
+    setError(null);
+  }, [setError]);
+
+  /**
+   * Проактивное обновление токена при необходимости
+   */
+  useEffect(() => {
+    if (token && needsRefresh && isValid) {
+      logger.logAuth('Token needs refresh, initiating proactive refresh');
+      refreshToken();
+    }
+  }, [token, needsRefresh, isValid, refreshToken]);
+
+  /**
+   * Основная логика инициализации аутентификации
+   */
+  useEffect(() => {
+    let isMounted = true;
+
+    const initializeAuth = async () => {
       try {
-        // Проверяем наличие существующего токена
-        const hasValidToken = await checkExistingAuth();
-        if (hasValidToken) {
-          logger.logAuth('Valid token found, authentication successful');
-          return;
-        }
+        setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+        setLoading(true);
 
-        // Получаем initData через SDK v3.x
-        let initDataString = '';
-        
-        logger.logAuth(`SDK Hooks state - launchParams: ${!!launchParams}, initDataRaw: ${!!initDataRaw}`);
-        
-        // Приоритет 1: SDK v3.x useRawInitData()
-        if (initDataRaw && typeof initDataRaw === 'string') {
-          initDataString = initDataRaw;
-          logger.logAuth('Got initData through SDK v3.x useRawInitData()');
-        } 
-        // Приоритет 2: SDK сервис (fallback)
-        else if (telegramSDKService.isAvailable()) {
-          const serviceInitData = telegramSDKService.getInitData();
-          if (serviceInitData) {
-            initDataString = serviceInitData;
-            logger.logAuth('Got initData through SDK service fallback');
-          }
-        }
-        
-        // Приоритет 3: URL hash (для Desktop клиента)
-        if (!initDataString) {
-          const hashInitData = getHashFromUrl();
-          if (hashInitData) {
-            logger.logAuth('Got initData from URL hash');
-            initDataString = hashInitData;
-          }
-        }
-
-        // В режиме разработки всегда продолжаем даже без initData
-        if (!initDataString && process.env.NODE_ENV !== 'development') {
-          if (isMounted) {
-            const errorMessage = 'Невозможно получить данные для авторизации. Пожалуйста, откройте приложение через Telegram.';
-            setAuthState({
-              user: null,
-              token: null,
+        // Шаг 1: Проверяем существующий токен
+        if (token && isValid) {
+          logger.logAuth('Valid token found, loading user data');
+          
+          const user = await loadUserFromToken(token);
+          if (user && isMounted) {
+            setAuth(user, token);
+            setAuthState(prev => ({
+              ...prev,
+              user,
+              token,
+              isAuthenticated: true,
               isLoading: false,
-              error: errorMessage,
-            });
-            setError(errorMessage);
-            logger.error('Authentication failed: No initData available');
+            }));
+            logger.logAuth('Authentication restored from stored token');
+            return;
           }
-          return;
         }
 
-        // Сохраняем initData для возможного повторного использования
-        if (initDataString) {
-          saveInitDataToStorage(initDataString);
+        // Шаг 2: Токен недействителен или отсутствует, авторизуемся через Telegram
+        if (!token || !isValid || shouldRefreshToken()) {
+          logger.logAuth('No valid token, attempting Telegram authentication');
+          
+          const authResult = await authenticateWithTelegram();
+          if (authResult && isMounted) {
+            const { user, token: newToken } = authResult;
+            
+            setToken(newToken);
+            setAuth(user, newToken);
+            markRefreshTime();
+            
+            setAuthState(prev => ({
+              ...prev,
+              user,
+              token: newToken,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null,
+            }));
+            
+            logger.logAuth('New authentication completed successfully');
+            return;
+          }
         }
 
-        // Отправляем запрос на аутентификацию с данными
-        await authenticateWithServer(initDataString);
-        
-      } catch (error) {
-        logger.error('Authentication error:', error);
+        // Шаг 3: Аутентификация не удалась
         if (isMounted) {
-          const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка авторизации';
-          setAuthState({
-            user: null,
-            token: null,
+          setAuthState(prev => ({
+            ...prev,
+            isLoading: false,
+            error: 'Не удалось выполнить авторизацию',
+          }));
+          logger.warn('Authentication failed');
+        }
+
+      } catch (error) {
+        logger.error('Authentication initialization error:', error);
+        
+        if (isMounted) {
+          const errorMessage = error instanceof Error ? error.message : 'Ошибка инициализации авторизации';
+          setAuthState(prev => ({
+            ...prev,
             isLoading: false,
             error: errorMessage,
-          });
+          }));
           setError(errorMessage);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
         }
       }
     };
 
-    // Функция для отправки запроса авторизации на сервер
-    const authenticateWithServer = async (data: string) => {
-      logger.logAuth('Sending authentication request to /api/auth/telegram');
-      try {
-        const response = await fetch('/api/auth/telegram', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ initData: data }),
-        });
+    // Инициализируем только на клиенте и при наличии необходимых данных
+    if (typeof window !== 'undefined') {
+      initializeAuth();
+    }
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Ошибка аутентификации на сервере');
-        }
-
-        const { user, token } = await response.json();
-        
-        if (isMounted) {
-          saveAuthData(user, token);
-          logger.logAuth('3GIS Authentication successful via SDK v3.x');
-        }
-      } catch (error) {
-        logger.error('Server authentication error:', error);
-        if (isMounted) {
-          const errorMessage = error instanceof Error ? error.message : 'Ошибка сервера при аутентификации';
-          setAuthState({
-            user: null,
-            token: null,
-            isLoading: false,
-            error: errorMessage,
-          });
-          setError(errorMessage);
-        }
-      }
-    };
-
-    // Выполняем аутентификацию
-    setLoading(true);
-    authenticate().finally(() => {
-      if (isMounted) {
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-      }
-    });
-
-    // Очистка при размонтировании компонента
     return () => {
       isMounted = false;
     };
-  }, [initDataRaw, launchParams, checkExistingAuth, saveAuthData, setError, setLoading]);
+  }, [
+    token,
+    isValid,
+    setToken,
+    setAuth,
+    setLoading,
+    setError,
+    loadUserFromToken,
+    authenticateWithTelegram,
+    shouldRefreshToken,
+    markRefreshTime,
+  ]);
+
+  /**
+   * Логирование изменений состояния аутентификации
+   */
+  useEffect(() => {
+    logger.logAuth(`Auth state changed: authenticated=${authState.isAuthenticated}, loading=${authState.isLoading}, hasError=${!!authState.error}`);
+  }, [authState.isAuthenticated, authState.isLoading, authState.error]);
 
   return {
+    // State
     ...authState,
+    
+    // Actions
     logout,
+    refreshToken,
     updateLocation,
+    clearError,
   };
 }
+
+/**
+ * Утилиты для работы с аутентификацией
+ */
+export const AuthUtils = {
+  /**
+   * Проверка необходимости логина
+   */
+  requiresLogin(authState: AuthState): boolean {
+    return !authState.isAuthenticated && !authState.isLoading;
+  },
+
+  /**
+   * Получение приветственного сообщения
+   */
+  getWelcomeMessage(user: User | null): string {
+    if (!user) return 'Добро пожаловать в 3GIS!';
+    
+    const name = user.firstName || user.username || 'Пользователь';
+    return `Привет, ${name}!`;
+  },
+
+  /**
+   * Проверка премиум статуса
+   */
+  isPremiumUser(user: User | null): boolean {
+    return user?.isPremium || false;
+  },
+
+  /**
+   * Форматирование времени последней активности
+   */
+  formatLastSeen(user: User | null): string {
+    if (!user?.lastSeenAt) return 'Никогда';
+    
+    return new Date(user.lastSeenAt).toLocaleString('ru-RU');
+  },
+};

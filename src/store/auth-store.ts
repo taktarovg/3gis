@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { User, City } from '@prisma/client';
+import { AUTH_CONSTANTS } from '@/lib/auth';
 import { logger } from '@/utils/logger';
 
 // Типы данных для хранилища 3GIS
@@ -64,6 +65,17 @@ export const useAuthStore = create<AuthState>()(
 
       setAuth: (user, token) => {
         logger.logAuth('Setting 3GIS authentication data');
+        
+        // Сохраняем токен в localStorage с правильным ключом
+        if (isBrowser && isLocalStorageAvailable()) {
+          try {
+            localStorage.setItem(AUTH_CONSTANTS.TOKEN_STORAGE_KEY, token);
+            localStorage.setItem('user', JSON.stringify(user));
+          } catch (error) {
+            logger.error('Error saving auth data to localStorage:', error);
+          }
+        }
+        
         set({ user, token, isLoading: false, error: null });
       },
 
@@ -71,7 +83,8 @@ export const useAuthStore = create<AuthState>()(
         // Удаляем данные из localStorage при выходе
         if (isBrowser && isLocalStorageAvailable()) {
           try {
-            localStorage.removeItem('auth_token');
+            localStorage.removeItem(AUTH_CONSTANTS.TOKEN_STORAGE_KEY);
+            localStorage.removeItem(AUTH_CONSTANTS.TOKEN_REFRESH_KEY);
             localStorage.removeItem('user');
             localStorage.removeItem('telegramInitData');
             logger.logAuth('3GIS Authentication data removed from localStorage');

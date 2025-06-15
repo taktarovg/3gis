@@ -22,9 +22,9 @@ interface CreateTokenParams {
   user: {
     id: number;
     telegramId: string;
-    username?: string;
+    username?: string | null;
     firstName: string;
-    lastName?: string;
+    lastName?: string | null;
     isPremium?: boolean;
     language?: string;
   };
@@ -46,9 +46,9 @@ export function createToken({ user, expiresIn = '7d' }: CreateTokenParams): stri
   const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
     userId: user.id,
     telegramId: user.telegramId,
-    username: user.username,
+    username: user.username || undefined,
     firstName: user.firstName,
-    lastName: user.lastName,
+    lastName: user.lastName || undefined,
     isPremium: user.isPremium || false,
     language: user.language || 'ru',
   };
@@ -281,11 +281,18 @@ export function verifyResetToken(token: string): number | null {
  * Константы для аутентификации
  */
 export const AUTH_CONSTANTS = {
-  TOKEN_EXPIRY: '7d',
+  // Сократили срок JWT для безопасности
+  TOKEN_EXPIRY: '24h',              // Вместо 7 дней
   RESET_TOKEN_EXPIRY: '1h',
   MAX_LOGIN_ATTEMPTS: 5,
-  LOGIN_COOLDOWN: 15 * 60 * 1000, // 15 минут в миллисекундах
+  LOGIN_COOLDOWN: 15 * 60 * 1000,   // 15 минут в миллисекундах
   SESSION_DURATION: 24 * 60 * 60 * 1000, // 24 часа в миллисекундах
+  
+  // Новые константы для управления токенами
+  REFRESH_THRESHOLD: 2 * 60 * 60,   // Обновлять за 2 часа до истечения
+  INIT_DATA_EXPIRY: 24 * 60 * 60,   // 24 часа для initData
+  TOKEN_STORAGE_KEY: '3gis_auth_token',
+  TOKEN_REFRESH_KEY: '3gis_token_refresh_time',
 } as const;
 
 /**
