@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { getStaticMapUrl } from '@/lib/maps/google-maps';
 
 interface StaticMapPreviewProps {
@@ -35,13 +36,13 @@ export function StaticMapPreview({
   });
 
   return (
-    <img
+    <Image
       src={mapUrl}
       alt={alt}
       width={width}
       height={height}
       className={`rounded-lg border border-gray-300 ${className}`}
-      loading="lazy"
+      priority={false}
     />
   );
 }

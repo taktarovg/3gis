@@ -108,7 +108,7 @@ export function GoogleMap({
     };
 
     addMarkers();
-  }, [map, businesses, onBusinessClick]);
+  }, [map, businesses, onBusinessClick, markers]);
 
   if (error) {
     return (

@@ -118,6 +118,12 @@ const nextConfig = {
         hostname: '3gis.us',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'maps.googleapis.com',
+        port: '',
+        pathname: '/maps/api/staticmap**',
       }
     ],
     formats: ['image/webp', 'image/avif'],
