@@ -95,6 +95,8 @@ export async function GET(request: NextRequest) {
     });
 
     // Если есть координаты пользователя, сортируем по расстоянию
+    let finalBusinesses: any[] = businesses;
+    
     if (lat && lng) {
       const userLat = parseFloat(lat);
       const userLng = parseFloat(lng);
@@ -114,12 +116,12 @@ export async function GET(request: NextRequest) {
         radius
       );
       
-      businesses = businessesWithDistance;
+      finalBusinesses = businessesWithDistance;
     }
 
     // Применяем пагинацию после сортировки
-    const paginatedBusinesses = businesses.slice(offset, offset + limit);
-    const total = businesses.length;
+    const paginatedBusinesses = finalBusinesses.slice(offset, offset + limit);
+    const total = finalBusinesses.length;
 
     return NextResponse.json({
       businesses: paginatedBusinesses,
@@ -131,7 +133,7 @@ export async function GET(request: NextRequest) {
       ...(lat && lng && {
         userLocation: { lat: parseFloat(lat), lng: parseFloat(lng) },
         radius,
-        nearbyCount: businesses.length
+        nearbyCount: finalBusinesses.length
       })
     });
 
