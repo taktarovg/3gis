@@ -2,6 +2,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { ArrowLeft, MapPin, Phone, Globe, Clock, Star, Share, Heart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { formatRating, formatPhoneNumber, formatBusinessHours, isBusinessOpen } from '@/lib/utils';
@@ -94,10 +95,13 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
         {/* Photo gallery */}
         {business.photos.length > 0 && (
           <div className="relative h-64 overflow-hidden">
-            <img
+            <Image
               src={business.photos[0].url}
               alt={business.name}
+              width={800}
+              height={256}
               className="w-full h-full object-cover"
+              priority
             />
             {/* Back button */}
             <button

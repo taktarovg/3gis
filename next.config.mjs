@@ -18,9 +18,6 @@ const nextConfig = {
     return `3gis-build-${Date.now()}`;
   },
 
-  // Режим standalone для оптимизации
-  output: 'standalone',
-  
   reactStrictMode: process.env.NODE_ENV === 'development',
 
   // Редиректы для 3GIS
@@ -132,38 +129,6 @@ const nextConfig = {
 
   // Webpack оптимизация
   webpack: (config, { dev, webpack }) => {
-    if (!dev) {
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            telegram: {
-              test: /[\\/]node_modules[\\/]@telegram-apps[\\/]/,
-              name: 'telegram-sdk',
-              chunks: 'all',
-              priority: 30,
-              enforce: true,
-            },
-            react: {
-              test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
-              name: 'react',
-              chunks: 'all',
-              priority: 25,
-              enforce: true,
-            },
-            ui: {
-              test: /[\\/]node_modules[\\/](lucide-react|@radix-ui)[\\/]/,
-              name: 'ui-libs',
-              chunks: 'all',
-              priority: 20,
-              enforce: true,
-            },
-          },
-        },
-      };
-    }
-
     config.resolve.alias = {
       ...config.resolve.alias,
       '@': resolve(__dirname, 'src'),
@@ -184,7 +149,6 @@ const nextConfig = {
   // Экспериментальные оптимизации
   experimental: {
     optimizeCss: process.env.NODE_ENV === 'production',
-    optimizeServerReact: true,
   },
 
   // Компилятор

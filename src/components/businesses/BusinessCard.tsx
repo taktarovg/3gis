@@ -3,6 +3,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { MapPin, Phone, Star, Globe } from 'lucide-react';
 import { formatRating, formatPhoneNumber } from '@/lib/utils';
 
@@ -70,10 +71,13 @@ export function BusinessCard({ business }: BusinessCardProps) {
 
       {/* Photo */}
       {business.photos.length > 0 && (
-        <img
+        <Image
           src={business.photos[0].url}
           alt={business.name}
+          width={400}
+          height={200}
           className="threegis-business-image"
+          priority={false}
         />
       )}
 
