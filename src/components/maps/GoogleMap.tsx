@@ -65,7 +65,7 @@ export function GoogleMap({
     };
 
     initMap();
-  }, [mapCenter.lat, mapCenter.lng, zoom]);
+  }, [mapCenter.lat, mapCenter.lng, zoom]); // Добавлены все зависимости
 
   // Добавление маркеров заведений
   useEffect(() => {
@@ -108,7 +108,7 @@ export function GoogleMap({
     };
 
     addMarkers();
-  }, [map, businesses, onBusinessClick, markers]);
+  }, [map, businesses, onBusinessClick]); // Убрали markers из зависимостей
 
   if (error) {
     return (

@@ -26,8 +26,8 @@ interface BusinessDetailProps {
     acceptsCrypto: boolean;
     businessHours?: any;
     premiumTier: string;
-    latitude?: number;
-    longitude?: number;
+    latitude?: number | null;
+    longitude?: number | null;
     category: {
       name: string;
       icon: string;
@@ -195,7 +195,7 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
         </div>
 
         {/* Встроенная карта */}
-        {business.latitude && business.longitude && (
+        {business.latitude != null && business.longitude != null && (
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-threegis-text mb-3">Местоположение</h3>
             <InlineMap 

@@ -1,6 +1,18 @@
-'use client';
+// Добавляем объявление типов для Telegram
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp: {
+        openLink: (url: string) => void;
+        sendData: (data: string) => void;
+        initData: string;
+        ready: () => void;
+      };
+    };
+  }
+}'use client';
 
-import { useTelegramWebApp } from '@telegram-apps/sdk-react';
+import { useLaunchParams } from '@telegram-apps/sdk-react';
 import { useEffect, useState } from 'react';
 
 /**
@@ -23,12 +35,19 @@ export function usePlatformDetection() {
     platform: 'web-desktop'
   });
 
-  const webApp = useTelegramWebApp();
+  // Используем новый v3 хук для получения launch параметров
+  let launchParams: any = null;
+  try {
+    launchParams = useLaunchParams();
+  } catch (error) {
+    // В случае ошибки считаем что это не Telegram окружение
+    console.log('Not in Telegram environment:', error);
+  }
 
   useEffect(() => {
     const userAgent = navigator.userAgent;
     const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    const isTelegram = !!webApp && !!webApp.initData;
+    const isTelegram = !!launchParams || !!window?.Telegram?.WebApp;
     
     // Более точное определение Telegram контекста
     const isTelegramMobile = isTelegram && isMobile;
@@ -43,26 +62,31 @@ export function usePlatformDetection() {
     else if (isTelegramDesktop) detectedPlatform = 'telegram-desktop';
     else if (isMobile) detectedPlatform = 'web-mobile';
 
-    setPlatform({
+    const newPlatform = {
       isTelegram,
       isMobile,
       isDesktop: !isMobile,
       canMakeCall,
       canOpenMaps,
       platform: detectedPlatform
-    });
+    };
+
+    // Обновляем только если изменилось
+    if (JSON.stringify(platform) !== JSON.stringify(newPlatform)) {
+      setPlatform(newPlatform);
+    }
 
     // Логирование для отладки
     console.log('🔍 Platform Detection:', {
       userAgent: userAgent.substring(0, 100),
       isTelegram,
       isMobile,
-      webAppAvailable: !!webApp,
-      initDataAvailable: !!webApp?.initData,
+      launchParamsAvailable: !!launchParams,
+      telegramWebAppAvailable: !!window?.Telegram?.WebApp,
       platform: detectedPlatform
     });
 
-  }, [webApp]);
+  }, [launchParams, platform]); // Добавили platform в зависимости
 
   return platform;
 }
@@ -72,14 +96,20 @@ export function usePlatformDetection() {
  */
 export function usePlatformActions() {
   const platform = usePlatformDetection();
-  const webApp = useTelegramWebApp();
+  let launchParams: any = null;
+  
+  try {
+    launchParams = useLaunchParams();
+  } catch (error) {
+    // Игнорируем ошибку если не в Telegram окружении
+  }
 
   const makeCall = (phoneNumber: string) => {
     const cleanPhone = phoneNumber.replace(/\D/g, '');
     
-    if (platform.isTelegram && webApp) {
+    if (platform.isTelegram && window?.Telegram?.WebApp) {
       // В Telegram используем WebApp API
-      webApp.openLink(`tel:${cleanPhone}`);
+      window.Telegram.WebApp.openLink(`tel:${cleanPhone}`);
     } else {
       // В обычном браузере
       window.open(`tel:${cleanPhone}`, '_self');
@@ -90,9 +120,9 @@ export function usePlatformActions() {
     const query = encodeURIComponent(address);
     const mapsUrl = `https://maps.google.com/?q=${query}`;
     
-    if (platform.isTelegram && webApp) {
+    if (platform.isTelegram && window?.Telegram?.WebApp) {
       // В Telegram открываем через WebApp API
-      webApp.openLink(mapsUrl);
+      window.Telegram.WebApp.openLink(mapsUrl);
     } else {
       // В обычном браузере
       window.open(mapsUrl, '_blank');
@@ -100,9 +130,9 @@ export function usePlatformActions() {
   };
 
   const shareLocation = (businessName: string, url: string) => {
-    if (platform.isTelegram && webApp) {
+    if (platform.isTelegram && window?.Telegram?.WebApp) {
       // В Telegram можем отправить сообщение
-      webApp.sendData(JSON.stringify({
+      window.Telegram.WebApp.sendData(JSON.stringify({
         type: 'share_business',
         name: businessName,
         url: url
