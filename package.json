@@ -7,13 +7,13 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "next lint --fix",
+    "lint": "next lint",
     "type-check": "tsc --noEmit",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:reset": "prisma db push --force-reset && npm run db:seed",
-    "test:build": "npm run type-check && npm run lint && npm run build"
+    "clean": "rm -rf .next node_modules package-lock.json && npm install"
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",

@@ -10,7 +10,7 @@ npm -v
 
 echo.
 echo 📦 Installing dependencies...
-call npm install
+call npm install --no-fund --no-audit
 if %errorlevel% neq 0 (
     echo ❌ npm install failed
     pause
@@ -59,9 +59,13 @@ echo 🚀 Project is ready for deployment to Vercel
 echo ================================
 
 echo.
+echo 📊 Build info:
+if exist .next echo Build directory: .next created successfully
+
+echo.
 echo 🔗 Next steps:
-echo 1. git add . ^&^& git commit -m "Fix build issues"
-echo 2. git push origin main
+echo 1. git add . ^&^& git commit -m "Fix critters dependency and optimizeCss issue"
+echo 2. git push origin main  
 echo 3. Deploy on Vercel will start automatically
 
 pause

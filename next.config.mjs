@@ -146,11 +146,6 @@ const nextConfig = {
     NEXT_PUBLIC_WEBSITE_DESCRIPTION: 'Russian Business Directory for USA',
   },
 
-  // Экспериментальные оптимизации
-  experimental: {
-    optimizeCss: process.env.NODE_ENV === 'production',
-  },
-
   // Компилятор
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {
