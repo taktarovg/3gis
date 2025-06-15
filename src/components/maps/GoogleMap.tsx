@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { initializeMap, createBusinessMarker } from '@/lib/maps/google-maps';
 import { Loader2 } from 'lucide-react';
 
@@ -38,10 +38,12 @@ export function GoogleMap({
   const [error, setError] = useState<string | null>(null);
 
   // Определяем центр карты
-  const mapCenter = center || (businesses.length > 0 
-    ? { lat: businesses[0].latitude, lng: businesses[0].longitude }
-    : { lat: 40.7128, lng: -74.0060 } // Нью-Йорк по умолчанию
-  );
+  const mapCenter = useMemo(() => {
+    return center || (businesses.length > 0 
+      ? { lat: businesses[0].latitude, lng: businesses[0].longitude }
+      : { lat: 40.7128, lng: -74.0060 } // Нью-Йорк по умолчанию
+    );
+  }, [center, businesses]);
 
   // Инициализация карты
   useEffect(() => {
@@ -68,47 +70,47 @@ export function GoogleMap({
   }, [mapCenter.lat, mapCenter.lng, zoom]); // Добавлены все зависимости
 
   // Добавление маркеров заведений
-  useEffect(() => {
+  const addMarkers = useCallback(async () => {
     if (!map || businesses.length === 0) return;
 
-    const addMarkers = async () => {
-      // Очищаем существующие маркеры
-      markers.forEach(marker => marker.setMap(null));
+    // Очищаем существующие маркеры
+    markers.forEach(marker => marker.setMap(null));
 
-      // Создаем новые маркеры
-      const newMarkers: google.maps.Marker[] = [];
-      
-      for (const business of businesses) {
-        if (business.latitude && business.longitude) {
-          try {
-            const marker = await createBusinessMarker(
-              map,
-              business,
-              onBusinessClick
-            );
-            newMarkers.push(marker);
-          } catch (error) {
-            console.error('Error creating marker for business:', business.name, error);
-          }
+    // Создаем новые маркеры
+    const newMarkers: google.maps.Marker[] = [];
+    
+    for (const business of businesses) {
+      if (business.latitude && business.longitude) {
+        try {
+          const marker = await createBusinessMarker(
+            map,
+            business,
+            onBusinessClick
+          );
+          newMarkers.push(marker);
+        } catch (error) {
+          console.error('Error creating marker for business:', business.name, error);
         }
       }
+    }
 
-      setMarkers(newMarkers);
+    setMarkers(newMarkers);
 
-      // Автоматическое масштабирование карты
-      if (businesses.length > 1) {
-        const bounds = new google.maps.LatLngBounds();
-        businesses.forEach(business => {
-          if (business.latitude && business.longitude) {
-            bounds.extend({ lat: business.latitude, lng: business.longitude });
-          }
-        });
-        map.fitBounds(bounds);
-      }
-    };
+    // Автоматическое масштабирование карты
+    if (businesses.length > 1) {
+      const bounds = new google.maps.LatLngBounds();
+      businesses.forEach(business => {
+        if (business.latitude && business.longitude) {
+          bounds.extend({ lat: business.latitude, lng: business.longitude });
+        }
+      });
+      map.fitBounds(bounds);
+    }
+  }, [map, businesses, onBusinessClick, markers]);
 
+  useEffect(() => {
     addMarkers();
-  }, [map, businesses, onBusinessClick]); // Убрали markers из зависимостей
+  }, [addMarkers]);
 
   if (error) {
     return (

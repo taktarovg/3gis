@@ -1,3 +1,8 @@
+'use client';
+
+import { useLaunchParams } from '@telegram-apps/sdk-react';
+import { useEffect, useState } from 'react';
+
 // Добавляем объявление типов для Telegram
 declare global {
   interface Window {
@@ -10,10 +15,7 @@ declare global {
       };
     };
   }
-}'use client';
-
-import { useLaunchParams } from '@telegram-apps/sdk-react';
-import { useEffect, useState } from 'react';
+}
 
 /**
  * Хук для определения контекста запуска приложения
@@ -35,19 +37,22 @@ export function usePlatformDetection() {
     platform: 'web-desktop'
   });
 
-  // Используем новый v3 хук для получения launch параметров
+  // Всегда вызываем хук на верхнем уровне
   let launchParams: any = null;
+  let hasLaunchParamsError = false;
+  
   try {
     launchParams = useLaunchParams();
   } catch (error) {
     // В случае ошибки считаем что это не Telegram окружение
+    hasLaunchParamsError = true;
     console.log('Not in Telegram environment:', error);
   }
 
   useEffect(() => {
     const userAgent = navigator.userAgent;
     const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    const isTelegram = !!launchParams || !!window?.Telegram?.WebApp;
+    const isTelegram = !hasLaunchParamsError && (!!launchParams || !!window?.Telegram?.WebApp);
     
     // Более точное определение Telegram контекста
     const isTelegramMobile = isTelegram && isMobile;
@@ -72,9 +77,7 @@ export function usePlatformDetection() {
     };
 
     // Обновляем только если изменилось
-    if (JSON.stringify(platform) !== JSON.stringify(newPlatform)) {
-      setPlatform(newPlatform);
-    }
+    setPlatform(newPlatform);
 
     // Логирование для отладки
     console.log('🔍 Platform Detection:', {
@@ -83,10 +86,11 @@ export function usePlatformDetection() {
       isMobile,
       launchParamsAvailable: !!launchParams,
       telegramWebAppAvailable: !!window?.Telegram?.WebApp,
-      platform: detectedPlatform
+      platform: detectedPlatform,
+      hasError: hasLaunchParamsError
     });
 
-  }, [launchParams, platform]); // Добавили platform в зависимости
+  }, [launchParams, hasLaunchParamsError]); // Убрали platform из зависимостей
 
   return platform;
 }
@@ -96,12 +100,16 @@ export function usePlatformDetection() {
  */
 export function usePlatformActions() {
   const platform = usePlatformDetection();
+  
+  // Всегда вызываем хук на верхнем уровне
   let launchParams: any = null;
+  let hasLaunchParamsError = false;
   
   try {
     launchParams = useLaunchParams();
   } catch (error) {
     // Игнорируем ошибку если не в Telegram окружении
+    hasLaunchParamsError = true;
   }
 
   const makeCall = (phoneNumber: string) => {
