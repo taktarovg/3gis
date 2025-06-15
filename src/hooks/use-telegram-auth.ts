@@ -58,7 +58,7 @@ interface AuthActions {
  * ✅ SSR совместимость для Next.js
  */
 export function useTelegramAuth(): AuthState & AuthActions {
-  const { setAuth, setLoading, setError, updateUserLocation, clearAuth } = useAuthStore();
+  const { setAuth, setLoading, setError, updateUserLocation, logout: clearAuth } = useAuthStore();
   const {
     token,
     payload,
