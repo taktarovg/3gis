@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { MapPin, Phone, Star, Globe, ExternalLink } from 'lucide-react';
 import { formatRating, formatPhoneNumber } from '@/lib/utils';
 import { usePlatformActions } from '@/hooks/use-platform-detection';
+import { CompactInlineMap } from '@/components/maps/InlineMap';
 
 interface Business {
   id: number;
@@ -114,10 +115,10 @@ export function BusinessCard({ business }: BusinessCardProps) {
           </div>
         )}
 
-        {/* Address + Distance */}
+        {/* Address + Distance + Compact Map */}
         <div className="threegis-business-address">
           <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
-          <div>
+          <div className="flex-1">
             <div>{business.address}, {business.city.name}</div>
             {business.distance !== undefined && (
               <div className="text-sm text-threegis-accent font-medium mt-1">
@@ -129,6 +130,24 @@ export function BusinessCard({ business }: BusinessCardProps) {
             )}
           </div>
         </div>
+
+        {/* Компактная карта */}
+        {business.latitude && business.longitude && (
+          <div className="mt-3">
+            <CompactInlineMap 
+              business={{
+                id: business.id,
+                name: business.name,
+                address: business.address,
+                latitude: business.latitude,
+                longitude: business.longitude,
+                category: business.category,
+                city: business.city,
+                premiumTier: business.premiumTier
+              }}
+            />
+          </div>
+        )}
 
         {/* Description */}
         {business.description && (

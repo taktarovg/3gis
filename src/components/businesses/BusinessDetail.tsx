@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { ArrowLeft, MapPin, Phone, Globe, Clock, Star, Share, Heart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { formatRating, formatPhoneNumber, formatBusinessHours, isBusinessOpen } from '@/lib/utils';
+import { InlineMap } from '@/components/maps/InlineMap';
+import { usePlatformActions } from '@/hooks/use-platform-detection';
 
 interface BusinessDetailProps {
   business: {
@@ -24,6 +26,8 @@ interface BusinessDetailProps {
     acceptsCrypto: boolean;
     businessHours?: any;
     premiumTier: string;
+    latitude?: number;
+    longitude?: number;
     category: {
       name: string;
       icon: string;
@@ -55,6 +59,7 @@ interface BusinessDetailProps {
 
 export function BusinessDetail({ business }: BusinessDetailProps) {
   const router = useRouter();
+  const { makeCall, openMaps, shareLocation } = usePlatformActions();
 
   const handleBack = () => {
     router.back();
@@ -62,14 +67,13 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
 
   const handleCall = () => {
     if (business.phone) {
-      const cleanPhone = business.phone.replace(/\D/g, '');
-      window.open(`tel:${cleanPhone}`, '_self');
+      makeCall(business.phone);
     }
   };
 
   const handleRoute = () => {
-    const query = encodeURIComponent(`${business.address}, ${business.city.name}, ${business.city.state}`);
-    window.open(`https://maps.google.com/?q=${query}`, '_blank');
+    const fullAddress = `${business.address}, ${business.city.name}, ${business.city.state}`;
+    openMaps(fullAddress);
   };
 
   const handleWebsite = () => {
@@ -79,13 +83,7 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
   };
 
   const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: business.name,
-        text: `${business.name} - ${business.category.name}`,
-        url: window.location.href,
-      });
-    }
+    shareLocation(business.name, window.location.href);
   };
 
   return (
@@ -195,6 +193,26 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
             </div>
           )}
         </div>
+
+        {/* Встроенная карта */}
+        {business.latitude && business.longitude && (
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-threegis-text mb-3">Местоположение</h3>
+            <InlineMap 
+              business={{
+                id: business.id,
+                name: business.name,
+                address: business.address,
+                latitude: business.latitude,
+                longitude: business.longitude,
+                category: business.category,
+                city: business.city,
+                premiumTier: business.premiumTier
+              }}
+              className="rounded-lg overflow-hidden"
+            />
+          </div>
+        )}
 
         {/* Description */}
         {business.description && (
