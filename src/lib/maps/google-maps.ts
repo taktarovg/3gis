@@ -1,7 +1,7 @@
-import { Loader } from '@googlemaps/js-api-loader';
+import { Loader, type LoaderOptions } from '@googlemaps/js-api-loader';
 
 // Конфигурация Google Maps (используем только бесплатные ESSENTIALS API)
-const GOOGLE_MAPS_CONFIG = {
+const GOOGLE_MAPS_CONFIG: LoaderOptions = {
   apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
   version: 'weekly',
   libraries: ['places', 'geometry'],
