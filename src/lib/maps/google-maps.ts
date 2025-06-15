@@ -15,7 +15,7 @@ let mapLoader: Loader | null = null;
 /**
  * Получение инициализированного Google Maps API
  */
-export async function getGoogleMapsApi(): Promise<typeof google.maps> {
+export async function getGoogleMapsApi(): Promise<typeof google> {
   if (!mapLoader) {
     mapLoader = new Loader(GOOGLE_MAPS_CONFIG);
   }
@@ -30,7 +30,7 @@ export async function initializeMap(
   element: HTMLElement,
   options: google.maps.MapOptions = {}
 ): Promise<google.maps.Map> {
-  const google = await getGoogleMapsApi();
+  const googleLib = await getGoogleMapsApi();
   
   const defaultOptions: google.maps.MapOptions = {
     zoom: 13,
@@ -39,7 +39,7 @@ export async function initializeMap(
     streetViewControl: false,
     fullscreenControl: false,
     zoomControl: true,
-    mapTypeId: google.maps.MapTypeId.ROADMAP,
+    mapTypeId: googleLib.maps.MapTypeId.ROADMAP,
     styles: [
       {
         featureType: 'poi.business',
@@ -49,7 +49,7 @@ export async function initializeMap(
     ...options,
   };
   
-  return new google.maps.Map(element, defaultOptions);
+  return new googleLib.maps.Map(element, defaultOptions);
 }
 
 /**
@@ -61,8 +61,8 @@ export async function geocodeAddress(address: string): Promise<{
   formattedAddress: string;
 } | null> {
   try {
-    const google = await getGoogleMapsApi();
-    const geocoder = new google.maps.Geocoder();
+    const googleLib = await getGoogleMapsApi();
+    const geocoder = new googleLib.maps.Geocoder();
     
     const result = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
       geocoder.geocode(
@@ -107,8 +107,8 @@ export async function reverseGeocode(lat: number, lng: number): Promise<{
   zipCode?: string;
 } | null> {
   try {
-    const google = await getGoogleMapsApi();
-    const geocoder = new google.maps.Geocoder();
+    const googleLib = await getGoogleMapsApi();
+    const geocoder = new googleLib.maps.Geocoder();
     
     const result = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
       geocoder.geocode(
@@ -171,12 +171,12 @@ export async function createBusinessMarker(
   },
   onClick?: (business: any) => void
 ): Promise<google.maps.Marker> {
-  const google = await getGoogleMapsApi();
+  const googleLib = await getGoogleMapsApi();
   
   // Цвет маркера в зависимости от статуса
   const markerColor = business.premiumTier && business.premiumTier !== 'FREE' ? '#FFD700' : '#3B82F6';
   
-  const marker = new google.maps.Marker({
+  const marker = new googleLib.maps.Marker({
     position: { lat: business.latitude, lng: business.longitude },
     map: map,
     title: business.name,
@@ -190,8 +190,8 @@ export async function createBusinessMarker(
           </text>
         </svg>
       `)}`,
-      scaledSize: new google.maps.Size(32, 40),
-      anchor: new google.maps.Point(16, 40),
+      scaledSize: new googleLib.maps.Size(32, 40),
+      anchor: new googleLib.maps.Point(16, 40),
     },
   });
   

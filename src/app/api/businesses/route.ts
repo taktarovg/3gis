@@ -1,7 +1,7 @@
 // src/app/api/businesses/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { DistanceCalculator } from '@/lib/maps/distance-calculator';
+import { DistanceCalculator } from '@/lib/distance-calculator';
 
 export async function GET(request: NextRequest) {
   try {

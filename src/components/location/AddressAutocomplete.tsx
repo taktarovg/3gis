@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Search, MapPin, Loader2 } from 'lucide-react';
-import { useDebounce } from '@/hooks/use-debounce';
 
 interface AddressAutocompleteProps {
   onAddressSelect: (address: string) => void;
@@ -14,6 +13,25 @@ interface AddressSuggestion {
   address: string;
   city: string;
   state: string;
+}
+
+/**
+ * Простой хук debounce для этого компонента
+ */
+function useDebounce(value: string, delay: number): string {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
 }
 
 /**

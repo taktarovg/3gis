@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { initializeMap, createBusinessMarker } from '@/lib/maps/google-maps';
-import { DistanceCalculator } from '@/lib/maps/distance-calculator';
+import { Loader2 } from 'lucide-react';
 
 interface GoogleMapProps {
   businesses: Array<{
@@ -21,21 +21,27 @@ interface GoogleMapProps {
 }
 
 /**
- * Интерактивная карта Google Maps с маркерами заведений
+ * Интерактивная Google карта с маркерами заведений
  */
 export function GoogleMap({
   businesses,
   center,
-  zoom,
+  zoom = 13,
   height = '400px',
   onBusinessClick,
-  className = '',
+  className = ''
 }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Определяем центр карты
+  const mapCenter = center || (businesses.length > 0 
+    ? { lat: businesses[0].latitude, lng: businesses[0].longitude }
+    : { lat: 40.7128, lng: -74.0060 } // Нью-Йорк по умолчанию
+  );
 
   // Инициализация карты
   useEffect(() => {
@@ -44,44 +50,26 @@ export function GoogleMap({
     const initMap = async () => {
       try {
         setIsLoading(true);
-        setError(null);
-
-        // Определяем центр карты
-        let mapCenter = center;
-        if (!mapCenter && businesses.length > 0) {
-          const validBusinesses = businesses.filter(b => b.latitude && b.longitude);
-          if (validBusinesses.length > 0) {
-            mapCenter = DistanceCalculator.getCenterPoint(validBusinesses);
-          }
-        }
-        
-        // Определяем zoom
-        let mapZoom = zoom;
-        if (!mapZoom && businesses.length > 0) {
-          const validBusinesses = businesses.filter(b => b.latitude && b.longitude);
-          mapZoom = DistanceCalculator.calculateZoom(validBusinesses);
-        }
-
         const googleMap = await initializeMap(mapRef.current!, {
           center: mapCenter,
-          zoom: mapZoom || 13,
+          zoom,
         });
-        
         setMap(googleMap);
-        setIsLoading(false);
+        setError(null);
       } catch (error) {
         console.error('Error initializing map:', error);
         setError('Не удалось загрузить карту');
+      } finally {
         setIsLoading(false);
       }
     };
 
     initMap();
-  }, [center, zoom, businesses]);
+  }, [mapCenter.lat, mapCenter.lng, zoom]);
 
   // Добавление маркеров заведений
   useEffect(() => {
-    if (!map) return;
+    if (!map || businesses.length === 0) return;
 
     const addMarkers = async () => {
       // Очищаем существующие маркеры
@@ -100,15 +88,15 @@ export function GoogleMap({
             );
             newMarkers.push(marker);
           } catch (error) {
-            console.error('Error creating marker for business:', business.id, error);
+            console.error('Error creating marker for business:', business.name, error);
           }
         }
       }
 
       setMarkers(newMarkers);
 
-      // Автоматическое масштабирование карты для всех маркеров
-      if (newMarkers.length > 1) {
+      // Автоматическое масштабирование карты
+      if (businesses.length > 1) {
         const bounds = new google.maps.LatLngBounds();
         businesses.forEach(business => {
           if (business.latitude && business.longitude) {
@@ -120,31 +108,28 @@ export function GoogleMap({
     };
 
     addMarkers();
-  }, [map, businesses, onBusinessClick, markers]);
+  }, [map, businesses, onBusinessClick]);
 
   if (error) {
     return (
       <div 
-        className={`flex items-center justify-center border border-gray-300 rounded-lg bg-gray-50 ${className}`}
+        className={`flex items-center justify-center bg-gray-100 rounded-lg border border-gray-300 ${className}`}
         style={{ height }}
       >
-        <div className="text-center p-4">
-          <div className="text-red-500 text-4xl mb-2">⚠️</div>
-          <p className="text-gray-600">{error}</p>
+        <div className="text-center text-gray-500">
+          <p>⚠️ {error}</p>
+          <p className="text-sm">Проверьте подключение к интернету</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative ${className}`} style={{ height }}>
       {isLoading && (
-        <div 
-          className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg z-10"
-          style={{ height }}
-        >
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg border border-gray-300 z-10">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-blue-500" />
             <p className="text-gray-600">Загружаем карту...</p>
           </div>
         </div>
@@ -152,15 +137,34 @@ export function GoogleMap({
       
       <div
         ref={mapRef}
-        style={{ height }}
-        className="w-full rounded-lg border border-gray-300"
+        className="w-full h-full rounded-lg border border-gray-300"
+        style={{ opacity: isLoading ? 0 : 1 }}
       />
       
-      {markers.length > 0 && (
-        <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-md px-3 py-2 text-sm text-gray-600">
-          Найдено: {markers.length} мест
+      {/* Количество заведений на карте */}
+      {!isLoading && businesses.length > 0 && (
+        <div className="absolute top-3 left-3 bg-white rounded-lg shadow-md px-3 py-1 text-sm font-medium">
+          {businesses.length} {businesses.length === 1 ? 'место' : 'мест'}
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Простая карта только для показа (без интерактива)
+ */
+export function SimpleMap({ 
+  businesses, 
+  center,
+  className = ''
+}: Omit<GoogleMapProps, 'onBusinessClick' | 'height'>) {
+  return (
+    <GoogleMap
+      businesses={businesses}
+      center={center}
+      height="300px"
+      className={className}
+    />
   );
 }
