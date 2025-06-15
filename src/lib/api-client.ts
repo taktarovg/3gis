@@ -61,7 +61,7 @@ export class ApiClient {
     }
 
     // Устанавливаем Content-Type по умолчанию
-    if (!headers.has('Content-Type') && (fetchOptions.method === 'POST' || fetchOptions.method === 'PUT')) {
+    if (!headers.has('Content-Type') && (fetchOptions.method === 'POST' || fetchOptions.method === 'PUT' || fetchOptions.method === 'PATCH')) {
       headers.set('Content-Type', 'application/json');
     }
 
@@ -168,6 +168,21 @@ export class ApiClient {
     return this.request<T>(url, {
       ...options,
       method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  /**
+   * PATCH запрос
+   */
+  async patch<T = any>(
+    url: string, 
+    data?: any, 
+    options: RequestOptions = {}
+  ): Promise<T> {
+    return this.request<T>(url, {
+      ...options,
+      method: 'PATCH',
       body: data ? JSON.stringify(data) : undefined,
     });
   }
@@ -292,7 +307,7 @@ export const ApiClientHooks = {
    */
   createMutationFn: <TData, TVariables>(
     url: string,
-    method: 'POST' | 'PUT' | 'DELETE' = 'POST'
+    method: 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'POST'
   ) => {
     return async (variables: TVariables): Promise<TData> => {
       switch (method) {
@@ -300,6 +315,8 @@ export const ApiClientHooks = {
           return apiClient.post<TData>(url, variables);
         case 'PUT':
           return apiClient.put<TData>(url, variables);
+        case 'PATCH':
+          return apiClient.patch<TData>(url, variables);
         case 'DELETE':
           return apiClient.delete<TData>(url);
         default:
