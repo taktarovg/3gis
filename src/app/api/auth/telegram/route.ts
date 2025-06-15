@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
     });
     
     // Загружаем аватар в AWS S3
-    let avatarUrl: string | null = userData.photoUrl;
+    let avatarUrl: string | null = userData.photoUrl || null;
     if (userData.photoUrl) {
       try {
         avatarUrl = await uploadUserAvatar(userData.photoUrl, userData.telegramId);

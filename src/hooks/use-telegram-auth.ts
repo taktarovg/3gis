@@ -143,9 +143,6 @@ export function useTelegramAuth(): AuthState & AuthActions {
     }
   }, [initDataRaw, launchParams]);
 
-  /**
-   * Обновление токена
-   */
   const refreshToken = useCallback(async (): Promise<boolean> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));
@@ -174,7 +171,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
       }
       
       // Если обновление не удалось, очищаем данные
-      await logout();
+      await logoutUser();
       return false;
     } catch (error) {
       logger.error('Token refresh failed:', error);
@@ -185,12 +182,12 @@ export function useTelegramAuth(): AuthState & AuthActions {
       }));
       return false;
     }
-  }, [setToken, markRefreshTime, loadUserFromToken, setAuth]);
+  }, [setToken, markRefreshTime, loadUserFromToken, setAuth, clearToken, clearAuth]);
 
   /**
    * Выход из системы
    */
-  const logout = useCallback(async () => {
+  const logoutUser = useCallback(async () => {
     try {
       clearToken();
       clearAuth();
@@ -208,6 +205,11 @@ export function useTelegramAuth(): AuthState & AuthActions {
       logger.error('Error during logout:', error);
     }
   }, [clearToken, clearAuth]);
+
+  /**
+   * Выход из системы (псевдоним для совместимости)
+   */
+  const logout = logoutUser;
 
   /**
    * Обновление геолокации пользователя

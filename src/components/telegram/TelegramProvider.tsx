@@ -1,26 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { SDKProvider, init } from '@telegram-apps/sdk-react';
+import { init } from '@telegram-apps/sdk-react';
 import { logger } from '@/utils/logger';
 
 interface TelegramProviderProps {
   children: React.ReactNode;
   debug?: boolean;
-  acceptCustomStyles?: boolean;
 }
 
 /**
  * СОВРЕМЕННЫЙ TELEGRAM SDK PROVIDER ДЛЯ 3GIS
  * ✅ Поддержка @telegram-apps/sdk-react v3.3.1
- * ✅ Правильная инициализация SDK
+ * ✅ Правильная инициализация SDK без SDKProvider
  * ✅ Debug режим для разработки
  * ✅ Обработка ошибок инициализации
  */
 export function TelegramProvider({
   children,
   debug = process.env.NODE_ENV === 'development',
-  acceptCustomStyles = true,
 }: TelegramProviderProps) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
@@ -30,14 +28,18 @@ export function TelegramProvider({
 
     const initializeSDK = async () => {
       try {
-        logger.info('🚀 Initializing Telegram SDK v3.x...');
+        if (debug) {
+          logger.info('🚀 Initializing Telegram SDK v3.x...');
+        }
         
-        // Инициализация SDK с обработкой ошибок
+        // Инициализация SDK v3.x - без SDKProvider
         await init();
         
         if (isMounted) {
           setIsInitialized(true);
-          logger.info('✅ Telegram SDK initialized successfully');
+          if (debug) {
+            logger.info('✅ Telegram SDK initialized successfully');
+          }
         }
       } catch (error) {
         logger.error('❌ Telegram SDK initialization failed:', error);
@@ -62,7 +64,7 @@ export function TelegramProvider({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [debug]);
 
   // Показываем ошибку инициализации
   if (initError) {
@@ -105,11 +107,7 @@ export function TelegramProvider({
   }
 
   // Возвращаем приложение с инициализированным SDK
-  return (
-    <SDKProvider acceptCustomStyles={acceptCustomStyles} debug={debug}>
-      {children}
-    </SDKProvider>
-  );
+  return <>{children}</>;
 }
 
 /**
@@ -117,7 +115,7 @@ export function TelegramProvider({
  */
 export function withTelegramProvider<T extends Record<string, any>>(
   Component: React.ComponentType<T>,
-  options?: { debug?: boolean; acceptCustomStyles?: boolean }
+  options?: { debug?: boolean }
 ) {
   const WrappedComponent = (props: T) => (
     <TelegramProvider {...options}>
