@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { init } from '@telegram-apps/sdk-react';
 import { logger } from '@/utils/logger';
 
 interface TelegramProviderProps {
@@ -10,11 +9,11 @@ interface TelegramProviderProps {
 }
 
 /**
- * СОВРЕМЕННЫЙ TELEGRAM SDK PROVIDER ДЛЯ 3GIS
- * ✅ Поддержка @telegram-apps/sdk-react v3.3.1
- * ✅ Правильная инициализация SDK без SDKProvider
- * ✅ Debug режим для разработки
+ * ОБНОВЛЕННЫЙ TELEGRAM PROVIDER ДЛЯ 3GIS
+ * ✅ Использует нативный Telegram WebApp API
+ * ✅ SSR совместимость для Next.js
  * ✅ Обработка ошибок инициализации
+ * ✅ Graceful fallback для разработки
  */
 export function TelegramProvider({
   children,
@@ -26,36 +25,71 @@ export function TelegramProvider({
   useEffect(() => {
     let isMounted = true;
 
-    const initializeSDK = async () => {
+    const initializeWebApp = async () => {
       try {
         if (debug) {
-          logger.info('🚀 Initializing Telegram SDK v3.x...');
+          logger.info('🚀 Initializing Telegram WebApp...');
         }
         
-        // Инициализация SDK v3.x - без SDKProvider
-        await init();
+        // Проверяем доступность Telegram WebApp
+        if (typeof window !== 'undefined') {
+          if (window.Telegram?.WebApp) {
+            const webApp = window.Telegram.WebApp;
+            
+            // Инициализируем WebApp
+            webApp.ready();
+            
+            // Настройки интерфейса для 3GIS
+            try {
+              webApp.expand();
+              
+              // Цвета для 3GIS
+              if (typeof webApp.setHeaderColor === 'function') {
+                webApp.setHeaderColor('#1f2937'); // gray-800
+              }
+              
+              if (typeof webApp.setBackgroundColor === 'function') {
+                webApp.setBackgroundColor('#f9fafb'); // gray-50
+              }
+              
+              if (debug) {
+                logger.info('✅ Telegram WebApp configured for 3GIS');
+              }
+            } catch (configError) {
+              if (debug) {
+                logger.warn('⚠️ Some WebApp features not available:', configError);
+              }
+            }
+          } else {
+            // Для разработки без Telegram
+            if (debug) {
+              logger.warn('⚠️ Telegram WebApp not available - running in development mode');
+            }
+          }
+        }
         
         if (isMounted) {
           setIsInitialized(true);
           if (debug) {
-            logger.info('✅ Telegram SDK initialized successfully');
+            logger.info('✅ 3GIS Telegram initialization completed');
           }
         }
       } catch (error) {
-        logger.error('❌ Telegram SDK initialization failed:', error);
+        logger.error('❌ Telegram WebApp initialization failed:', error);
         
         if (isMounted) {
           const errorMessage = error instanceof Error 
             ? error.message 
-            : 'Unknown SDK initialization error';
+            : 'Unknown WebApp initialization error';
           setInitError(errorMessage);
         }
       }
     };
 
-    // Инициализируем SDK только на клиенте
+    // Инициализируем WebApp только на клиенте
     if (typeof window !== 'undefined') {
-      initializeSDK();
+      // Небольшая задержка для загрузки Telegram script
+      setTimeout(initializeWebApp, 100);
     } else {
       // На сервере считаем инициализированным для SSR
       setIsInitialized(true);
@@ -73,7 +107,7 @@ export function TelegramProvider({
         <div className="text-center max-w-md">
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Ошибка инициализации Telegram SDK
+            Ошибка инициализации Telegram
           </h2>
           <p className="text-gray-600 mb-6">
             {initError}
@@ -89,24 +123,38 @@ export function TelegramProvider({
     );
   }
 
-  // Показываем загрузку пока SDK инициализируется
+  // Показываем загрузку пока WebApp инициализируется
   if (!isInitialized) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <h2 className="text-lg font-semibold text-gray-700 mb-2">
-            Инициализация Telegram SDK
-          </h2>
-          <p className="text-gray-500">
-            Подготавливаем приложение...
-          </p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-2xl">🚀</div>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-gray-900">
+                3<span className="text-yellow-500">GIS</span>
+              </h2>
+              <p className="text-gray-600">
+                Инициализация приложения...
+              </p>
+            </div>
+            
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="bg-blue-500 h-2 rounded-full animate-pulse" style={{ width: '70%' }}></div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Возвращаем приложение с инициализированным SDK
+  // Возвращаем приложение с инициализированным WebApp
   return <>{children}</>;
 }
 
@@ -127,3 +175,60 @@ export function withTelegramProvider<T extends Record<string, any>>(
   
   return WrappedComponent;
 }
+
+/**
+ * Утилиты для работы с Telegram WebApp
+ */
+export const TelegramUtils = {
+  /**
+   * Проверка доступности Telegram WebApp
+   */
+  isAvailable(): boolean {
+    return typeof window !== 'undefined' && !!window.Telegram?.WebApp;
+  },
+
+  /**
+   * Получение данных пользователя из WebApp
+   */
+  getUser() {
+    if (!this.isAvailable()) return null;
+    return window.Telegram!.WebApp.initDataUnsafe?.user || null;
+  },
+
+  /**
+   * Получение initData для аутентификации
+   */
+  getInitData(): string | null {
+    if (!this.isAvailable()) return null;
+    return window.Telegram!.WebApp.initData || null;
+  },
+
+  /**
+   * Закрытие приложения
+   */
+  close(): void {
+    if (this.isAvailable()) {
+      window.Telegram!.WebApp.close();
+    }
+  },
+
+  /**
+   * Показ алерта
+   */
+  showAlert(message: string): void {
+    if (this.isAvailable()) {
+      window.Telegram!.WebApp.showAlert(message);
+    } else {
+      alert(message);
+    }
+  },
+
+  /**
+   * Haptic feedback
+   */
+  hapticFeedback(type: 'light' | 'medium' | 'heavy' = 'light'): void {
+    if (this.isAvailable()) {
+      window.Telegram!.WebApp.HapticFeedback?.impactOccurred(type);
+    }
+  },
+};

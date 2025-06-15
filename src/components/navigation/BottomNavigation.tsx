@@ -3,8 +3,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, Heart, Building2, User } from 'lucide-react';
-import { backButton, useSignal, hapticFeedback } from '@telegram-apps/sdk-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -23,7 +22,7 @@ interface NavItem {
 export function BottomNavigation() {
   const pathname = usePathname();
   const router = useRouter();
-  const isBackButtonVisible = useSignal(backButton.isVisible);
+  const [isBackButtonVisible, setIsBackButtonVisible] = useState(false);
 
   // Навигационные элементы MVP
   const navItems: NavItem[] = [
@@ -54,18 +53,14 @@ export function BottomNavigation() {
     },
   ];
 
-  // Haptic feedback для SDK v3.x
+  // Haptic feedback с fallback на нативный API
   const triggerHaptic = () => {
     try {
-      // В SDK v3.x hapticFeedback доступен как модуль
-      if (hapticFeedback?.impactOccurred) {
-        hapticFeedback.impactOccurred('light');
-      }
-    } catch (error) {
-      // Fallback для браузера - используем нативный Telegram API
       if (typeof window !== 'undefined' && window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
       }
+    } catch (error) {
+      // Fallback - ничего не делаем
     }
   };
 
@@ -90,12 +85,15 @@ export function BottomNavigation() {
 
   const activeItem = getActiveItem();
 
-  // Настройка Telegram Back Button для SDK v3.x
+  // Настройка Telegram Back Button через нативный API
   useEffect(() => {
-    if (backButton.isSupported()) {
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.BackButton) {
+      const backBtn = window.Telegram.WebApp.BackButton;
+      
       // Показываем back button для всех страниц кроме главной
       if (pathname !== '/tg') {
-        backButton.show();
+        backBtn.show();
+        setIsBackButtonVisible(true);
         
         const handleBackClick = () => {
           if (pathname.split('/').length > 2) {
@@ -105,13 +103,14 @@ export function BottomNavigation() {
           }
         };
         
-        backButton.onClick(handleBackClick);
+        backBtn.onClick(handleBackClick);
         
         return () => {
-          backButton.offClick(handleBackClick);
+          backBtn.offClick(handleBackClick);
         };
       } else {
-        backButton.hide();
+        backBtn.hide();
+        setIsBackButtonVisible(false);
       }
     }
   }, [pathname, router]);

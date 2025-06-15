@@ -4,15 +4,38 @@
 import { useEffect, useState, useCallback } from 'react';
 import { User } from '@prisma/client';
 import { useAuthStore } from '@/store/auth-store';
-import { useLaunchParams, useRawInitData } from '@telegram-apps/sdk-react';
 import { useTokenManager } from '@/hooks/use-token-manager';
 import { TokenRefreshService } from '@/services/token-refresh-service';
 import { apiClient, ApiError } from '@/lib/api-client';
 import { AUTH_CONSTANTS } from '@/lib/auth';
 import { logger } from '@/utils/logger';
 
+// Тип пользователя с данными из API /api/auth/me
+interface UserWithRelations extends User {
+  city?: {
+    id: number;
+    name: string;
+    state: string;
+  } | null;
+  businesses?: Array<{
+    id: number;
+    name: string;
+    status: string;
+    category: { name: string; icon: string };
+    city: { name: string; state: string };
+  }>;
+  favorites?: Array<{
+    id: number;
+    business: {
+      id: number;
+      name: string;
+      category: { name: string; icon: string };
+    };
+  }>;
+}
+
 interface AuthState {
-  user: User | null;
+  user: UserWithRelations | null;
   token: string | null;
   isLoading: boolean;
   error: string | null;
@@ -55,16 +78,42 @@ export function useTelegramAuth(): AuthState & AuthActions {
     isAuthenticated: false,
   });
 
-  // SDK v3.x хуки - правильное использование без параметров
-  const launchParams = useLaunchParams(); // v3.x: без параметров, возвращает правильную структуру
-  const initDataRaw = useRawInitData(); // v3.x: без параметров, возвращает строку initData
+  // SDK v3.x хуки - с обработкой SSR
+  const [launchParams, setLaunchParams] = useState<any>(null);
+  const [initDataRaw, setInitDataRaw] = useState<string | null>(null);
+
+  // Получаем данные через нативный Telegram WebApp API как fallback
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        // Пытаемся получить данные через SDK
+        if (window.Telegram?.WebApp?.initDataUnsafe) {
+          const webApp = window.Telegram.WebApp;
+          setInitDataRaw(webApp.initData || null);
+          setLaunchParams({
+            tgWebAppData: {
+              user: webApp.initDataUnsafe.user,
+              auth_date: webApp.initDataUnsafe.auth_date,
+              query_id: webApp.initDataUnsafe.query_id,
+              hash: webApp.initDataUnsafe.hash,
+            }
+          });
+          logger.logAuth('Using Telegram WebApp initData');
+        } else {
+          logger.warn('Telegram WebApp data not available');
+        }
+      } catch (error) {
+        logger.warn('Failed to get Telegram data:', error);
+      }
+    }
+  }, []);
 
   /**
    * Загрузка пользователя по токену из БД
    */
-  const loadUserFromToken = useCallback(async (authToken: string): Promise<User | null> => {
+  const loadUserFromToken = useCallback(async (authToken: string): Promise<UserWithRelations | null> => {
     try {
-      const user = await apiClient.get<User>('/api/auth/me', {
+      const user = await apiClient.get<UserWithRelations>('/api/auth/me', {
         headers: { Authorization: `Bearer ${authToken}` },
         skipAutoRefresh: true, // Избегаем рекурсии
       });
@@ -85,7 +134,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
   /**
    * Аутентификация через Telegram initData
    */
-  const authenticateWithTelegram = useCallback(async (): Promise<{ user: User; token: string } | null> => {
+  const authenticateWithTelegram = useCallback(async (): Promise<{ user: UserWithRelations; token: string } | null> => {
     try {
       // Получаем initData из SDK v3.x
       let initDataString = '';
@@ -123,7 +172,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
       }
 
       // Аутентификация через API
-      const response = await apiClient.post<{ user: User; token: string }>('/api/auth/telegram', {
+      const response = await apiClient.post<{ user: UserWithRelations; token: string }>('/api/auth/telegram', {
         initData: initDataString,
       }, {
         skipAuth: true,
@@ -403,7 +452,7 @@ export const AuthUtils = {
   /**
    * Получение приветственного сообщения
    */
-  getWelcomeMessage(user: User | null): string {
+  getWelcomeMessage(user: UserWithRelations | null): string {
     if (!user) return 'Добро пожаловать в 3GIS!';
     
     const name = user.firstName || user.username || 'Пользователь';
@@ -413,14 +462,14 @@ export const AuthUtils = {
   /**
    * Проверка премиум статуса
    */
-  isPremiumUser(user: User | null): boolean {
+  isPremiumUser(user: UserWithRelations | null): boolean {
     return user?.isPremium || false;
   },
 
   /**
    * Форматирование времени последней активности
    */
-  formatLastSeen(user: User | null): string {
+  formatLastSeen(user: UserWithRelations | null): string {
     if (!user?.lastSeenAt) return 'Никогда';
     
     return new Date(user.lastSeenAt).toLocaleString('ru-RU');
