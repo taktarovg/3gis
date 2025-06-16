@@ -25,14 +25,16 @@ export interface TelegramWebApp {
   viewportStableHeight: number;
   headerColor: string;
   backgroundColor: string;
-  BackButton: {
+  
+  // ОБНОВЛЕНО ДЛЯ SDK v3.x: добавлены недостающие свойства
+  BackButton?: {
     isVisible: boolean;
     show(): void;
     hide(): void;
     onClick(callback: () => void): void;
     offClick(callback: () => void): void;
   };
-  MainButton: {
+  MainButton?: {
     text: string;
     color: string;
     textColor: string;
@@ -56,11 +58,30 @@ export interface TelegramWebApp {
       is_visible?: boolean;
     }): void;
   };
-  HapticFeedback: {
+  HapticFeedback?: {
     impactOccurred(style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft'): void;
     notificationOccurred(type: 'error' | 'success' | 'warning'): void;
     selectionChanged(): void;
   };
+  
+  // Дополнительные свойства для поздних версий (опциональные)
+  BiometricManager?: {
+    isInited: boolean;
+    biometricType: string;
+    isAccessRequested: boolean;
+    isAccessGranted: boolean;
+    isBiometricAvailable: boolean;
+  };
+  CloudStorage?: {
+    setItem(key: string, value: string, callback?: (error: Error | null, result?: boolean) => void): void;
+    getItem(key: string, callback?: (error: Error | null, result?: string) => void): void;
+    getItems(keys: string[], callback?: (error: Error | null, result?: {[key: string]: string}) => void): void;
+    removeItem(key: string, callback?: (error: Error | null, result?: boolean) => void): void;
+    removeItems(keys: string[], callback?: (error: Error | null, result?: boolean) => void): void;
+    getKeys(callback?: (error: Error | null, result?: string[]) => void): void;
+  };
+  
+  // Основные методы
   ready(): void;
   expand(): void;
   close(): void;

@@ -424,17 +424,64 @@ class TelegramSDKService {
   }
 
   /**
-   * Проверить минимальную версию
+   * Проверить минимальную версию WebApp
+   * ОБНОВЛЕНО ДЛЯ 2025: проверяем фактическую версию и доступность методов
    */
   public isVersionAtLeast(version: string): boolean {
     try {
-      if (this.isAvailable() && window.Telegram?.WebApp?.isVersionAtLeast) {
-        return window.Telegram.WebApp.isVersionAtLeast(version);
+      if (!this.isAvailable()) {
+        return false;
       }
-      return false;
+
+      const targetVersion = parseFloat(version);
+      
+      // Проверяем фактическую версию через version свойство
+      const webApp = window.Telegram?.WebApp;
+      if (webApp?.version) {
+        const currentVersion = parseFloat(webApp.version);
+        logger.logTelegram(`3GIS: WebApp version check: ${currentVersion} >= ${targetVersion}`);
+        return currentVersion >= targetVersion;
+      }
+      
+      // Fallback: проверяем доступность конкретных методов
+      if (targetVersion <= 6.0) {
+        // Базовые возможности доступны во всех версиях
+        return true;
+      } else if (targetVersion <= 6.1) {
+        // BackButton появился в 6.1
+        return !!webApp?.BackButton;
+      } else if (targetVersion <= 6.2) {
+        // HapticFeedback появился в 6.2
+        return !!webApp?.HapticFeedback;
+      } else if (targetVersion <= 6.4) {
+        // BiometricManager появился в 6.4
+        return !!webApp?.BiometricManager;
+      } else if (targetVersion <= 6.7) {
+        // CloudStorage появился в 6.7
+        return !!webApp?.CloudStorage;
+      }
+      
+      // Для новых версий (7.0+) считаем поддерживаемыми
+      return true;
     } catch (error) {
-      logger.error('Error checking version:', error);
+      logger.error('Error checking WebApp version:', error);
       return false;
+    }
+  }
+  
+  /**
+   * Получить текущую версию WebApp
+   */
+  public getVersion(): string {
+    try {
+      if (this.isAvailable() && window.Telegram?.WebApp?.version) {
+        return window.Telegram.WebApp.version;
+      }
+      // Fallback - возвращаем 6.0 как минимальную поддерживаемую
+      return '6.0';
+    } catch (error) {
+      logger.error('Error getting WebApp version:', error);
+      return '6.0';
     }
   }
 
