@@ -1,9 +1,17 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin } from 'lucide-react';
 
+interface AddressFormData {
+  address: string;
+  city: string;
+  phone: string;
+  website: string;
+  features: string[];
+}
+
 interface AddressStepProps {
-  formData: any;
-  setFormData: (data: any) => void;
+  formData: AddressFormData;
+  setFormData: (data: AddressFormData) => void;
 }
 
 export function AddressStep({ formData, setFormData }: AddressStepProps) {
@@ -106,7 +114,7 @@ export function AddressStep({ formData, setFormData }: AddressStepProps) {
                     } else {
                       setFormData({
                         ...formData,
-                        features: formData.features.filter(f => f !== feature.key)
+                        features: formData.features.filter((f: string) => f !== feature.key)
                       });
                     }
                   }}
