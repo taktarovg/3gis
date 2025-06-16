@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { verifyToken, AUTH_CONSTANTS, type AuthPayload } from '@/lib/auth';
+import { AUTH_CONSTANTS, type AuthPayload } from '@/lib/auth';
 import { logger } from '@/utils/logger';
 
 interface TokenManagerState {
@@ -37,6 +37,34 @@ export function useTokenManager(): TokenManagerState & TokenManagerActions {
   });
 
   /**
+   * Парсинг JWT токена без верификации подписи (только на клиенте)
+   * Подпись будет проверена на сервере
+   */
+  const parseTokenPayload = useCallback((token: string): AuthPayload | null => {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        logger.warn('Invalid JWT format');
+        return null;
+      }
+
+      // Декодируем payload (вторую часть) без проверки подписи
+      const payload = JSON.parse(atob(parts[1]));
+      
+      // Проверяем наличие обязательных полей
+      if (!payload.userId || !payload.telegramId || !payload.exp) {
+        logger.warn('Invalid JWT payload structure');
+        return null;
+      }
+
+      return payload as AuthPayload;
+    } catch (error) {
+      logger.error('Error parsing JWT payload:', error);
+      return null;
+    }
+  }, []);
+
+  /**
    * Проверка токена и обновление состояния
    */
   const checkToken = useCallback((token: string | null): boolean => {
@@ -53,7 +81,8 @@ export function useTokenManager(): TokenManagerState & TokenManagerActions {
     }
 
     try {
-      const payload = verifyToken(token);
+      // Парсим токен без проверки подписи (подпись проверяется на сервере)
+      const payload = parseTokenPayload(token);
       
       if (!payload) {
         setState(prev => ({
@@ -95,7 +124,7 @@ export function useTokenManager(): TokenManagerState & TokenManagerActions {
       }));
       return false;
     }
-  }, []);
+  }, [parseTokenPayload]);
 
   /**
    * Загрузка токена из localStorage при инициализации
@@ -224,8 +253,11 @@ export const TokenUtils = {
    */
   isTokenExpired(token: string): boolean {
     try {
-      const payload = verifyToken(token);
-      if (!payload) return true;
+      const parts = token.split('.');
+      if (parts.length !== 3) return true;
+      
+      const payload = JSON.parse(atob(parts[1]));
+      if (!payload.exp) return true;
       
       const now = Math.floor(Date.now() / 1000);
       return payload.exp <= now;
@@ -239,8 +271,11 @@ export const TokenUtils = {
    */
   getTimeUntilExpiry(token: string): number {
     try {
-      const payload = verifyToken(token);
-      if (!payload) return 0;
+      const parts = token.split('.');
+      if (parts.length !== 3) return 0;
+      
+      const payload = JSON.parse(atob(parts[1]));
+      if (!payload.exp) return 0;
       
       const now = Math.floor(Date.now() / 1000);
       return Math.max(0, payload.exp - now);
@@ -254,8 +289,11 @@ export const TokenUtils = {
    */
   formatExpiryTime(token: string): string {
     try {
-      const payload = verifyToken(token);
-      if (!payload) return 'Недействительный токен';
+      const parts = token.split('.');
+      if (parts.length !== 3) return 'Недействительный токен';
+      
+      const payload = JSON.parse(atob(parts[1]));
+      if (!payload.exp) return 'Недействительный токен';
       
       const expiryTime = new Date(payload.exp * 1000);
       return expiryTime.toLocaleString('ru-RU');

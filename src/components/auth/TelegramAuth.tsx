@@ -1,7 +1,7 @@
 // src/components/auth/TelegramAuth.tsx
 'use client';
 
-import { useTelegramAuth } from '@/hooks/use-telegram-auth';
+import { useSimpleAuth } from '@/hooks/use-simple-auth';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
@@ -16,7 +16,7 @@ interface TelegramAuthProps {
  * Показывает loading state или ошибку пока происходит авторизация
  */
 export function TelegramAuth({ children, fallback }: TelegramAuthProps) {
-  const { user, isLoading, error } = useTelegramAuth();
+  const { user, isLoading, error } = useSimpleAuth();
   
   // Показываем loading state
   if (isLoading) {
@@ -132,7 +132,7 @@ export function TelegramAuth({ children, fallback }: TelegramAuthProps) {
  * Компонент для отображения информации о текущем пользователе
  */
 export function UserInfo() {
-  const { user } = useTelegramAuth();
+  const { user } = useSimpleAuth();
   
   if (!user) return null;
   
@@ -165,7 +165,7 @@ export function UserInfo() {
  * Хук для проверки авторизации в компонентах
  */
 export function useAuthGuard() {
-  const { user, isLoading, error } = useTelegramAuth();
+  const { user, isLoading, error } = useSimpleAuth();
   
   return {
     user,

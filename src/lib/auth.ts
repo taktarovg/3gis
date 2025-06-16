@@ -77,6 +77,12 @@ export function createToken({ user, expiresIn = '7d' }: CreateTokenParams): stri
  * @returns Декодированный payload или null
  */
 export function verifyToken(token: string): JWTPayload | null {
+  // Проверяем, что мы на сервере
+  if (typeof window !== 'undefined') {
+    console.warn('⚠️ verifyToken should only be called on server-side');
+    return null;
+  }
+
   try {
     const secret = process.env.JWT_SECRET;
     

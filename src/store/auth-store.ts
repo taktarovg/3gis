@@ -90,7 +90,10 @@ export const useAuthStore = create<AuthState>()(
         // Сохраняем токен в localStorage с правильным ключом
         if (isBrowser && isLocalStorageAvailable()) {
           try {
+            // Сохраняем токен в основной ключ
             localStorage.setItem(AUTH_CONSTANTS.TOKEN_STORAGE_KEY, token);
+            // Для совместимости сохраняем и в старый ключ
+            localStorage.setItem('auth_token', token);
             localStorage.setItem('user', JSON.stringify(user));
           } catch (error) {
             logger.error('Error saving auth data to localStorage:', error);
@@ -106,6 +109,7 @@ export const useAuthStore = create<AuthState>()(
           try {
             localStorage.removeItem(AUTH_CONSTANTS.TOKEN_STORAGE_KEY);
             localStorage.removeItem(AUTH_CONSTANTS.TOKEN_REFRESH_KEY);
+            localStorage.removeItem('auth_token'); // старый ключ
             localStorage.removeItem('user');
             localStorage.removeItem('telegramInitData');
             logger.logAuth('3GIS Authentication data removed from localStorage');
@@ -266,7 +270,9 @@ export const initAuthStore = () => {
   // Загружаем данные из localStorage
   try {
     if (isLocalStorageAvailable()) {
-      const storedToken = localStorage.getItem('auth_token');
+      // Проверяем разные ключи для совместимости
+      const storedToken = localStorage.getItem(AUTH_CONSTANTS.TOKEN_STORAGE_KEY) || 
+                         localStorage.getItem('auth_token');
       const storedUserJson = localStorage.getItem('user');
 
       if (storedToken && storedUserJson) {
@@ -280,6 +286,7 @@ export const initAuthStore = () => {
           // Если JSON невалидный, очищаем оба значения
           localStorage.removeItem('auth_token');
           localStorage.removeItem('user');
+          localStorage.removeItem(AUTH_CONSTANTS.TOKEN_STORAGE_KEY);
           
           state.logout();
         }
@@ -288,6 +295,7 @@ export const initAuthStore = () => {
         logger.warn('Inconsistent auth data in localStorage - clearing');
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user');
+        localStorage.removeItem(AUTH_CONSTANTS.TOKEN_STORAGE_KEY);
       } else {
         logger.logAuth('No stored auth data found');
       }
