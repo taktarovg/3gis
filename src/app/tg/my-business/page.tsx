@@ -19,7 +19,15 @@ import {
 import Link from 'next/link';
 
 export default function MyBusinessPage() {
-  const [userStats, setUserStats] = useState({
+  const [userStats, setUserStats] = useState<{
+    contributedBusinesses: number;
+    ownedBusinesses: number;
+    totalViews: number;
+    totalCalls: number;
+    contributionPoints: number;
+    level: number;
+    badges: string[];
+  }>({
     contributedBusinesses: 0,
     ownedBusinesses: 0,
     totalViews: 0,
