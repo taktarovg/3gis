@@ -53,7 +53,8 @@ export function createToken({ user, expiresIn = '7d' }: CreateTokenParams): stri
     language: user.language || 'ru',
   };
 
-  const token = jwt.sign(payload, secret, {
+  // Явно указываем тип для secret, чтобы избежать ошибок TypeScript
+  const token = jwt.sign(payload, secret as string, {
     expiresIn,
     issuer: '3gis-app',
     audience: '3gis-users',
@@ -77,7 +78,7 @@ export function verifyToken(token: string): JWTPayload | null {
       return null;
     }
 
-    const decoded = jwt.verify(token, secret, {
+    const decoded = jwt.verify(token, secret as string, {
       issuer: '3gis-app',
       audience: '3gis-users',
     }) as JWTPayload;
@@ -246,7 +247,7 @@ export function createResetToken(userId: number): string {
 
   return jwt.sign(
     { userId, type: 'reset' },
-    secret,
+    secret as string,
     { expiresIn: '1h' } // Токен сброса действует 1 час
   );
 }
@@ -264,7 +265,7 @@ export function verifyResetToken(token: string): number | null {
       return null;
     }
 
-    const decoded = jwt.verify(token, secret) as any;
+    const decoded = jwt.verify(token, secret as string) as any;
     
     if (decoded.type === 'reset' && decoded.userId) {
       return decoded.userId;
