@@ -68,14 +68,18 @@ export function BasicInfoStep({ formData, setFormData, isOwnerType }: BasicInfoS
           />
         </div>
 
-        {/* Language selection */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Языки обслуживания
           </label>
           <div className="flex flex-wrap gap-2">
-            {['ru', 'en', 'es', 'zh'].map((lang) => {
-              const labels = {ru: '🇷🇺 Русский', en: '🇺🇸 English', es: '🇪🇸 Español', zh: '🇨🇳 中文'};
+            {(['ru', 'en', 'es', 'zh'] as const).map((lang) => {
+              const labels: Record<typeof lang, string> = {
+                ru: '🇷🇺 Русский', 
+                en: '🇺🇸 English', 
+                es: '🇪🇸 Español', 
+                zh: '🇨🇳 中文'
+              };
               const isSelected = formData.languages.includes(lang);
               
               return (
