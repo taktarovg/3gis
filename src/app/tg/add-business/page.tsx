@@ -7,6 +7,21 @@ import { Button } from '@/components/ui/button';
 import { Crown, Award, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
+// Типы
+export interface BusinessFormData {
+  name: string;
+  category: string;
+  description: string;
+  address: string;
+  city: string;
+  phone: string;
+  website: string;
+  languages: string[];
+  features: string[];
+  hours: Record<string, any>;
+  photos: string[];
+}
+
 // Импортируем компоненты
 import { BenefitsCard } from '@/components/add-business/BenefitsCard';
 import { ProgressBar } from '@/components/add-business/ProgressBar';
@@ -21,7 +36,7 @@ function AddBusinessContent() {
   const searchParams = useSearchParams();
   const type = searchParams.get('type') || 'community'; // 'owner' | 'community'
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<BusinessFormData>({
     name: '',
     category: '',
     description: '',

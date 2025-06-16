@@ -1,17 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin } from 'lucide-react';
-
-interface AddressFormData {
-  address: string;
-  city: string;
-  phone: string;
-  website: string;
-  features: string[];
-}
+import type { BusinessFormData } from '@/app/tg/add-business/page';
 
 interface AddressStepProps {
-  formData: AddressFormData;
-  setFormData: (data: AddressFormData) => void;
+  formData: BusinessFormData;
+  setFormData: (data: BusinessFormData) => void;
 }
 
 export function AddressStep({ formData, setFormData }: AddressStepProps) {
