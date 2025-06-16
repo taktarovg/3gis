@@ -1,7 +1,7 @@
 // src/hooks/use-simple-auth.ts
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/store/auth-store';
 import { logger } from '@/utils/logger';
 
@@ -51,7 +51,7 @@ export function useSimpleAuth(): SimpleAuthState {
   };
 
   // Авторизация через Telegram API
-  const authenticateWithTelegram = async (initData: string) => {
+  const authenticateWithTelegram = useCallback(async (initData: string) => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
       
@@ -92,10 +92,10 @@ export function useSimpleAuth(): SimpleAuthState {
         isAuthenticated: false,
       }));
     }
-  };
+  }, [setAuth, setError]);
 
   // Проверка существующего токена
-  const checkExistingAuth = async () => {
+  const checkExistingAuth = useCallback(async () => {
     try {
       // Проверяем оба возможных ключа для токена
       const token = localStorage.getItem('3gis_auth_token') || localStorage.getItem('auth_token');
@@ -131,7 +131,7 @@ export function useSimpleAuth(): SimpleAuthState {
       logger.error('Error checking existing auth:', error);
       setAuthState(prev => ({ ...prev, isLoading: false }));
     }
-  };
+  }, [setAuth]);
 
   // Инициализация авторизации
   useEffect(() => {
@@ -178,7 +178,7 @@ export function useSimpleAuth(): SimpleAuthState {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [authenticateWithTelegram, checkExistingAuth]);
 
   // Синхронизация с store
   useEffect(() => {
