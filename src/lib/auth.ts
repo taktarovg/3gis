@@ -56,11 +56,14 @@ export function createToken({ user, expiresIn = '7d' }: CreateTokenParams): stri
   // Проверяем и типизируем secret правильно для TypeScript
   const jwtSecret: Secret = secret;
   
-  const token = jwt.sign(payload, jwtSecret, {
+  // Создаем объект опций отдельно для правильной типизации
+  const signOptions: SignOptions = {
     expiresIn,
     issuer: '3gis-app',
     audience: '3gis-users',
-  });
+  };
+  
+  const token = jwt.sign(payload, jwtSecret, signOptions);
 
   logger.logAuth(`JWT token created for user ${user.telegramId}`);
   return token;
@@ -82,10 +85,12 @@ export function verifyToken(token: string): JWTPayload | null {
 
     const jwtSecret: Secret = secret;
     
-    const decoded = jwt.verify(token, jwtSecret, {
+    const verifyOptions = {
       issuer: '3gis-app',
       audience: '3gis-users',
-    }) as JWTPayload;
+    };
+    
+    const decoded = jwt.verify(token, jwtSecret, verifyOptions) as JWTPayload;
 
     logger.logAuth(`JWT token verified for user ${decoded.telegramId}`);
     return decoded;
@@ -251,10 +256,14 @@ export function createResetToken(userId: number): string {
 
   const jwtSecret: Secret = secret;
   
+  const resetOptions: SignOptions = {
+    expiresIn: '1h' // Токен сброса действует 1 час
+  };
+  
   return jwt.sign(
     { userId, type: 'reset' },
     jwtSecret,
-    { expiresIn: '1h' } // Токен сброса действует 1 час
+    resetOptions
   );
 }
 
