@@ -181,6 +181,32 @@
   }
 }
 
+/* Мобильная оптимизация скролла */
+@media (max-width: 768px) {
+  html, body {
+    /* Обычная прокрутка для мобильных */
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Основной контейнер приложения */
+  .threegis-app-container {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    height: 100vh;
+  }
+  
+  /* Основной контент */
+  .threegis-app-main {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    height: calc(100vh - 80px); /* Вычитаем высоту навигации */
+  }
+}
+
 /* Анимации */
 @keyframes fadeInUp {
   from {
