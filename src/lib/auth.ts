@@ -28,7 +28,7 @@ interface CreateTokenParams {
     isPremium?: boolean;
     language?: string;
   };
-  expiresIn?: string;
+  expiresIn?: string | number; // Поддерживаем и string и number
 }
 
 /**
@@ -58,7 +58,7 @@ export function createToken({ user, expiresIn = '7d' }: CreateTokenParams): stri
   
   // Создаем объект опций отдельно для правильной типизации
   const signOptions: SignOptions = {
-    expiresIn,
+    expiresIn: expiresIn as any, // Так как jsonwebtoken поддерживает string/number
     issuer: '3gis-app',
     audience: '3gis-users',
   };
@@ -257,7 +257,7 @@ export function createResetToken(userId: number): string {
   const jwtSecret: Secret = secret;
   
   const resetOptions: SignOptions = {
-    expiresIn: '1h' // Токен сброса действует 1 час
+    expiresIn: '1h' as any // Токен сброса действует 1 час
   };
   
   return jwt.sign(
