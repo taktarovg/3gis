@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id         Int                @id @default(autoincrement())
+  telegramId String             @unique
+  username   String?
+  firstName  String             @default("")
+  lastName   String             @default("")
+  role       UserRole           @default(USER)
+  avatar     String?
+  
+  // Геолокация пользователя
+  latitude   Float?
+  longitude  Float?
+  cityId     Int?
+  
+  // Премиум статус и активность
+  isPremium  Boolean            @default(false)
+  premiumUntil DateTime?
+  lastSeenAt DateTime           @default(now())
+  
+  // Настройки пользователя
+  settings   Json?              // {notifications: {...}, privacy: {...}}
+  
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  
+  // Связи
+  favorites  BusinessFavorite[]
+  reviews    BusinessReview[]
+  businesses Business[]         @relation("BusinessOwner")
+  city       City?              @relation(fields: [cityId], references: [id])
+
+  @@map("users")
+}
+
+model Business {
+  id            Int                @id @default(autoincrement())
+  name          String
+  nameEn        String?
+  description   String?
+  descriptionEn String?
+  categoryId    Int
+  address       String
+  cityId        Int
+  state         String             @default("NY")
+  zipCode       String?
+  phone         String?
+  website       String?
+  email         String?
+  latitude      Float?
+  longitude     Float?
+  businessHours Json?
+  languages     String[]           @default(["ru", "en"])
+  acceptsCrypto Boolean            @default(false)
+  hasParking    Boolean            @default(false)
+  hasWiFi       Boolean            @default(false)
+  status        BusinessStatus     @default(PENDING)
+  isVerified    Boolean            @default(false)
+  premiumTier   PremiumTier        @default(FREE)
+  premiumUntil  DateTime?
+  viewCount     Int                @default(0)
+  rating        Float              @default(0)
+  reviewCount   Int                @default(0)
+  ownerId       Int
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  favorites     BusinessFavorite[]
+  photos        BusinessPhoto[]
+  reviews       BusinessReview[]
+  category      BusinessCategory   @relation(fields: [categoryId], references: [id])
+  city          City               @relation(fields: [cityId], references: [id])
+  owner         User               @relation("BusinessOwner", fields: [ownerId], references: [id])
+
+  @@map("businesses")
+}
+
+model BusinessCategory {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
+  nameEn      String     @unique
+  slug        String     @unique
+  icon        String
+  description String?
+  order       Int        @default(0)
+  businesses  Business[]
+
+  @@map("business_categories")
+}
+
+model City {
+  id         Int        @id @default(autoincrement())
+  name       String     @unique
+  state      String
+  country    String     @default("USA")
+  latitude   Float?
+  longitude  Float?
+  population Int?
+  businesses Business[]
+  users      User[]
+
+  @@map("cities")
+}
+
+model BusinessPhoto {
+  id         Int      @id @default(autoincrement())
+  url        String
+  caption    String?
+  order      Int      @default(0)
+  businessId Int
+  
+  // AWS S3 метаданные
+  s3Key      String?  // ключ файла в S3
+  fileSize   Int?     // размер файла в байтах
+  format     String?  // формат файла (webp, jpg, png)
+  width      Int?     // ширина изображения
+  height     Int?     // высота изображения
+  
+  createdAt  DateTime @default(now())
+  business   Business @relation(fields: [businessId], references: [id])
+
+  @@map("business_photos")
+}
+
+model BusinessReview {
+  id         Int      @id @default(autoincrement())
+  rating     Int
+  comment    String?
+  isVerified Boolean  @default(false)
+  businessId Int
+  userId     Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  business   Business @relation(fields: [businessId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@unique([businessId, userId])
+  @@map("business_reviews")
+}
+
+model BusinessFavorite {
+  id         Int      @id @default(autoincrement())
+  businessId Int
+  userId     Int
+  createdAt  DateTime @default(now())
+  business   Business @relation(fields: [businessId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@unique([businessId, userId])
+  @@map("business_favorites")
+}
+
+enum UserRole {
+  GUEST
+  USER
+  BUSINESS_OWNER
+  ADMIN
+}
+
+enum BusinessStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+enum PremiumTier {
+  FREE
+  BASIC
+  STANDARD
+  PREMIUM
+}

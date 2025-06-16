@@ -1,0 +1,251 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Импортируем стили для Telegram Mini App */
+@import './telegram-styles.css';
+
+/* Импортируем специальные стили для iOS */
+@import './ios-fixes.css';
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+ 
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+ 
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+ 
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+ 
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+ 
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+ 
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+ 
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+ 
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+ 
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+ 
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+ 
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+ 
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+ 
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+ 
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+ 
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* 3GIS цветовые переменные */
+:root {
+  /* 3GIS Brand Colors */
+  --threegis-primary: #494b69;
+  --threegis-accent: #ffd700;
+  --threegis-text: #1a1a1a;
+  --threegis-secondary: #6b7280;
+  --threegis-bg: #ffffff;
+  --threegis-card: #f8fafc;
+  --threegis-border: #e5e7eb;
+  
+  /* Safe Area для fullscreen */
+  --safe-area-top: max(47px, env(safe-area-inset-top));
+  --safe-area-bottom: max(34px, env(safe-area-inset-bottom));
+  --safe-area-left: max(16px, env(safe-area-inset-left));
+  --safe-area-right: max(16px, env(safe-area-inset-right));
+  
+  /* Layout переменные */
+  --header-height: 120px;
+  --total-header-height: calc(var(--safe-area-top) + var(--header-height));
+}
+
+/* Базовые стили для Telegram Mini App */
+html, body {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-text-size-adjust: none;
+}
+
+/* iOS специфические стили */
+@supports (-webkit-touch-callout: none) {
+  body {
+    overscroll-behavior: none;
+  }
+  
+  .main-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Стили для мобильных устройств */
+@media (max-width: 768px) {
+  button:not(.icon-button), 
+  [role="button"]:not(.icon-button) {
+    min-height: 44px;
+  }
+  
+  input, select, textarea {
+    font-size: 16px;
+  }
+}
+
+/* 3GIS Header стили */
+.threegis-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  min-height: var(--total-header-height);
+  background: var(--threegis-primary);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: none;
+  border-radius: 0 0 16px 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding-top: var(--safe-area-top);
+}
+
+/* 3GIS навигация внизу */
+.threegis-navigation {
+  position: fixed;
+  bottom: calc(var(--safe-area-bottom) - 20px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--threegis-primary);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding-bottom: max(8px, var(--safe-area-bottom));
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Контент с фиксированной навигацией */
+.content-with-fixed-nav {
+  margin-top: var(--total-header-height);
+  margin-bottom: calc(100px + var(--safe-area-bottom));
+  padding-left: var(--safe-area-left);
+  padding-right: var(--safe-area-right);
+}
+
+/* 3GIS кнопки */
+.threegis-button {
+  background: var(--threegis-accent);
+  color: var(--threegis-text);
+  border: none;
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.threegis-button:hover {
+  background: #e6c200;
+  transform: translateY(-1px);
+}
+
+/* 3GIS карточки */
+.threegis-card {
+  background: var(--threegis-card);
+  border: 1px solid var(--threegis-border);
+  border-radius: 16px;
+  padding: 16px;
+  transition: all 0.2s ease;
+}
+
+.threegis-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* Hide scrollbar */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Анимации */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+/* Адаптивность */
+@media (max-width: 390px) {
+  :root {
+    --header-height: 110px;
+  }
+}
+
+@media (max-width: 375px) {
+  :root {
+    --header-height: 100px;
+  }
+}
