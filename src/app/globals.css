@@ -1,74 +1,63 @@
+// src/app/globals.css
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Импортируем стили для Telegram Mini App */
-@import './telegram-styles.css';
-
-/* Импортируем специальные стили для iOS */
-@import './ios-fixes.css';
-
+/* Дополнительные стили для лендинга */
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
+    --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
- 
+    --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
- 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
- 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
- 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
- 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
- 
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
- 
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 10% 3.9%;
     --radius: 0.5rem;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
   }
- 
+
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
- 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
- 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
- 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
- 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
- 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
- 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
- 
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
- 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
   }
 }
 
@@ -81,151 +70,122 @@
   }
 }
 
-/* 3GIS цветовые переменные */
-:root {
-  /* 3GIS Brand Colors */
-  --threegis-primary: #494b69;
-  --threegis-accent: #ffd700;
-  --threegis-text: #1a1a1a;
-  --threegis-secondary: #6b7280;
-  --threegis-bg: #ffffff;
-  --threegis-card: #f8fafc;
-  --threegis-border: #e5e7eb;
-  
-  /* Safe Area для fullscreen */
-  --safe-area-top: max(47px, env(safe-area-inset-top));
-  --safe-area-bottom: max(34px, env(safe-area-inset-bottom));
-  --safe-area-left: max(16px, env(safe-area-inset-left));
-  --safe-area-right: max(16px, env(safe-area-inset-right));
-  
-  /* Layout переменные */
-  --header-height: 120px;
-  --total-header-height: calc(var(--safe-area-top) + var(--header-height));
-}
-
-/* Базовые стили для Telegram Mini App */
-html, body {
-  overscroll-behavior-y: none;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  -webkit-touch-callout: none;
-  -webkit-text-size-adjust: none;
-}
-
-/* iOS специфические стили */
-@supports (-webkit-touch-callout: none) {
-  body {
-    overscroll-behavior: none;
+/* Специальные стили для лендинга */
+@layer components {
+  /* Grid pattern для hero секции */
+  .bg-grid-pattern {
+    background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+    background-size: 20px 20px;
   }
   
-  .main-content {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+  /* Анимация для hover эффектов */
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+  
+  /* Кастомные градиенты */
+  .gradient-text {
+    @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
+  }
+  
+  /* Специальные кнопки для лендинга */
+  .landing-btn-primary {
+    @apply inline-flex items-center px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105;
+  }
+  
+  .landing-btn-secondary {
+    @apply inline-flex items-center px-8 py-4 border-2 border-gray-300 hover:border-blue-600 text-gray-700 hover:text-blue-600 font-semibold rounded-xl transition-all duration-200;
+  }
+  
+  /* Карточки с эффектами */
+  .landing-card {
+    @apply bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 group hover:-translate-y-1;
+  }
+  
+  /* Секции лендинга */
+  .landing-section {
+    @apply py-20;
+  }
+  
+  /* Контейнер для лендинга */
+  .landing-container {
+    @apply container mx-auto px-4 max-w-7xl;
   }
 }
 
-/* Стили для мобильных устройств */
-@media (max-width: 768px) {
-  button:not(.icon-button), 
-  [role="button"]:not(.icon-button) {
-    min-height: 44px;
+/* Стили специально для Telegram Mini App */
+.threegis-app-container {
+  @apply min-h-screen bg-gray-50;
+}
+
+.threegis-app-main {
+  @apply pb-20; /* Отступ для навигации */
+}
+
+/* Цветовая схема 3GIS */
+.threegis-text {
+  @apply text-gray-900;
+}
+
+.threegis-secondary {
+  @apply text-gray-600;
+}
+
+.threegis-accent {
+  @apply text-blue-600;
+}
+
+/* Категории на главной странице */
+.threegis-category-grid {
+  @apply grid grid-cols-2 gap-3 mb-6;
+}
+
+.threegis-category-card {
+  @apply bg-white rounded-xl p-4 text-center border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all duration-200 group;
+}
+
+.threegis-category-icon {
+  @apply text-2xl mb-2 block group-hover:scale-110 transition-transform duration-200;
+}
+
+.threegis-category-name {
+  @apply text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors;
+}
+
+/* Адаптация для iOS */
+@supports (padding: max(0px)) {
+  .ios-safe-area-top {
+    padding-top: max(20px, env(safe-area-inset-top));
   }
   
-  input, select, textarea {
-    font-size: 16px;
+  .ios-safe-area-bottom {
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
   }
 }
 
-/* 3GIS Header стили */
-.threegis-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 50;
-  min-height: var(--total-header-height);
-  background: var(--threegis-primary);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-top: none;
-  border-radius: 0 0 16px 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  padding-top: var(--safe-area-top);
+/* Адаптивность */
+@media (max-width: 640px) {
+  .landing-section {
+    @apply py-12;
+  }
+  
+  .landing-container {
+    @apply px-4;
+  }
 }
 
-/* 3GIS навигация внизу */
-.threegis-navigation {
-  position: fixed;
-  bottom: calc(var(--safe-area-bottom) - 20px);
-  left: 0;
-  right: 0;
-  z-index: 50;
-  background: var(--threegis-primary);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 16px;
-  padding-bottom: max(8px, var(--safe-area-bottom));
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-}
-
-/* Контент с фиксированной навигацией */
-.content-with-fixed-nav {
-  margin-top: var(--total-header-height);
-  margin-bottom: calc(100px + var(--safe-area-bottom));
-  padding-left: var(--safe-area-left);
-  padding-right: var(--safe-area-right);
-}
-
-/* 3GIS кнопки */
-.threegis-button {
-  background: var(--threegis-accent);
-  color: var(--threegis-text);
-  border: none;
-  border-radius: 12px;
-  padding: 12px 20px;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
-
-.threegis-button:hover {
-  background: #e6c200;
-  transform: translateY(-1px);
-}
-
-/* 3GIS карточки */
-.threegis-card {
-  background: var(--threegis-card);
-  border: 1px solid var(--threegis-border);
-  border-radius: 16px;
-  padding: 16px;
-  transition: all 0.2s ease;
-}
-
-.threegis-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-}
-
-/* Hide scrollbar */
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
+/* Плавная прокрутка */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 /* Анимации */
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(30px);
   }
   to {
     opacity: 1;
@@ -233,19 +193,35 @@ html, body {
   }
 }
 
-.fade-in {
-  animation: fadeInUp 0.5s ease-out;
-}
-
-/* Адаптивность */
-@media (max-width: 390px) {
-  :root {
-    --header-height: 110px;
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
   }
 }
 
-@media (max-width: 375px) {
-  :root {
-    --header-height: 100px;
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.animate-pulse-slow {
+  animation: pulse 2s infinite;
+}
+
+/* Стили для улучшения производительности */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* Печать (скрыть интерактивные элементы) */
+@media print {
+  .no-print {
+    display: none !important;
   }
 }
