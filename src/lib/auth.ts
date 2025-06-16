@@ -40,7 +40,9 @@ export function createToken({ user, expiresIn = '7d' }: CreateTokenParams): stri
   const secret = process.env.JWT_SECRET;
   
   if (!secret) {
-    throw new Error('JWT_SECRET не настроен в переменных окружения');
+    console.error('❌ JWT_SECRET не настроен в переменных окружения');
+    console.error('Доступные переменные:', Object.keys(process.env).filter(key => key.includes('JWT')));
+    throw new Error('JWT_SECRET не настроен');
   }
 
   const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
@@ -79,6 +81,7 @@ export function verifyToken(token: string): JWTPayload | null {
     const secret = process.env.JWT_SECRET;
     
     if (!secret) {
+      console.error('❌ JWT_SECRET не настроен при верификации токена');
       logger.error('JWT_SECRET не настроен');
       return null;
     }

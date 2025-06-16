@@ -79,32 +79,53 @@ export function useTelegramAuth(): AuthState & AuthActions {
     isAuthenticated: false,
   });
 
-  // SDK v3.x хуки - с обработкой SSR
-  const [launchParams, setLaunchParams] = useState<any>(null);
+  // Получаем Telegram данные через нативный WebApp API
   const [initDataRaw, setInitDataRaw] = useState<string | null>(null);
+  const [webAppData, setWebAppData] = useState<any>(null);
 
-  // Получаем данные через нативный Telegram WebApp API как fallback
+  // Инициализация Telegram данных
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        // Пытаемся получить данные через SDK
-        if (window.Telegram?.WebApp?.initDataUnsafe) {
+        // Используем нативный Telegram WebApp API
+        if (window.Telegram?.WebApp) {
           const webApp = window.Telegram.WebApp;
-          setInitDataRaw(webApp.initData || null);
-          setLaunchParams({
-            tgWebAppData: {
-              user: webApp.initDataUnsafe.user,
-              auth_date: webApp.initDataUnsafe.auth_date,
-              query_id: webApp.initDataUnsafe.query_id,
-              hash: webApp.initDataUnsafe.hash,
+          
+          // Получаем initData в сыром формате
+          const rawInitData = webApp.initData;
+          
+          if (rawInitData && rawInitData.length > 0) {
+            setInitDataRaw(rawInitData);
+            setWebAppData(webApp.initDataUnsafe);
+            logger.logAuth('✅ Telegram WebApp initData получен:', {
+              hasInitData: !!rawInitData,
+              hasUser: !!webApp.initDataUnsafe?.user
+            });
+          } else {
+            logger.warn('⚠️ Telegram WebApp initData пустой');
+            
+            // В режиме разработки создаем мок данные
+            if (process.env.NODE_ENV === 'development' && process.env.SKIP_TELEGRAM_VALIDATION === 'true') {
+              const mockInitData = 'user=%7B%22id%22%3A80954049%2C%22first_name%22%3A%22%D0%93%D0%B5%D0%BE%D1%80%D0%B3%D0%B8%D0%B9%22%2C%22last_name%22%3A%22%D0%A2%D0%B0%D0%BA%D1%82%D0%B0%D1%80%D0%BE%D0%B2%22%2C%22username%22%3A%22taktarovgv%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%7D&chat_instance=-5589427974171859100&chat_type=channel&auth_date=1750039687&hash=c63cba3a76e34bc0657631612fff5422b8f9e9a82ff1d972e4eaf20428a1f9ad';
+              setInitDataRaw(mockInitData);
+              setWebAppData({
+                user: {
+                  id: 80954049,
+                  first_name: "Георгий",
+                  last_name: "Тактаров",
+                  username: "taktarovgv",
+                  language_code: "ru",
+                  is_premium: true
+                }
+              });
+              logger.logAuth('🧪 Используем мок данные для разработки');
             }
-          });
-          logger.logAuth('Using Telegram WebApp initData');
+          }
         } else {
-          logger.warn('Telegram WebApp data not available');
+          logger.warn('❌ Telegram WebApp API недоступен');
         }
       } catch (error) {
-        logger.warn('Failed to get Telegram data:', error);
+        logger.error('❌ Ошибка получения Telegram данных:', error);
       }
     }
   }, []);
@@ -137,53 +158,28 @@ export function useTelegramAuth(): AuthState & AuthActions {
    */
   const authenticateWithTelegram = useCallback(async (): Promise<{ user: UserWithRelations; token: string } | null> => {
     try {
-      // Получаем initData из SDK v3.x
-      let initDataString = '';
-
-      if (initDataRaw && typeof initDataRaw === 'string') {
-        initDataString = initDataRaw;
-        logger.logAuth('Using initData from useRawInitData hook');
-      } else if (launchParams?.tgWebAppData) {
-        // В SDK v3.x tgWebAppData уже содержит правильную структуру
-        // Нужно правильно сериализовать в формат Telegram initData
-        const webAppData = launchParams.tgWebAppData;
-        
-        // Создаем initData строку в правильном формате
-        const initDataParts: string[] = [];
-        
-        if (webAppData.user) {
-          initDataParts.push(`user=${encodeURIComponent(JSON.stringify(webAppData.user))}`);
-        }
-        if (webAppData.auth_date) {
-          initDataParts.push(`auth_date=${webAppData.auth_date}`);
-        }
-        if (webAppData.query_id) {
-          initDataParts.push(`query_id=${encodeURIComponent(webAppData.query_id)}`);
-        }
-        if (webAppData.hash) {
-          initDataParts.push(`hash=${encodeURIComponent(webAppData.hash)}`);
-        }
-        
-        initDataString = initDataParts.join('&');
-        logger.logAuth('Properly formatted initData from tgWebAppData');
-      }
-
-      if (!initDataString) {
+      if (!initDataRaw) {
         throw new Error('No Telegram initData available');
       }
 
+      logger.logAuth('🚀 Начинаем аутентификацию с initData:', {
+        hasInitData: !!initDataRaw,
+        initDataLength: initDataRaw.length,
+        hasWebAppData: !!webAppData?.user
+      });
+
       // Аутентификация через API
       const response = await apiClient.post<{ user: UserWithRelations; token: string }>('/api/auth/telegram', {
-        initData: initDataString,
+        initData: initDataRaw,
       }, {
         skipAuth: true,
         skipAutoRefresh: true,
       });
 
-      logger.logAuth('Telegram authentication successful');
+      logger.logAuth('✅ Telegram authentication successful');
       return response;
     } catch (error) {
-      logger.error('Telegram authentication failed:', error);
+      logger.error('❌ Telegram authentication failed:', error);
       
       if (error instanceof ApiError) {
         throw new Error(`Ошибка авторизации: ${error.message}`);
@@ -191,7 +187,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
       
       throw new Error('Не удалось выполнить авторизацию через Telegram');
     }
-  }, [initDataRaw, launchParams]);
+  }, [initDataRaw, webAppData]);
 
   const refreshToken = useCallback(async (): Promise<boolean> => {
     try {
@@ -344,9 +340,9 @@ export function useTelegramAuth(): AuthState & AuthActions {
           }
         }
 
-        // Шаг 2: Токен недействителен или отсутствует, авторизуемся через Telegram
-        if (!token || !isValid || shouldRefreshToken()) {
-          logger.logAuth('No valid token, attempting Telegram authentication');
+        // Шаг 2: Проверяем наличие initData для авторизации через Telegram
+        if ((!token || !isValid || shouldRefreshToken()) && initDataRaw) {
+          logger.logAuth('🔐 Нет действительного токена, пытаемся авторизоваться через Telegram');
           
           const authResult = await authenticateWithTelegram();
           if (authResult && isMounted) {
@@ -365,19 +361,30 @@ export function useTelegramAuth(): AuthState & AuthActions {
               error: null,
             }));
             
-            logger.logAuth('New authentication completed successfully');
+            logger.logAuth('✅ Новая аутентификация завершена успешно');
             return;
           }
         }
 
-        // Шаг 3: Аутентификация не удалась
+        // Шаг 3: Если нет initData, ждем его получения
+        if (!initDataRaw && isMounted) {
+          setAuthState(prev => ({
+            ...prev,
+            isLoading: false,
+            error: 'Ожидание данных Telegram...',
+          }));
+          logger.warn('⏳ Ожидаем получение Telegram initData');
+          return;
+        }
+
+        // Шаг 4: Аутентификация не удалась
         if (isMounted) {
           setAuthState(prev => ({
             ...prev,
             isLoading: false,
             error: 'Не удалось выполнить авторизацию',
           }));
-          logger.warn('Authentication failed');
+          logger.warn('❌ Authentication failed');
         }
 
       } catch (error) {
@@ -399,7 +406,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
       }
     };
 
-    // Инициализируем только на клиенте и при наличии необходимых данных
+    // Инициализируем только на клиенте
     if (typeof window !== 'undefined') {
       initializeAuth();
     }
@@ -410,6 +417,8 @@ export function useTelegramAuth(): AuthState & AuthActions {
   }, [
     token,
     isValid,
+    initDataRaw,
+    webAppData,
     setToken,
     setAuth,
     setLoading,
