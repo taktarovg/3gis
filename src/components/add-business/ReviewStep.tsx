@@ -2,9 +2,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Upload } from 'lucide-react';
 import Link from 'next/link';
+import type { BusinessFormData } from '@/app/tg/add-business/page';
 
 interface ReviewStepProps {
-  formData: any;
+  formData: BusinessFormData;
   isOwnerType: boolean;
 }
 

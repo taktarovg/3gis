@@ -1,9 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building, Crown } from 'lucide-react';
+import type { BusinessFormData } from '@/app/tg/add-business/page';
 
 interface BasicInfoStepProps {
-  formData: any;
-  setFormData: (data: any) => void;
+  formData: BusinessFormData;
+  setFormData: (data: BusinessFormData) => void;
   isOwnerType: boolean;
 }
 
@@ -85,7 +86,7 @@ export function BasicInfoStep({ formData, setFormData, isOwnerType }: BasicInfoS
                     if (isSelected) {
                       setFormData({
                         ...formData,
-                        languages: formData.languages.filter(l => l !== lang)
+                        languages: formData.languages.filter((l: string) => l !== lang)
                       });
                     } else {
                       setFormData({

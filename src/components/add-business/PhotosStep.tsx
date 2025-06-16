@@ -1,10 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Camera, Upload } from 'lucide-react';
+import type { BusinessFormData } from '@/app/tg/add-business/page';
 
 interface PhotosStepProps {
-  formData: any;
-  setFormData: (data: any) => void;
+  formData: BusinessFormData;
+  setFormData: (data: BusinessFormData) => void;
   isOwnerType: boolean;
 }
 
