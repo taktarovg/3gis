@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { ImageUpload } from '@/components/upload/ImageUpload';
 import { BusinessPhotoGallery } from '@/components/businesses/BusinessPhotoGallery';
 import { AddBusinessForm } from '@/components/businesses/AddBusinessForm';
@@ -174,9 +175,11 @@ export default function TestS3Page() {
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {uploadedBusinessPhotos.map((photo, index) => (
                         <div key={index} className="space-y-2">
-                          <img
+                          <Image
                             src={photo}
                             alt={`Тестовое фото ${index + 1}`}
+                            width={200}
+                            height={128}
                             className="w-full h-32 object-cover rounded-lg border"
                           />
                           <div className="text-xs text-gray-500 space-y-1">
@@ -219,9 +222,11 @@ export default function TestS3Page() {
                     <div className="flex space-x-4">
                       {uploadedAvatars.map((avatar, index) => (
                         <div key={index} className="text-center space-y-2">
-                          <img
+                          <Image
                             src={avatar}
                             alt={`Тестовый аватар ${index + 1}`}
+                            width={96}
+                            height={96}
                             className="w-24 h-24 rounded-full border object-cover"
                           />
                           <div className="text-xs text-gray-500">

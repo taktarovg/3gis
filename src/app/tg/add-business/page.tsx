@@ -94,12 +94,12 @@ function AddBusinessContent() {
   };
 
   // Проверка возможности перехода к следующему шагу
-  const canProceed = () => {
+  const canProceed = (): boolean => {
     switch (step) {
       case 1:
-        return formData.name && formData.category;
+        return !!(formData.name && formData.category);
       case 2:
-        return formData.address && formData.city;
+        return !!(formData.address && formData.city);
       case 3:
       case 4:
         return true;

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -405,9 +406,11 @@ export function AddBusinessForm({ onSuccess, onCancel }: AddBusinessFormProps) {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {uploadedPhotos.map((photo, index) => (
                   <div key={index} className="relative group">
-                    <img
+                    <Image
                       src={photo}
                       alt={`Фото ${index + 1}`}
+                      width={96}
+                      height={96}
                       className="w-full h-24 object-cover rounded-lg"
                     />
                     <button
