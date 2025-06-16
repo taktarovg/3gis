@@ -43,7 +43,7 @@ export function BottomNavigation() {
       id: 'business',
       label: 'Мой бизнес',
       icon: Building2,
-      path: '/tg/business',
+      path: '/tg/my-business',
     },
     {
       id: 'profile',
@@ -77,7 +77,7 @@ export function BottomNavigation() {
     
     // Проверяем вложенные пути
     if (pathname.startsWith('/tg/favorites')) return 'favorites';
-    if (pathname.startsWith('/tg/business')) return 'business';
+    if (pathname.startsWith('/tg/my-business')) return 'business';
     if (pathname.startsWith('/tg/profile')) return 'profile';
     
     return 'home'; // По умолчанию
