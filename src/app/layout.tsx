@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import { ClientProvider } from './ClientProvider';
 import { inter } from './fonts';
 import { Toaster } from '@/components/ui/toaster';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://3gis.us'),
@@ -48,6 +49,18 @@ export default function RootLayout({
         <meta httpEquiv="Cache-Control" content="no-store, must-revalidate" />
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
+        
+        {/* Telegram WebApp script - КРИТИЧЕСКИ ВАЖНО для авторизации */}
+        <Script 
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+          onLoad={() => {
+            console.log('🔄 Telegram WebApp script loaded successfully');
+          }}
+          onError={(e) => {
+            console.error('❌ Failed to load Telegram WebApp script:', e);
+          }}
+        />
       </head>
       <body className={inter.className}>
         {/* Единый провайдер для всех интерфейсов */}
