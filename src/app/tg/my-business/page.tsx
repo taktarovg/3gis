@@ -177,7 +177,7 @@ export default function MyBusinessPage() {
             <div className="border rounded-lg p-4 bg-white">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h4 className="font-semibold text-gray-900">Ресторан "Русский дом"</h4>
+                  <h4 className="font-semibold text-gray-900">Ресторан &quot;Русский дом&quot;</h4>
                   <p className="text-sm text-gray-600 flex items-center">
                     <MapPin className="w-3 h-3 mr-1" />
                     Brighton Beach, Brooklyn
@@ -247,7 +247,7 @@ export default function MyBusinessPage() {
               {/* Mock contribution entries */}
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
-                  <div className="font-medium text-sm">Салон "Красота"</div>
+                  <div className="font-medium text-sm">Салон &quot;Красота&quot;</div>
                   <div className="text-xs text-gray-500">Добавлено 2 дня назад</div>
                 </div>
                 <Badge variant="secondary" className="text-xs">+5 баллов</Badge>
@@ -255,7 +255,7 @@ export default function MyBusinessPage() {
               
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
-                  <div className="font-medium text-sm">Автосервис "Мастер"</div>
+                  <div className="font-medium text-sm">Автосервис &quot;Мастер&quot;</div>
                   <div className="text-xs text-gray-500">Добавлено неделю назад</div>
                 </div>
                 <Badge variant="secondary" className="text-xs">+7 баллов</Badge>
