@@ -2,7 +2,6 @@
 import React from 'react';
 import { CategoryGrid } from '@/components/categories/CategoryGrid';
 import { SearchBox } from '@/components/search/SearchBox';
-import { FilterChips } from '@/components/filters/FilterChips';
 import { NearbyButton } from '@/components/location/NearbyButton';
 import { PlatformDebug } from '@/components/debug/PlatformDebug';
 
@@ -45,31 +44,14 @@ export default async function ThreeGISHomePage() {
   return (
     <div className="threegis-app-container">
       <div className="threegis-app-main">
-        {/* Header с логотипом 3GIS */}
-        <div className="text-center py-6 px-4">
-          <h1 className="text-3xl font-bold text-threegis-text">
-            3<span className="text-threegis-accent">GIS</span>
-          </h1>
-          <p className="text-threegis-secondary text-sm mt-2">
-            Твой проводник в Америке
-          </p>
-        </div>
-        
         {/* Поиск */}
-        <div className="px-4 mb-6">
+        <div className="px-4 mb-6 mt-6">
           <SearchBox placeholder="Поиск ресторанов, врачей, услуг..." />
         </div>
         
-        {/* Быстрые фильтры + кнопка геолокации */}
-        <div className="mb-6">
-          <div className="px-4 mb-4">
-            <FilterChips />
-          </div>
-          
-          {/* Кнопка "Рядом со мной" */}
-          <div className="px-4">
-            <NearbyButton className="w-full" />
-          </div>
+        {/* Кнопка "Рядом со мной" */}
+        <div className="px-4 mb-6">
+          <NearbyButton className="w-full" />
         </div>
         
         {/* Сетка категорий */}
