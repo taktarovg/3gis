@@ -1,6 +1,6 @@
 // src/lib/auth.ts (обновлено для 3GIS с @telegram-apps/sdk v3.x)
 
-import jwt from 'jsonwebtoken';
+import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import { validateTelegramAuth, parseTelegramAuthData, type TelegramUserData } from './telegram';
 import { logger } from '@/utils/logger';
 
@@ -53,8 +53,10 @@ export function createToken({ user, expiresIn = '7d' }: CreateTokenParams): stri
     language: user.language || 'ru',
   };
 
-  // Явно указываем тип для secret, чтобы избежать ошибок TypeScript
-  const token = jwt.sign(payload, secret as string, {
+  // Проверяем и типизируем secret правильно для TypeScript
+  const jwtSecret: Secret = secret;
+  
+  const token = jwt.sign(payload, jwtSecret, {
     expiresIn,
     issuer: '3gis-app',
     audience: '3gis-users',
@@ -78,7 +80,9 @@ export function verifyToken(token: string): JWTPayload | null {
       return null;
     }
 
-    const decoded = jwt.verify(token, secret as string, {
+    const jwtSecret: Secret = secret;
+    
+    const decoded = jwt.verify(token, jwtSecret, {
       issuer: '3gis-app',
       audience: '3gis-users',
     }) as JWTPayload;
@@ -245,9 +249,11 @@ export function createResetToken(userId: number): string {
     throw new Error('JWT_SECRET не настроен');
   }
 
+  const jwtSecret: Secret = secret;
+  
   return jwt.sign(
     { userId, type: 'reset' },
-    secret as string,
+    jwtSecret,
     { expiresIn: '1h' } // Токен сброса действует 1 час
   );
 }
@@ -265,7 +271,9 @@ export function verifyResetToken(token: string): number | null {
       return null;
     }
 
-    const decoded = jwt.verify(token, secret as string) as any;
+    const jwtSecret: Secret = secret;
+    
+    const decoded = jwt.verify(token, jwtSecret) as any;
     
     if (decoded.type === 'reset' && decoded.userId) {
       return decoded.userId;
