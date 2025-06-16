@@ -99,7 +99,7 @@
   
   /* Карточки с эффектами */
   .landing-card {
-    @apply bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 group hover:-translate-y-1;
+    @apply bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1;
   }
   
   /* Секции лендинга */
@@ -141,15 +141,15 @@
 }
 
 .threegis-category-card {
-  @apply bg-white rounded-xl p-4 text-center border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all duration-200 group;
+  @apply bg-white rounded-xl p-4 text-center border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all duration-200;
 }
 
 .threegis-category-icon {
-  @apply text-2xl mb-2 block group-hover:scale-110 transition-transform duration-200;
+  @apply text-2xl mb-2 block transition-transform duration-200;
 }
 
 .threegis-category-name {
-  @apply text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors;
+  @apply text-sm font-medium text-gray-900 transition-colors;
 }
 
 /* Адаптация для iOS */
