@@ -329,6 +329,69 @@ export type AuthPayload = JWTPayload;
 export type TokenData = CreateTokenParams;
 
 /**
+ * Верификация пользователя из Next.js Request для API routes
+ * @param request - NextRequest объект
+ * @returns Пользователь из JWT payload или null
+ */
+export async function verifyAuth(request: any): Promise<JWTPayload | null> {
+  try {
+    // Извлекаем токен из заголовков
+    const authHeader = request.headers.get('Authorization') || 
+                      request.headers.get('authorization');
+    
+    // Также проверяем cookies
+    const cookieHeader = request.headers.get('Cookie') || 
+                        request.headers.get('cookie');
+    
+    let token: string | null = null;
+    
+    // Сначала пытаемся получить из Authorization header
+    if (authHeader) {
+      token = extractTokenFromHeader(authHeader);
+    }
+    
+    // Если нет в заголовке, пытаемся из cookies
+    if (!token && cookieHeader) {
+      const cookies = cookieHeader.split(';').reduce((acc: Record<string, string>, cookie) => {
+        const [key, value] = cookie.trim().split('=');
+        if (key && value) {
+          acc[key] = decodeURIComponent(value);
+        }
+        return acc;
+      }, {});
+      
+      token = cookies[AUTH_CONSTANTS.TOKEN_STORAGE_KEY] || cookies['auth_token'] || cookies['token'];
+    }
+    
+    if (!token) {
+      logger.warn('No auth token found in request');
+      return null;
+    }
+    
+    // Верифицируем токен
+    const payload = verifyToken(token);
+    
+    if (!payload) {
+      logger.warn('Invalid or expired auth token');
+      return null;
+    }
+    
+    // Проверяем, что токен не истек
+    if (AuthUtils.isTokenExpired(payload)) {
+      logger.warn('Auth token has expired');
+      return null;
+    }
+    
+    logger.logAuth(`User ${payload.telegramId} authenticated via API`);
+    return payload;
+    
+  } catch (error) {
+    logger.error('Error verifying auth:', error);
+    return null;
+  }
+}
+
+/**
  * Утилитарные функции для работы с аутентификацией
  */
 export const AuthUtils = {

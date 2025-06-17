@@ -359,3 +359,61 @@ export function getPremiumTierText(tier: string): string {
   };
   return tierMap[tier] || tier;
 }
+
+/**
+ * Форматирование даты для отображения
+ */
+export function formatDate(dateString: string): string {
+  if (!dateString) return '';
+  
+  try {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    
+    if (diffMinutes < 1) {
+      return 'только что';
+    } else if (diffMinutes < 60) {
+      return `${diffMinutes} мин назад`;
+    } else if (diffHours < 24) {
+      return `${diffHours} ч назад`;
+    } else if (diffDays === 1) {
+      return 'вчера';
+    } else if (diffDays < 7) {
+      return `${diffDays} дн назад`;
+    } else {
+      return date.toLocaleDateString('ru-RU', {
+        day: 'numeric',
+        month: 'short',
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      });
+    }
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return dateString;
+  }
+}
+
+/**
+ * Форматирование даты и времени
+ */
+export function formatDateTime(dateString: string): string {
+  if (!dateString) return '';
+  
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (error) {
+    console.error('Error formatting datetime:', error);
+    return dateString;
+  }
+}

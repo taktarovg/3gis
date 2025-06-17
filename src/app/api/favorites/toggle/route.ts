@@ -1,113 +1,204 @@
-// src/app/api/favorites/toggle/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-
-export const dynamic = 'force-dynamic';
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { verifyAuth } from '@/lib/auth'
 
 /**
- * 3GIS API для добавления/удаления заведения из избранного
+ * POST /api/favorites/toggle - Добавление/удаление заведения из избранного
  */
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Не авторизован' },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.split(' ')[1];
-    const payload = verifyToken(token);
-
-    if (!payload) {
-      return NextResponse.json(
-        { error: 'Неверный токен авторизации' },
-        { status: 401 }
-      );
-    }
-
-    const { businessId } = await request.json();
-
-    if (!businessId) {
-      return NextResponse.json(
-        { error: 'Не указан ID заведения' },
-        { status: 400 }
-      );
-    }
-
-    // Получаем пользователя
-    const user = await prisma.user.findUnique({
-      where: { telegramId: payload.telegramId }
-    });
-
+    // Авторизация пользователя
+    const user = await verifyAuth(request)
     if (!user) {
       return NextResponse.json(
-        { error: 'Пользователь не найден' },
-        { status: 404 }
-      );
+        { error: 'Требуется авторизация' }, 
+        { status: 401 }
+      )
     }
 
-    // Проверяем существует ли заведение
+    // Парсим тело запроса
+    const body = await request.json()
+    const { businessId } = body
+
+    // Валидация businessId
+    if (!businessId || isNaN(parseInt(businessId))) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Неверный ID заведения' 
+        }, 
+        { status: 400 }
+      )
+    }
+
+    const parsedBusinessId = parseInt(businessId)
+
+    // Проверяем, существует ли заведение
     const business = await prisma.business.findUnique({
-      where: { id: businessId }
-    });
+      where: { id: parsedBusinessId },
+      select: {
+        id: true,
+        name: true,
+        status: true
+      }
+    })
 
     if (!business) {
       return NextResponse.json(
-        { error: 'Заведение не найдено' },
+        { 
+          success: false,
+          error: 'Заведение не найдено' 
+        }, 
         { status: 404 }
-      );
+      )
     }
 
-    // Проверяем есть ли уже в избранном
+    // Проверяем, что заведение активно
+    if (business.status !== 'ACTIVE') {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Заведение недоступно' 
+        }, 
+        { status: 400 }
+      )
+    }
+
+    // Проверяем, есть ли уже в избранном
     const existingFavorite = await prisma.businessFavorite.findUnique({
       where: {
         businessId_userId: {
-          businessId: businessId,
+          businessId: parsedBusinessId,
           userId: user.id
         }
       }
-    });
-
-    let isFavorite: boolean;
+    })
 
     if (existingFavorite) {
       // Удаляем из избранного
       await prisma.businessFavorite.delete({
-        where: {
-          businessId_userId: {
-            businessId: businessId,
-            userId: user.id
-          }
-        }
-      });
-      isFavorite = false;
-      console.log(`3GIS: Business ${businessId} removed from favorites for user ${user.id}`);
+        where: { id: existingFavorite.id }
+      })
+
+      return NextResponse.json({
+        success: true,
+        action: 'removed',
+        isFavorite: false,
+        message: `${business.name} удален из избранного`,
+        businessId: parsedBusinessId
+      })
     } else {
       // Добавляем в избранное
-      await prisma.businessFavorite.create({
+      const newFavorite = await prisma.businessFavorite.create({
         data: {
-          businessId: businessId,
+          businessId: parsedBusinessId,
           userId: user.id
+        },
+        include: {
+          business: {
+            select: {
+              id: true,
+              name: true,
+              category: {
+                select: { name: true, icon: true }
+              }
+            }
+          }
         }
-      });
-      isFavorite = true;
-      console.log(`3GIS: Business ${businessId} added to favorites for user ${user.id}`);
+      })
+
+      return NextResponse.json({
+        success: true,
+        action: 'added',
+        isFavorite: true,
+        message: `${business.name} добавлен в избранное`,
+        businessId: parsedBusinessId,
+        favoriteId: newFavorite.id
+      })
     }
 
-    return NextResponse.json({ 
+  } catch (error) {
+    console.error('Error toggling favorite:', error)
+    
+    // Проверяем на уникальные ошибки Prisma
+    if (error instanceof Error && error.message.includes('Unique constraint')) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Заведение уже в избранном' 
+        }, 
+        { status: 409 }
+      )
+    }
+
+    return NextResponse.json(
+      { 
+        success: false,
+        error: 'Ошибка сервера при обновлении избранного'
+      }, 
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * GET /api/favorites/toggle - Проверка статуса избранного для заведения
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const user = await verifyAuth(request)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Требуется авторизация' }, 
+        { status: 401 }
+      )
+    }
+
+    const { searchParams } = new URL(request.url)
+    const businessId = searchParams.get('businessId')
+
+    if (!businessId || isNaN(parseInt(businessId))) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Неверный ID заведения' 
+        }, 
+        { status: 400 }
+      )
+    }
+
+    const parsedBusinessId = parseInt(businessId)
+
+    // Проверяем, есть ли в избранном
+    const favorite = await prisma.businessFavorite.findUnique({
+      where: {
+        businessId_userId: {
+          businessId: parsedBusinessId,
+          userId: user.id
+        }
+      },
+      select: {
+        id: true,
+        createdAt: true
+      }
+    })
+
+    return NextResponse.json({
       success: true,
-      isFavorite,
-      message: isFavorite ? 'Добавлено в избранное' : 'Удалено из избранного'
-    });
+      isFavorite: !!favorite,
+      favoriteId: favorite?.id || null,
+      addedAt: favorite?.createdAt || null,
+      businessId: parsedBusinessId
+    })
 
   } catch (error) {
-    console.error('3GIS Favorites Toggle API error:', error);
+    console.error('Error checking favorite status:', error)
     return NextResponse.json(
-      { error: 'Ошибка при изменении избранного' },
+      { 
+        success: false,
+        error: 'Ошибка проверки статуса избранного'
+      }, 
       { status: 500 }
-    );
+    )
   }
 }

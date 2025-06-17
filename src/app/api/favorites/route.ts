@@ -1,88 +1,126 @@
-// src/app/api/favorites/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-
-export const dynamic = 'force-dynamic';
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { verifyAuth } from '@/lib/auth'
 
 /**
- * 3GIS API для получения избранных заведений пользователя
+ * GET /api/favorites - Получение списка избранных заведений пользователя
  */
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Авторизация через JWT token
+    const user = await verifyAuth(request)
+    if (!user) {
       return NextResponse.json(
-        { error: 'Не авторизован' },
+        { error: 'Требуется авторизация' }, 
         { status: 401 }
-      );
+      )
     }
 
-    const token = authHeader.split(' ')[1];
-    const payload = verifyToken(token);
-
-    if (!payload) {
-      return NextResponse.json(
-        { error: 'Неверный токен авторизации' },
-        { status: 401 }
-      );
-    }
-
-    // Получаем избранные заведения пользователя
+    // Получаем избранные заведения с полной информацией
     const favorites = await prisma.businessFavorite.findMany({
-      where: {
-        user: { telegramId: payload.telegramId }
-      },
+      where: { userId: user.id },
       include: {
         business: {
           include: {
-            category: true,
-            city: true,
+            category: {
+              select: {
+                id: true,
+                name: true,
+                nameEn: true,
+                slug: true,
+                icon: true
+              }
+            },
+            city: {
+              select: {
+                id: true,
+                name: true,
+                state: true
+              }
+            },
             photos: {
+              take: 1,
               orderBy: { order: 'asc' },
-              take: 1
+              select: {
+                id: true,
+                url: true,
+                caption: true
+              }
             },
             _count: {
-              select: { reviews: true }
+              select: {
+                reviews: true,
+                favorites: true
+              }
             }
           }
         }
       },
-      orderBy: {
-        createdAt: 'desc'
+      orderBy: { createdAt: 'desc' }
+    })
+
+    // Форматируем ответ
+    const formattedFavorites = favorites.map(favorite => ({
+      id: favorite.id,
+      addedAt: favorite.createdAt,
+      business: {
+        ...favorite.business,
+        isFavorite: true, // Помечаем как избранное
+        distance: null, // Будет вычислено на клиенте если нужно
+        favoriteCount: favorite.business._count.favorites
       }
-    });
+    }))
 
-    // Преобразуем в нужный формат
-    const formattedFavorites = favorites.map(fav => ({
-      id: fav.business.id,
-      name: fav.business.name,
-      category: {
-        name: fav.business.category.name,
-        icon: fav.business.category.icon
-      },
-      city: {
-        name: fav.business.city.name,
-        state: fav.business.city.state
-      },
-      address: fav.business.address,
-      phone: fav.business.phone,
-      rating: fav.business.rating,
-      reviewCount: fav.business._count.reviews,
-      photos: fav.business.photos.map(p => ({ url: p.url })),
-      addedAt: fav.createdAt
-    }));
-
-    return NextResponse.json({ 
+    return NextResponse.json({
+      success: true,
       favorites: formattedFavorites,
       count: formattedFavorites.length
-    });
+    })
 
   } catch (error) {
-    console.error('3GIS Favorites API error:', error);
+    console.error('Error fetching favorites:', error)
     return NextResponse.json(
-      { error: 'Ошибка при получении избранных заведений' },
+      { 
+        success: false,
+        error: 'Ошибка сервера при получении избранного'
+      }, 
       { status: 500 }
-    );
+    )
+  }
+}
+
+/**
+ * DELETE /api/favorites - Очистка всего избранного пользователя
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await verifyAuth(request)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Требуется авторизация' }, 
+        { status: 401 }
+      )
+    }
+
+    // Удаляем все избранные заведения пользователя
+    const result = await prisma.businessFavorite.deleteMany({
+      where: { userId: user.id }
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: 'Избранное очищено',
+      deletedCount: result.count
+    })
+
+  } catch (error) {
+    console.error('Error clearing favorites:', error)
+    return NextResponse.json(
+      { 
+        success: false,
+        error: 'Ошибка при очистке избранного'
+      }, 
+      { status: 500 }
+    )
   }
 }
