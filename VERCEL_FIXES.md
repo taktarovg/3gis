@@ -17,6 +17,12 @@ Error: " can be escaped with &quot;, &ldquo;, &#34;, &rdquo;.  react/no-unescape
 Type error: Property 'id' does not exist on type 'JWTPayload'.
 ```
 
+### 4. Next.js Page exports error
+```
+Type error: Page does not match the required types of a Next.js Page. 
+"testJWTPayload" is not a valid Page export field.
+```
+
 ## ✅ Решения:
 
 ### 1. Исправлен Haptic Feedback ✅
@@ -45,6 +51,13 @@ Type error: Property 'id' does not exist on type 'JWTPayload'.
 - ✅ Исправлены API endpoints `/api/favorites/toggle/route.ts`
 - ✅ Заменены все `user.id` на `user.userId`
 
+### 4. Исправлена ошибка Next.js Page exports ✅
+**Проблема:** Next.js страницы могут экспортировать только default компонент.
+
+**Решение:**
+- ✅ Убраны лишние named exports в тестовых страницах
+- ✅ Добавлены 'use client' директивы для клиентских компонентов
+
 ## 📁 Измененные файлы:
 
 1. **src/components/favorites/FavoriteButton.tsx** - исправлен импорт haptic feedback ✅
@@ -52,11 +65,14 @@ Type error: Property 'id' does not exist on type 'JWTPayload'.
 3. **src/hooks/use-haptic-feedback.ts** - новый хук для SDK v3.x ✅
 4. **src/app/api/favorites/route.ts** - исправлен user.id → user.userId ✅
 5. **src/app/api/favorites/toggle/route.ts** - исправлен user.id → user.userId ✅
+6. **src/app/tg/types-test/page.tsx** - убраны named exports ✅
+7. **src/app/tg/vercel-fix-test/page.tsx** - добавлен 'use client' ✅
 
 ## 🎯 Результат:
 - ✅ Ошибки импорта исправлены
 - ✅ ESLint ошибки исправлены  
 - ✅ TypeScript ошибки исправлены
+- ✅ Next.js Page структура корректна
 - ✅ Haptic feedback работает с SDK v3.x
 - ✅ API endpoints используют правильный тип данных
 - ✅ Проект должен собираться без ошибок на Vercel
