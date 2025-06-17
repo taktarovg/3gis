@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     // Получаем избранные заведения с полной информацией
     const favorites = await prisma.businessFavorite.findMany({
-      where: { userId: user.id },
+      where: { userId: user.userId },
       include: {
         business: {
           include: {
@@ -104,7 +104,7 @@ export async function DELETE(request: NextRequest) {
 
     // Удаляем все избранные заведения пользователя
     const result = await prisma.businessFavorite.deleteMany({
-      where: { userId: user.id }
+      where: { userId: user.userId }
     })
 
     return NextResponse.json({

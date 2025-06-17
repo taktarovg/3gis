@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       where: {
         businessId_userId: {
           businessId: parsedBusinessId,
-          userId: user.id
+          userId: user.userId
         }
       }
     })
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       const newFavorite = await prisma.businessFavorite.create({
         data: {
           businessId: parsedBusinessId,
-          userId: user.id
+          userId: user.userId
         },
         include: {
           business: {
@@ -174,7 +174,7 @@ export async function GET(request: NextRequest) {
       where: {
         businessId_userId: {
           businessId: parsedBusinessId,
-          userId: user.id
+          userId: user.userId
         }
       },
       select: {
