@@ -21,7 +21,21 @@ export async function GET(request: NextRequest) {
       where: { userId: user.userId },
       include: {
         business: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            nameEn: true,
+            description: true,
+            address: true,
+            phone: true,
+            website: true,
+            rating: true,
+            reviewCount: true,
+            latitude: true,
+            longitude: true,
+            languages: true,
+            hasParking: true,
+            premiumTier: true,
             category: {
               select: {
                 id: true,

@@ -1,4 +1,10 @@
-# 🔧 Исправления ошибок Vercel Build
+### 5. Исправлена ошибка TypeScript Business interface ✅
+**Проблема:** API favorites не возвращал все поля, необходимые для компонента BusinessCard.
+
+**Решение:**
+- ✅ Обновлен API `/api/favorites/route.ts` - добавлены недостающие поля в select
+- ✅ Добавлены поля: `languages`, `hasParking`, `premiumTier`, `latitude`, `longitude`
+- ✅ Обновлен интерфейс `FavoriteItem` в хуке `use-favorites.ts`# 🔧 Исправления ошибок Vercel Build
 
 ## ❌ Проблемы из логов:
 
@@ -21,6 +27,12 @@ Type error: Property 'id' does not exist on type 'JWTPayload'.
 ```
 Type error: Page does not match the required types of a Next.js Page. 
 "testJWTPayload" is not a valid Page export field.
+```
+
+### 5. TypeScript Business interface error
+```
+Type error: Type '{ id: number; name: string; nameEn?: string | undefined; ... }' 
+is missing the following properties from type 'Business': languages, hasParking, premiumTier
 ```
 
 ## ✅ Решения:

@@ -13,6 +13,11 @@ export interface FavoriteItem {
     website?: string
     rating: number
     reviewCount: number
+    latitude?: number
+    longitude?: number
+    languages: string[]
+    hasParking: boolean
+    premiumTier: string
     isFavorite: boolean
     favoriteCount: number
     distance?: number
