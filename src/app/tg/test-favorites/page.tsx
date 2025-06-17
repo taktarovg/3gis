@@ -46,7 +46,7 @@ export default function TestFavoritesPage() {
           <div className="flex items-center gap-3 mb-4">
             <TestTube className="w-6 h-6 text-blue-600" />
             <h1 className="text-2xl font-bold text-gray-900">
-              Тестирование функционала "Избранное"
+              Тестирование функционала &quot;Избранное&quot;
             </h1>
           </div>
           

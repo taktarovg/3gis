@@ -3,7 +3,7 @@
 import { Heart, Loader2 } from 'lucide-react'
 import { useToggleFavorite } from '@/hooks/use-toggle-favorite'
 import { useFavoriteStatus } from '@/hooks/use-favorites'
-import { useHapticFeedback } from '@telegram-apps/sdk-react'
+import { useHapticFeedback } from '@/hooks/use-haptic-feedback'
 
 interface FavoriteButtonProps {
   businessId: number
@@ -28,27 +28,21 @@ export function FavoriteButton({
   const { data: favoriteStatus } = useFavoriteStatus(businessId)
   const isFavorite = favoriteStatus?.isFavorite ?? initialIsFavorite
   
-  // Haptic feedback для Telegram (v3 хук)
-  const hapticFeedback = useHapticFeedback()
+  // Haptic feedback для Telegram
+  const haptic = useHapticFeedback()
 
   const handleToggle = async () => {
     try {
       // Haptic feedback при нажатии
-      if (hapticFeedback) {
-        hapticFeedback.impactOccurred('light')
-      }
+      haptic.buttonPress()
       
       await toggleFavorite.mutateAsync(businessId)
       
       // Haptic feedback при успехе
-      if (hapticFeedback) {
-        hapticFeedback.notificationOccurred(isFavorite ? 'warning' : 'success')
-      }
+      haptic.notificationOccurred(isFavorite ? 'warning' : 'success')
     } catch (error) {
       // Haptic feedback при ошибке
-      if (hapticFeedback) {
-        hapticFeedback.notificationOccurred('error')
-      }
+      haptic.error()
       console.error('Error toggling favorite:', error)
     }
   }

@@ -1,48 +1,47 @@
-# 🔧 Исправления для успешного деплоя на Vercel
+# 🔧 Исправления ошибок Vercel Build
 
-## ✅ Исправленные ошибки:
+## ❌ Проблемы из логов:
 
-### 1. **Ошибка типизации в businesses/route.ts**
-- **Проблема**: `latitude` и `longitude` в Prisma могут быть `null`, но DistanceCalculator ожидает `number | undefined`
-- **Решение**: Добавлено преобразование `null` в `undefined` с помощью `??` оператора
-
-### 2. **ESLint предупреждения в GoogleMap.tsx**
-- **Проблема**: Missing dependencies в useEffect хуках
-- **Решение**: Добавлены недостающие зависимости `businesses` и `markers`
-
-### 3. **ESLint предупреждение в StaticMap.tsx**
-- **Проблема**: Использование `<img>` вместо Next.js `<Image>`
-- **Решение**: Заменено на `<Image>` компонент из `next/image`
-
-### 4. **Структура хуков**
-- **Проблема**: `useDebounce` был в том же файле с `useGeolocation`
-- **Решение**: Вынесен в отдельный файл `use-debounce.ts`
-
-## 🔑 Новая переменная для Vercel:
-
-**В Vercel Dashboard → Settings → Environment Variables добавить:**
-
+### 1. Import Error - useHapticFeedback
 ```
-Название: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-Значение: AIzaSyDoLDzLWQVc6e1guAGiQa7Fgzm9nneZ8DI
-Environment: Production, Preview, Development
+Attempted import error: 'useHapticFeedback' is not exported from '@telegram-apps/sdk-react'
 ```
 
-## 📝 Изменения в коде:
+### 2. ESLint Error - Unescaped entities
+```
+Error: " can be escaped with &quot;, &ldquo;, &#34;, &rdquo;.  react/no-unescaped-entities
+```
 
-### Основные файлы исправлены:
-- ✅ `src/app/api/businesses/route.ts` - исправлена типизация
-- ✅ `src/components/maps/GoogleMap.tsx` - исправлены ESLint warnings
-- ✅ `src/components/maps/StaticMap.tsx` - заменен img на Image
-- ✅ `src/hooks/use-geolocation.ts` - отдельный файл
-- ✅ `src/hooks/use-debounce.ts` - новый файл
-- ✅ `src/components/location/AddressAutocomplete.tsx` - обновлен импорт
+## ✅ Решения:
+
+### 1. Исправлен Haptic Feedback
+**Проблема:** В SDK v3.x нет хука `useHapticFeedback`, только отдельные функции.
+
+**Решение:**
+- ✅ Создан новый хук `useHapticFeedback` в `/src/hooks/use-haptic-feedback.ts`
+- ✅ Использует правильные SDK v3.x функции:
+  - `hapticFeedbackImpactOccurred`
+  - `hapticFeedbackNotificationOccurred` 
+  - `hapticFeedbackSelectionChanged`
+- ✅ Обновлен `FavoriteButton.tsx` для использования нового хука
+- ✅ Добавлена обработка ошибок и graceful fallback
+
+### 2. Исправлены ESLint ошибки
+**Проблема:** Неэкранированные кавычки в JSX.
+
+**Решение:**
+- ✅ Заменены `"Избранное"` на `&quot;Избранное&quot;` в `test-favorites/page.tsx`
+
+## 📁 Измененные файлы:
+
+1. **src/components/favorites/FavoriteButton.tsx** - исправлен импорт haptic feedback
+2. **src/app/tg/test-favorites/page.tsx** - экранированы кавычки
+3. **src/hooks/use-haptic-feedback.ts** - новый хук для SDK v3.x
+
+## 🎯 Результат:
+- ✅ Ошибки импорта исправлены
+- ✅ ESLint ошибки исправлены  
+- ✅ Haptic feedback работает с SDK v3.x
+- ✅ Проект должен собираться без ошибок на Vercel
 
 ## 🚀 Готово к деплою!
-
-После добавления переменной окружения в Vercel:
-1. Код успешно скомпилируется
-2. Геолокация будет работать в продакшене
-3. Все ESLint предупреждения исправлены
-
-**Теперь можно пушить в GitHub и деплоить на Vercel!** 🎉
