@@ -2,7 +2,6 @@
 import React from 'react';
 import { BusinessList } from '@/components/businesses/BusinessList';
 import { SearchBox } from '@/components/search/SearchBox';
-import { FilterChips } from '@/components/filters/FilterChips';
 import { prisma } from '@/lib/prisma';
 
 interface BusinessesPageProps {
@@ -102,11 +101,6 @@ export default async function BusinessesPage({ searchParams }: BusinessesPagePro
             placeholder="Поиск заведений..."
             defaultValue={params.search}
           />
-        </div>
-        
-        {/* Filters */}
-        <div className="bg-gray-50 py-2">
-          <FilterChips />
         </div>
         
         {/* Results count */}

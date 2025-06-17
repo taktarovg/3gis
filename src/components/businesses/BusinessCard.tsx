@@ -72,56 +72,57 @@ export function BusinessCard({ business }: BusinessCardProps) {
   };
 
   return (
-    <div className="threegis-business-card">
+    <div className="relative bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       {/* Premium badge */}
       {business.premiumTier !== 'FREE' && (
-        <div className="absolute top-3 right-3 bg-threegis-accent text-threegis-text px-2 py-1 rounded-md text-xs font-bold">
+        <div className="absolute top-3 right-3 bg-yellow-500 text-black px-2 py-1 rounded-md text-xs font-bold z-10">
           PREMIUM
         </div>
       )}
 
       {/* Photo */}
       {business.photos.length > 0 && (
-        <Image
-          src={business.photos[0].url}
-          alt={business.name}
-          width={400}
-          height={200}
-          className="threegis-business-image"
-          priority={false}
-        />
+        <div className="w-full h-48 relative">
+          <Image
+            src={business.photos[0].url}
+            alt={business.name}
+            fill
+            className="object-cover"
+            priority={false}
+          />
+        </div>
       )}
 
       {/* Business info */}
-      <div>
-        <h3 className="threegis-business-name">
+      <div className="p-4">
+        <h3 className="text-lg font-bold text-gray-900 mb-1">
           {business.name}
         </h3>
         
-        <p className="threegis-business-category">
+        <p className="flex items-center text-gray-600 mb-2">
           <span className="mr-2">{business.category.icon}</span>
           {business.category.name}
         </p>
 
         {/* Rating */}
         {business.rating > 0 && (
-          <div className="threegis-business-rating">
-            <div className="stars">
+          <div className="flex items-center mb-3">
+            <div className="flex items-center text-yellow-500 mr-2">
               ★ {formatRating(business.rating)}
             </div>
-            <span className="text-sm text-threegis-secondary">
+            <span className="text-sm text-gray-500">
               ({business._count.reviews} отзывов)
             </span>
           </div>
         )}
 
-        {/* Address + Distance + Compact Map */}
-        <div className="threegis-business-address">
-          <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+        {/* Address + Distance */}
+        <div className="flex items-start mb-3">
+          <MapPin className="h-4 w-4 mr-2 flex-shrink-0 text-gray-400 mt-0.5" />
           <div className="flex-1">
-            <div>{business.address}, {business.city.name}</div>
+            <div className="text-gray-700">{business.address}, {business.city.name}</div>
             {business.distance !== undefined && (
-              <div className="text-sm text-threegis-accent font-medium mt-1">
+              <div className="text-sm text-blue-600 font-medium mt-1">
                 📍 {business.distance < 1 
                   ? `${Math.round(business.distance * 1000)} м` 
                   : `${business.distance.toFixed(1)} км`
@@ -133,7 +134,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
 
         {/* Компактная карта */}
         {business.latitude && business.longitude && (
-          <div className="mt-3">
+          <div className="mb-3">
             <CompactInlineMap 
               business={{
                 id: business.id,
@@ -151,31 +152,31 @@ export function BusinessCard({ business }: BusinessCardProps) {
 
         {/* Description */}
         {business.description && (
-          <p className="text-sm text-threegis-secondary mt-2 line-clamp-2">
+          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
             {business.description}
           </p>
         )}
 
         {/* Features */}
-        <div className="threegis-business-features">
+        <div className="flex flex-wrap gap-2 mb-4">
           {business.languages.includes('ru') && (
-            <span className="threegis-feature-tag russian">
+            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
               🇷🇺 Русский язык
             </span>
           )}
           {business.hasParking && (
-            <span className="threegis-feature-tag">
+            <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-medium">
               🅿️ Парковка
             </span>
           )}
         </div>
 
         {/* Action buttons */}
-        <div className="threegis-business-actions">
+        <div className="flex flex-wrap gap-2 mb-3">
           {business.phone && (
             <button
               onClick={handleCall}
-              className="threegis-action-button primary"
+              className="flex-1 min-w-0 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center transition-colors"
               title={platform.canMakeCall ? 'Позвонить' : 'Откроется в новой вкладке'}
             >
               <Phone className="h-4 w-4 mr-1" />
@@ -186,7 +187,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
           
           <button
             onClick={handleRoute}
-            className="threegis-action-button secondary"
+            className="flex-1 min-w-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center transition-colors"
             title={platform.canOpenMaps ? 'Открыть карты' : 'Откроется в новой вкладке'}
           >
             <MapPin className="h-4 w-4 mr-1" />
@@ -197,7 +198,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
           {business.website && (
             <button
               onClick={handleWebsite}
-              className="threegis-action-button secondary"
+              className="flex-1 min-w-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center transition-colors"
               title="Откроется в новой вкладке"
             >
               <Globe className="h-4 w-4 mr-1" />
@@ -210,7 +211,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
         {/* Link to detail page */}
         <Link
           href={`/tg/business/${business.id}`}
-          className="block mt-3 text-center text-threegis-accent text-sm font-medium"
+          className="block text-center text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors"
         >
           Подробнее →
         </Link>
