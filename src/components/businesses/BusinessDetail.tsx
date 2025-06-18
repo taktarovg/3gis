@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { formatRating, formatPhoneNumber, formatBusinessHours, isBusinessOpen } from '@/lib/utils';
 import { InlineMap } from '@/components/maps/InlineMap';
 import { usePlatformActions } from '@/hooks/use-platform-detection';
+import { FavoriteButton } from '@/components/favorites/FavoriteButton';
 
 interface BusinessDetailProps {
   business: {
@@ -109,13 +110,20 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
               <ArrowLeft className="h-5 w-5" />
             </button>
             
-            {/* Share button */}
-            <button
-              onClick={handleShare}
-              className="absolute top-4 right-4 bg-black bg-opacity-50 text-white p-2 rounded-full"
-            >
-              <Share className="h-5 w-5" />
-            </button>
+            {/* Action buttons */}
+            <div className="absolute top-4 right-4 flex gap-2">
+              <FavoriteButton
+                businessId={business.id}
+                size="lg"
+                variant="overlay"
+              />
+              <button
+                onClick={handleShare}
+                className="bg-black bg-opacity-50 text-white p-2 rounded-full"
+              >
+                <Share className="h-5 w-5" />
+              </button>
+            </div>
 
             {/* Premium badge */}
             {business.premiumTier !== 'FREE' && (

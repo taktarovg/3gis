@@ -9,7 +9,7 @@ interface FavoriteButtonProps {
   businessId: number
   initialIsFavorite?: boolean
   size?: 'sm' | 'md' | 'lg'
-  variant?: 'default' | 'outline' | 'ghost'
+  variant?: 'default' | 'outline' | 'ghost' | 'overlay'
   showLabel?: boolean
   className?: string
 }
@@ -76,7 +76,10 @@ export function FavoriteButton({
       : 'text-gray-400 border-gray-300 bg-white hover:bg-gray-50',
     ghost: isFavorite
       ? 'text-red-500 bg-transparent hover:bg-red-50'
-      : 'text-gray-400 bg-transparent hover:bg-gray-50'
+      : 'text-gray-400 bg-transparent hover:bg-gray-50',
+    overlay: isFavorite
+      ? 'text-red-500 bg-black bg-opacity-50 hover:bg-opacity-70 border-transparent'
+      : 'text-white bg-black bg-opacity-50 hover:bg-opacity-70 border-transparent'
   }
 
   const isLoading = toggleFavorite.isPending

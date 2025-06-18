@@ -45,7 +45,11 @@ export function BusinessList({ businesses }: BusinessListProps) {
   return (
     <div className="space-y-4">
       {businesses.map((business) => (
-        <BusinessCard key={business.id} business={business} />
+        <BusinessCard 
+          key={business.id} 
+          business={business} 
+          showFavoriteButton={true}
+        />
       ))}
     </div>
   );

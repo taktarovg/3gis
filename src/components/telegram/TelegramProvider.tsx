@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { logger } from '@/utils/logger';
+import { ReactQueryProvider } from '@/components/providers/ReactQueryProvider';
 
 interface TelegramProviderProps {
   children: React.ReactNode;
@@ -155,7 +156,11 @@ export function TelegramProvider({
   }
 
   // Возвращаем приложение с инициализированным WebApp
-  return <>{children}</>;
+  return (
+    <ReactQueryProvider>
+      {children}
+    </ReactQueryProvider>
+  );
 }
 
 /**
