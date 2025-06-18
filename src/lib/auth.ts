@@ -352,7 +352,7 @@ export async function verifyAuth(request: any): Promise<JWTPayload | null> {
     
     // Если нет в заголовке, пытаемся из cookies
     if (!token && cookieHeader) {
-      const cookies = cookieHeader.split(';').reduce((acc: Record<string, string>, cookie) => {
+      const cookies = cookieHeader.split(';').reduce((acc: Record<string, string>, cookie: string) => {
         const [key, value] = cookie.trim().split('=');
         if (key && value) {
           acc[key] = decodeURIComponent(value);
