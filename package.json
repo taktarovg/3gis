@@ -73,7 +73,6 @@
     "@types/google.maps": "^3.55.4"
   },
   "devDependencies": {
-    "@tanstack/react-query-devtools": "^5.18.1",
     "prettier": "^3.2.5",
     "tsx": "^4.7.0"
   }

@@ -1,22 +1,11 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
+import { useState } from 'react';
 
 interface ReactQueryProviderProps {
   children: React.ReactNode;
 }
-
-// Динамический импорт devtools только для development
-const ReactQueryDevtools = dynamic(
-  () => import('@tanstack/react-query-devtools').then((d) => ({
-    default: d.ReactQueryDevtools,
-  })),
-  {
-    ssr: false,
-  }
-);
 
 export function ReactQueryProvider({ children }: ReactQueryProviderProps) {
   const [queryClient] = useState(() => new QueryClient({
@@ -63,27 +52,13 @@ export function ReactQueryProvider({ children }: ReactQueryProviderProps) {
     },
   }));
 
-  // Состояние для показа devtools только в development
-  const [showDevtools, setShowDevtools] = useState(false);
-  
-  useEffect(() => {
-    // Показываем devtools только в development
-    if (process.env.NODE_ENV === 'development') {
-      setShowDevtools(true);
-    }
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      {/* React Query DevTools только в development и только на клиенте */}
-      {showDevtools && process.env.NODE_ENV === 'development' && (
-        <ReactQueryDevtools 
-          initialIsOpen={false} 
-          position="bottom-right"
-          buttonPosition="bottom-right"
-        />
-      )}
+      {/* 
+        DevTools убраны для стабильности production сборки.
+        Можно добавить позже через динамический импорт.
+      */}
     </QueryClientProvider>
   );
 }
