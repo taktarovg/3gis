@@ -91,8 +91,8 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="relative">
-        {/* Photo gallery */}
-        {business.photos.length > 0 && (
+        {/* Photo gallery или header без фото */}
+        {business.photos.length > 0 ? (
           <div className="relative h-64 overflow-hidden">
             <Image
               src={business.photos[0].url}
@@ -132,21 +132,65 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
               </div>
             )}
           </div>
+        ) : (
+          /* Header без фото */
+          <div className="relative bg-gradient-to-r from-blue-500 to-blue-600 h-32">
+            {/* Back button */}
+            <button
+              onClick={handleBack}
+              className="absolute top-4 left-4 bg-black bg-opacity-50 text-white p-2 rounded-full"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            
+            {/* Action buttons */}
+            <div className="absolute top-4 right-4 flex gap-2">
+              <FavoriteButton
+                businessId={business.id}
+                size="lg"
+                variant="overlay"
+              />
+              <button
+                onClick={handleShare}
+                className="bg-black bg-opacity-50 text-white p-2 rounded-full"
+              >
+                <Share className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Business info in header */}
+            <div className="absolute bottom-4 left-4 text-white">
+              <h1 className="text-xl font-bold">{business.name}</h1>
+              <p className="text-blue-100 flex items-center">
+                <span className="mr-2">{business.category.icon}</span>
+                {business.category.name}
+              </p>
+            </div>
+
+            {/* Premium badge */}
+            {business.premiumTier !== 'FREE' && (
+              <div className="absolute bottom-4 right-4 bg-yellow-500 text-black px-3 py-1 rounded-md text-sm font-bold">
+                PREMIUM
+              </div>
+            )}
+          </div>
         )}
       </div>
 
       {/* Content */}
       <div className="p-4">
-        {/* Business name and category */}
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-threegis-text mb-1">
-            {business.name}
-          </h1>
-          <p className="text-threegis-secondary flex items-center">
-            <span className="mr-2">{business.category.icon}</span>
-            {business.category.name}
-          </p>
-        </div>
+        {/* Business name and category (только если есть фото) */}
+        {business.photos.length > 0 && (
+          <div className="mb-4">
+            <h1 className="text-2xl font-bold text-threegis-text mb-1">
+              {business.name}
+            </h1>
+            <p className="text-threegis-secondary flex items-center">
+              <span className="mr-2">{business.category.icon}</span>
+              {business.category.name}
+            </p>
+          </div>
+        )}
 
         {/* Rating */}
         {business.rating > 0 && (
