@@ -85,26 +85,31 @@ function TelegramInitializer() {
             ['chat_instance', '8428209589180549439'],
           ]).toString();
 
+          // Правильная структура для SDK v3.x согласно документации
+          const themeParams = {
+            accent_text_color: '#6ab2f2',
+            bg_color: '#17212b',
+            button_color: '#5288c1',
+            button_text_color: '#ffffff',
+            destructive_text_color: '#ec3942',
+            header_bg_color: '#17212b',
+            hint_color: '#708499',
+            link_color: '#6ab3f3',
+            secondary_bg_color: '#232e3c',
+            section_bg_color: '#17212b',
+            section_header_text_color: '#6ab3f3',
+            subtitle_text_color: '#708499',
+            text_color: '#f5f5f5',
+          };
+
           mockTelegramEnv({
-            tgWebAppThemeParams: {
-              accent_text_color: '#6ab2f2',
-              bg_color: '#17212b',
-              button_color: '#5288c1',
-              button_text_color: '#ffffff',
-              destructive_text_color: '#ec3942',
-              header_bg_color: '#17212b',
-              hint_color: '#708499',
-              link_color: '#6ab3f3',
-              secondary_bg_color: '#232e3c',
-              section_bg_color: '#17212b',
-              section_header_text_color: '#6ab3f3',
-              subtitle_text_color: '#708499',
-              text_color: '#f5f5f5',
-            },
-            tgWebAppData: mockInitDataRaw,
-            tgWebAppVersion: '8.0',
-            tgWebAppPlatform: 'tdesktop',
-            tgWebAppStartParam: 'debug'
+            launchParams: {
+              tgWebAppThemeParams: themeParams,
+              tgWebAppData: mockInitDataRaw,
+              tgWebAppVersion: '8.0',
+              tgWebAppPlatform: 'tdesktop',
+              tgWebAppStartParam: 'debug'
+            }
           });
         }
         
