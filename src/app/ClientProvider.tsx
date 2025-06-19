@@ -71,12 +71,14 @@ function TelegramInitializer() {
           const mockInitDataRaw = new URLSearchParams([
             ['user', JSON.stringify({
               id: randomId,
-              first_name: 'Test',
-              last_name: 'User',
-              username: 'testuser',
+              first_name: 'Георгий',
+              last_name: 'Тактаров',
+              username: 'taktarovgv',
               language_code: 'ru',
               is_premium: false,
               allows_write_to_pm: true,
+              // Добавляем реальный photo_url для тестирования
+              photo_url: 'https://t.me/i/userpic/320/4FPEE4tmP3ATHa57u6MqTDih13LTOiMoKoLDRG4PnSA.svg'
             })],
             ['hash', '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31'],
             ['auth_date', Math.floor(Date.now() / 1000).toString()],

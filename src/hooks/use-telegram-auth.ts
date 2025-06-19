@@ -96,7 +96,15 @@ export function useTelegramAuth(): AuthState & AuthActions {
       logger.logAuth('✅ Telegram initData получен через SDK v3.x:', {
         hasInitData: !!initDataRaw,
         hasUser: !!telegramUser,
-        initDataLength: initDataRaw.length
+        initDataLength: initDataRaw.length,
+        userDetails: telegramUser ? {
+          id: telegramUser.id,
+          firstName: telegramUser.first_name,
+          lastName: telegramUser.last_name,
+          username: telegramUser.username,
+          hasPhotoUrl: !!telegramUser.photo_url,
+          photoUrl: telegramUser.photo_url
+        } : null
       });
     } else {
       logger.warn('⚠️ Telegram initData пока не получен');

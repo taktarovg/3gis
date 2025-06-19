@@ -146,7 +146,7 @@ export const parseTelegramAuthData = (initData: string): TelegramUserData | null
       }
       
       // Формируем объект с данными пользователя согласно новому API
-      return {
+      const userData = {
         telegramId: user.id.toString(),
         firstName: user.first_name || '',
         lastName: user.last_name || '',
@@ -155,6 +155,17 @@ export const parseTelegramAuthData = (initData: string): TelegramUserData | null
         isPremium: user.is_premium || false,
         language: user.language_code || 'ru'
       };
+      
+      // Логируем детали для отладки
+      console.log('3GIS Telegram Auth: Parsed user data details:', {
+        telegramId: userData.telegramId,
+        firstName: userData.firstName,
+        hasPhotoUrl: !!userData.photoUrl,
+        photoUrl: userData.photoUrl,
+        rawPhotoUrl: user.photo_url
+      });
+      
+      return userData;
     } catch (parseError) {
       console.error('Error parsing user JSON:', parseError, { userStr });
       return null;
