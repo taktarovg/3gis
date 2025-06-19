@@ -23,18 +23,6 @@ const nextConfig = {
   // Редиректы для 3GIS
   async redirects() {
     return [
-      // Редирект с www на основной домен
-      {
-        source: '/:path*',
-        has: [
-          {
-            type: 'host',
-            value: 'www.3gis.biz',
-          },
-        ],
-        destination: 'https://3gis.biz/:path*',
-        permanent: true,
-      },
       // Редирект с /app на /tg для Telegram App
       {
         source: '/app',
