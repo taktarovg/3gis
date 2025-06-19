@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
 // Telegram SDK v3.x imports
-import { init, mockTelegramEnv, isTMA } from '@telegram-apps/sdk-react';
+import { init, mockTelegramEnv, retrieveLaunchParams } from '@telegram-apps/sdk-react';
 
 // Создаем разные клиенты для разных контекстов
 const createQueryClient = (context: 'website' | 'telegram' | 'admin') => new QueryClient({
@@ -54,7 +54,14 @@ function TelegramInitializer() {
         console.log('🚀 Инициализация Telegram SDK v3.x...');
         
         // Проверяем, работаем ли мы в Telegram
-        const isInTelegram = isTMA('simple');
+        let isInTelegram = false;
+        try {
+          const launchParams = retrieveLaunchParams();
+          isInTelegram = !!launchParams.initDataRaw;
+        } catch (error) {
+          console.log('🔧 Не в Telegram окружении, включаем режим разработки');
+          isInTelegram = false;
+        }
         
         if (!isInTelegram && process.env.NODE_ENV === 'development') {
           console.log('🔧 Режим разработки: мокаем Telegram окружение');
