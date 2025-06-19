@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
 // Telegram SDK v3.x imports
-import { init, mockTelegramEnv, parseInitData, isTMA } from '@telegram-apps/sdk-react';
+import { init, mockTelegramEnv, isTMA } from '@telegram-apps/sdk-react';
 
 // Создаем разные клиенты для разных контекстов
 const createQueryClient = (context: 'website' | 'telegram' | 'admin') => new QueryClient({
@@ -94,7 +94,6 @@ function TelegramInitializer() {
               subtitleTextColor: '#708499',
               textColor: '#f5f5f5',
             },
-            initData: parseInitData(mockInitDataRaw),
             initDataRaw: mockInitDataRaw,
             version: '7.2',
             platform: 'tdesktop',
