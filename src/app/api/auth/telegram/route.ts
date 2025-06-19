@@ -6,29 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '@/lib/prisma';
 import { validateTelegramAuth, parseTelegramAuthData, extractInitDataString } from '@/lib/telegram';
 import { createToken } from '@/lib/auth';
-
-// Для AWS S3 используем встроенную библиотеку (если она уже настроена)
-// Если нет, то используем дефолтный аватар
-const DEFAULT_AVATAR_URL = `https://avatar.iran.liara.run/public`;
-
-/**
- * Функция для загрузки аватара пользователя в AWS S3
- * Заглушка - будет заменена при настройке AWS S3
- */
-async function uploadUserAvatar(imageUrl: string | null, telegramId: string): Promise<string> {
-  try {
-    // TODO: Интеграция с AWS S3 для загрузки аватаров
-    // Пока возвращаем оригинальный URL или дефолтный
-    if (imageUrl) {
-      // Генерируем avatar.iran.liara.run URL с ID пользователя
-      return `https://avatar.iran.liara.run/public/${telegramId}`;
-    }
-    return DEFAULT_AVATAR_URL;
-  } catch (error) {
-    console.error('Error uploading avatar:', error);
-    return DEFAULT_AVATAR_URL;
-  }
-}
+import { uploadUserAvatar, DEFAULT_IMAGES } from '@/lib/aws-s3'; // ✅ Используем реальную AWS S3 функцию и константы
 
 /**
  * Основной обработчик OPTIONS запроса для CORS preflight
@@ -146,7 +124,7 @@ export async function POST(request: NextRequest) {
               firstName: testUser.firstName,
               lastName: testUser.lastName || '',
               username: testUser.username || null,
-              avatar: testUser.photoUrl ? await uploadUserAvatar(testUser.photoUrl, testUser.telegramId) : DEFAULT_AVATAR_URL,
+              avatar: testUser.photoUrl ? await uploadUserAvatar(testUser.photoUrl, testUser.telegramId) : DEFAULT_IMAGES.AVATAR,
               role: 'USER',
               isPremium: false,
               createdAt: new Date(),
@@ -217,16 +195,20 @@ export async function POST(request: NextRequest) {
       },
     });
     
-    // Загружаем аватар в AWS S3
-    let avatarUrl: string | null = userData.photoUrl || null;
+    // Загружаем аватар в AWS S3 (ТОЛЬКО если есть реальная аватарка из Telegram)
+    let avatarUrl: string | null = null;
     if (userData.photoUrl) {
       try {
+        console.log('3GIS Auth: Загружаем реальную аватарку из Telegram:', userData.photoUrl);
         avatarUrl = await uploadUserAvatar(userData.photoUrl, userData.telegramId);
+        console.log('3GIS Auth: Аватарка успешно загружена в S3:', avatarUrl);
       } catch (error) {
-        console.error('3GIS Auth: Ошибка при загрузке аватара:', error);
-        avatarUrl = null;
-        // Продолжаем процесс аутентификации даже если не удалось загрузить аватар
+        console.error('3GIS Auth: Ошибка при загрузке аватара в S3:', error);
+        avatarUrl = DEFAULT_IMAGES.AVATAR;
       }
+    } else {
+      console.log('3GIS Auth: Нет аватарки в Telegram, используем дефолтную');
+      avatarUrl = DEFAULT_IMAGES.AVATAR;
     }
     
     // Если пользователя нет, создаем нового
@@ -237,7 +219,7 @@ export async function POST(request: NextRequest) {
           firstName: userData.firstName,
           lastName: userData.lastName || '',
           username: userData.username || null,
-          avatar: avatarUrl || DEFAULT_AVATAR_URL,
+          avatar: avatarUrl || DEFAULT_IMAGES.AVATAR,
           role: 'USER', // Устанавливаем роль по умолчанию
           isPremium: userData.isPremium || false,
           createdAt: new Date(),
@@ -271,8 +253,9 @@ export async function POST(request: NextRequest) {
         updateData.lastName = userData.lastName;
       }
       
-      // Обновляем аватар, только если получили новый
-      if (avatarUrl && (!user.avatar || user.avatar.includes('avatar.iran.liara.run'))) {
+      // Обновляем аватар ВСЕГДА (если есть новая аватарка)
+      if (avatarUrl) {
+        console.log('3GIS Auth: Обновляем аватарку пользователя на:', avatarUrl);
         updateData.avatar = avatarUrl;
       }
       
