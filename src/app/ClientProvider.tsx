@@ -87,19 +87,19 @@ function TelegramInitializer() {
 
           // Правильная структура для SDK v3.x согласно документации
           const themeParams = {
-            accent_text_color: '#6ab2f2',
-            bg_color: '#17212b',
-            button_color: '#5288c1',
-            button_text_color: '#ffffff',
-            destructive_text_color: '#ec3942',
-            header_bg_color: '#17212b',
-            hint_color: '#708499',
-            link_color: '#6ab3f3',
-            secondary_bg_color: '#232e3c',
-            section_bg_color: '#17212b',
-            section_header_text_color: '#6ab3f3',
-            subtitle_text_color: '#708499',
-            text_color: '#f5f5f5',
+            accent_text_color: '#6ab2f2' as `#${string}`,
+            bg_color: '#17212b' as `#${string}`,
+            button_color: '#5288c1' as `#${string}`,
+            button_text_color: '#ffffff' as `#${string}`,
+            destructive_text_color: '#ec3942' as `#${string}`,
+            header_bg_color: '#17212b' as `#${string}`,
+            hint_color: '#708499' as `#${string}`,
+            link_color: '#6ab3f3' as `#${string}`,
+            secondary_bg_color: '#232e3c' as `#${string}`,
+            section_bg_color: '#17212b' as `#${string}`,
+            section_header_text_color: '#6ab3f3' as `#${string}`,
+            subtitle_text_color: '#708499' as `#${string}`,
+            text_color: '#f5f5f5' as `#${string}`,
           };
 
           mockTelegramEnv({
