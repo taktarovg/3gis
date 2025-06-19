@@ -23,6 +23,18 @@ const nextConfig = {
   // Редиректы для 3GIS
   async redirects() {
     return [
+      // Редирект с www на основной домен
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'www.3gis.biz',
+          },
+        ],
+        destination: 'https://3gis.biz/:path*',
+        permanent: true,
+      },
       // Редирект с /app на /tg для Telegram App
       {
         source: '/app',
@@ -73,6 +85,29 @@ const nextConfig = {
           {
             key: 'X-Content-Type',
             value: 'telegram-app'
+          }
+        ]
+      },
+
+      // Для API - CORS заголовки
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: 'https://3gis.biz, https://www.3gis.biz, http://localhost:3000'
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS'
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization'
+          },
+          {
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true'
           }
         ]
       },
