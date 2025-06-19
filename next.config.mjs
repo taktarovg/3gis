@@ -121,7 +121,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: '3gis.us',
+        hostname: '3gis.biz',
         port: '',
         pathname: '/**',
       },
@@ -151,8 +151,8 @@ const nextConfig = {
 
   // Переменные окружения для 3GIS
   env: {
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'https://3gis.us',
-    NEXT_PUBLIC_WEBSITE_URL: process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://3gis.us',
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'https://3gis.biz',
+    NEXT_PUBLIC_WEBSITE_URL: process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://3gis.biz',
     NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'ThreeGIS_bot',
     NEXT_PUBLIC_WEBSITE_NAME: '3GIS',
     NEXT_PUBLIC_WEBSITE_DESCRIPTION: 'Russian Business Directory for USA',
