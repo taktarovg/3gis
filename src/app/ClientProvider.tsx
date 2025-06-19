@@ -8,6 +8,9 @@ import { initAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
+// Telegram SDK v3.x provider
+import { SDKProvider } from '@telegram-apps/sdk-react';
+
 // Создаем разные клиенты для разных контекстов
 const createQueryClient = (context: 'website' | 'telegram' | 'admin') => new QueryClient({
   defaultOptions: {
@@ -38,51 +41,18 @@ function determineContext(pathname: string): 'website' | 'telegram' | 'admin' {
   return 'website';
 }
 
-// Telegram инициализация
+// Telegram инициализация (упрощенная версия для SDK v3.x)
 function TelegramInitializer() {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    const initTelegram = async () => {
-      try {
-        console.log('🚀 Initializing 3GIS Telegram App...');
-        
-        // Проверяем доступность Telegram WebApp
-        if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-          const webApp = window.Telegram.WebApp;
-          
-          // Настройки интерфейса
-          try {
-            webApp.ready();
-            
-            // ✅ ИСПРАВЛЕНО: Используем expand() из существующего API
-            if (typeof webApp.expand === 'function') {
-              webApp.expand();
-            }
-            
-            // Цвета для 3GIS
-            if (typeof webApp.setHeaderColor === 'function') {
-              webApp.setHeaderColor('#494b69');
-            }
-            
-            if (typeof webApp.setBackgroundColor === 'function') {
-              webApp.setBackgroundColor('#ffffff');
-            }
-            
-            console.log('✅ 3GIS Telegram WebApp configured');
-          } catch (configError) {
-            console.warn('⚠️ Some WebApp features not available:', configError);
-          }
-        }
-        
-        setIsInitialized(true);
-      } catch (error) {
-        console.error('❌ Telegram initialization error:', error);
-        setIsInitialized(true); // Не блокируем приложение
-      }
-    };
+    // SDK v3.x сам обрабатывает инициализацию Telegram WebApp
+    const timer = setTimeout(() => {
+      console.log('✅ 3GIS Telegram SDK v3.x инициализирован');
+      setIsInitialized(true);
+    }, 100); // Минимальная задержка для инициализации SDK
 
-    initTelegram();
+    return () => clearTimeout(timer);
   }, []);
 
   if (!isInitialized) {
@@ -118,8 +88,10 @@ function TelegramProvider({ children }: { children: React.ReactNode }) {
   
   return (
     <QueryClientProvider client={queryClient.current}>
-      <TelegramInitializer />
-      {children}
+      <SDKProvider acceptCustomStyles debug>
+        <TelegramInitializer />
+        {children}
+      </SDKProvider>
     </QueryClientProvider>
   );
 }
