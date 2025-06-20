@@ -61,6 +61,11 @@ export default function ProfilePage() {
     );
   }
 
+  // Безопасные вычисления статистики с fallback значениями
+  const businessesCount = user.businesses?.length || 0;
+  const favoritesCount = user.favorites?.length || user.favoriteBusinesses?.length || 0;
+  const reviewsCount = 0; // TODO: Добавить когда будет таблица отзывов
+
   return (
     <div className="p-4 space-y-6">
       {/* Header с информацией пользователя */}
@@ -105,7 +110,7 @@ export default function ProfilePage() {
             <div className="flex items-center justify-center mb-1">
               <Building2 className="h-4 w-4 text-blue-500 mr-1" />
               <span className="font-semibold text-lg">
-                {user.businesses?.length || 0}
+                {businessesCount}
               </span>
             </div>
             <p className="text-xs text-gray-500">Мои места</p>
@@ -115,7 +120,7 @@ export default function ProfilePage() {
             <div className="flex items-center justify-center mb-1">
               <Heart className="h-4 w-4 text-red-500 mr-1" />
               <span className="font-semibold text-lg">
-                {user.favorites?.length || 0}
+                {favoritesCount}
               </span>
             </div>
             <p className="text-xs text-gray-500">Избранное</p>
@@ -125,7 +130,7 @@ export default function ProfilePage() {
             <div className="flex items-center justify-center mb-1">
               <Star className="h-4 w-4 text-yellow-500 mr-1" />
               <span className="font-semibold text-lg">
-                {0}
+                {reviewsCount}
               </span>
             </div>
             <p className="text-xs text-gray-500">Отзывы</p>
