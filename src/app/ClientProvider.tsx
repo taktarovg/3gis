@@ -56,67 +56,100 @@ function TelegramInitializer() {
         // Проверяем, работаем ли мы в Telegram
         let isInTelegram = false;
         try {
+          // Даем больше времени для инициализации на мобильных устройствах
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
           const launchParams = retrieveLaunchParams();
-          isInTelegram = !!launchParams.initDataRaw;
+          isInTelegram = !!launchParams.tgWebAppData || !!launchParams.initDataRaw;
+          
+          console.log('📱 Telegram environment check:', {
+            isInTelegram,
+            hasWebAppData: !!launchParams.tgWebAppData,
+            hasInitDataRaw: !!launchParams.initDataRaw,
+            platform: launchParams.tgWebAppPlatform || 'unknown'
+          });
         } catch (error) {
-          console.log('🔧 Не в Telegram окружении, включаем режим разработки');
+          console.log('🔧 Не в Telegram окружении, включаем режим разработки:', error);
           isInTelegram = false;
         }
         
-        if (!isInTelegram && process.env.NODE_ENV === 'development') {
-          console.log('🔧 Режим разработки: мокаем Telegram окружение');
-          
-          // Мокаем Telegram окружение для разработки
-          const randomId = Math.floor(Math.random() * 1000000000);
-          const mockInitDataRaw = new URLSearchParams([
-            ['user', JSON.stringify({
-              id: randomId,
-              first_name: 'Георгий',
-              last_name: 'Тактаров',
-              username: 'taktarovgv',
-              language_code: 'ru',
-              is_premium: false,
-              allows_write_to_pm: true,
-              // Добавляем реальный photo_url для тестирования
-              photo_url: 'https://t.me/i/userpic/320/4FPEE4tmP3ATHa57u6MqTDih13LTOiMoKoLDRG4PnSA.svg'
-            })],
-            ['hash', '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31'],
-            ['auth_date', Math.floor(Date.now() / 1000).toString()],
-            ['start_param', 'debug'],
-            ['chat_type', 'sender'],
-            ['chat_instance', '8428209589180549439'],
-          ]).toString();
+        if (!isInTelegram) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔧 Режим разработки: мокаем Telegram окружение');
+            
+            // Мокаем Telegram окружение для разработки
+            const randomId = Math.floor(Math.random() * 1000000000);
+            const mockInitDataRaw = new URLSearchParams([
+              ['user', JSON.stringify({
+                id: randomId,
+                first_name: 'Георгий',
+                last_name: 'Тактаров',
+                username: 'taktarovgv',
+                language_code: 'ru',
+                is_premium: false,
+                allows_write_to_pm: true,
+                // Добавляем реальный photo_url для тестирования
+                photo_url: 'https://t.me/i/userpic/320/4FPEE4tmP3ATHa57u6MqTDih13LTOiMoKoLDRG4PnSA.svg'
+              })],
+              ['hash', '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31'],
+              ['auth_date', Math.floor(Date.now() / 1000).toString()],
+              ['start_param', 'debug'],
+              ['chat_type', 'sender'],
+              ['chat_instance', '8428209589180549439'],
+            ]).toString();
 
-          // Правильная структура для SDK v3.x согласно документации
-          const themeParams = {
-            accent_text_color: '#6ab2f2' as `#${string}`,
-            bg_color: '#17212b' as `#${string}`,
-            button_color: '#5288c1' as `#${string}`,
-            button_text_color: '#ffffff' as `#${string}`,
-            destructive_text_color: '#ec3942' as `#${string}`,
-            header_bg_color: '#17212b' as `#${string}`,
-            hint_color: '#708499' as `#${string}`,
-            link_color: '#6ab3f3' as `#${string}`,
-            secondary_bg_color: '#232e3c' as `#${string}`,
-            section_bg_color: '#17212b' as `#${string}`,
-            section_header_text_color: '#6ab3f3' as `#${string}`,
-            subtitle_text_color: '#708499' as `#${string}`,
-            text_color: '#f5f5f5' as `#${string}`,
-          };
+            // Правильная структура для SDK v3.x согласно документации
+            const themeParams = {
+              accent_text_color: '#6ab2f2' as `#${string}`,
+              bg_color: '#17212b' as `#${string}`,
+              button_color: '#5288c1' as `#${string}`,
+              button_text_color: '#ffffff' as `#${string}`,
+              destructive_text_color: '#ec3942' as `#${string}`,
+              header_bg_color: '#17212b' as `#${string}`,
+              hint_color: '#708499' as `#${string}`,
+              link_color: '#6ab3f3' as `#${string}`,
+              secondary_bg_color: '#232e3c' as `#${string}`,
+              section_bg_color: '#17212b' as `#${string}`,
+              section_header_text_color: '#6ab3f3' as `#${string}`,
+              subtitle_text_color: '#708499' as `#${string}`,
+              text_color: '#f5f5f5' as `#${string}`,
+            };
 
-          mockTelegramEnv({
-            launchParams: {
-              tgWebAppThemeParams: themeParams,
-              tgWebAppData: mockInitDataRaw,
-              tgWebAppVersion: '8.0',
-              tgWebAppPlatform: 'tdesktop',
-              tgWebAppStartParam: 'debug'
-            }
-          });
+            mockTelegramEnv({
+              launchParams: {
+                tgWebAppThemeParams: themeParams,
+                tgWebAppData: mockInitDataRaw,
+                tgWebAppVersion: '8.0',
+                tgWebAppPlatform: 'tdesktop',
+                tgWebAppStartParam: 'debug'
+              }
+            });
+          } else {
+            // В продакшене на мобильных устройствах может потребоваться больше времени
+            console.log('⏳ Ожидание инициализации Telegram Mini App...');
+          }
         }
         
-        // Инициализируем SDK
-        await init();
+        // Инициализируем SDK с retry логикой для мобильных устройств
+        let initAttempts = 0;
+        const maxAttempts = 3;
+        
+        while (initAttempts < maxAttempts && mounted) {
+          try {
+            await init();
+            break; // Успешная инициализация
+          } catch (error) {
+            initAttempts++;
+            console.warn(`❌ Попытка инициализации ${initAttempts}/${maxAttempts} не удалась:`, error);
+            
+            if (initAttempts < maxAttempts) {
+              // Ждем перед следующей попыткой
+              await new Promise(resolve => setTimeout(resolve, 1000 * initAttempts));
+            } else {
+              throw error; // Последняя попытка не удалась
+            }
+          }
+        }
         
         if (mounted) {
           console.log('✅ Telegram SDK v3.x успешно инициализирован');

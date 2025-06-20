@@ -1,0 +1,249 @@
+// src/components/debug/TelegramDebug.tsx
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useLaunchParams, useRawInitData } from '@telegram-apps/sdk-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+
+/**
+ * Компонент для отладки Telegram SDK v3.x
+ * Показывает текущее состояние всех хуков и данных
+ */
+export function TelegramDebug() {
+  const [isVisible, setIsVisible] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
+
+  // Получаем данные из SDK v3.x с отслеживанием ошибок
+  let launchParams: any = null;
+  let launchParamsError: string | null = null;
+  let initDataRaw: string | undefined = undefined;
+  let initDataError: string | null = null;
+
+  try {
+    launchParams = useLaunchParams(true);
+  } catch (error) {
+    launchParamsError = error instanceof Error ? error.message : String(error);
+  }
+
+  try {
+    initDataRaw = useRawInitData();
+  } catch (error) {
+    initDataError = error instanceof Error ? error.message : String(error);
+  }
+
+  const addLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setLogs(prev => [`[${timestamp}] ${message}`, ...prev.slice(0, 19)]); // Последние 20 логов
+  };
+
+  useEffect(() => {
+    addLog(`Launch params: ${launchParams ? 'OK' : 'NULL'} ${launchParamsError ? `(Error: ${launchParamsError})` : ''}`);
+  }, [launchParams, launchParamsError]);
+
+  useEffect(() => {
+    addLog(`Init data: ${initDataRaw ? 'OK' : 'NULL'} ${initDataError ? `(Error: ${initDataError})` : ''}`);
+  }, [initDataRaw, initDataError]);
+
+  // Показываем только в development
+  if (process.env.NODE_ENV !== 'development') {
+    return null;
+  }
+
+  const webAppData = launchParams?.tgWebAppData;
+  const user = webAppData?.user;
+
+  return (
+    <div className="fixed bottom-4 left-4 z-50">
+      {!isVisible ? (
+        <Button
+          onClick={() => setIsVisible(true)}
+          variant="outline"
+          size="sm"
+          className="bg-black/80 text-white border-gray-600 hover:bg-black/90"
+        >
+          🐛 Debug
+        </Button>
+      ) : (
+        <Card className="w-96 max-h-96 overflow-hidden bg-black/95 text-white border-gray-600">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">Telegram SDK v3.x Debug</CardTitle>
+              <Button
+                onClick={() => setIsVisible(false)}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/20 h-6 w-6 p-0"
+              >
+                ×
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3 text-xs">
+            {/* Статусы хуков */}
+            <div className="space-y-1">
+              <h4 className="font-semibold text-yellow-400">Hook Status:</h4>
+              <div className="flex flex-wrap gap-1">
+                <Badge variant={launchParams ? "default" : "destructive"}>
+                  useLaunchParams: {launchParams ? "✓" : "✗"}
+                </Badge>
+                <Badge variant={initDataRaw ? "default" : "destructive"}>
+                  useRawInitData: {initDataRaw ? "✓" : "✗"}
+                </Badge>
+              </div>
+            </div>
+
+            {/* Ошибки */}
+            {(launchParamsError || initDataError) && (
+              <div className="space-y-1">
+                <h4 className="font-semibold text-red-400">Errors:</h4>
+                {launchParamsError && (
+                  <div className="text-red-300 text-xs">{launchParamsError}</div>
+                )}
+                {initDataError && (
+                  <div className="text-red-300 text-xs">{initDataError}</div>
+                )}
+              </div>
+            )}
+
+            {/* Данные launchParams */}
+            {launchParams && (
+              <div className="space-y-1">
+                <h4 className="font-semibold text-green-400">Launch Params:</h4>
+                <div className="bg-black/50 p-2 rounded text-xs font-mono">
+                  <div>Platform: {launchParams.tgWebAppPlatform || 'unknown'}</div>
+                  <div>Version: {launchParams.tgWebAppVersion || 'unknown'}</div>
+                  <div>Bot Inline: {String(launchParams.tgWebAppBotInline)}</div>
+                  <div>Start Param: {launchParams.tgWebAppStartParam || 'none'}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Данные пользователя */}
+            {user && (
+              <div className="space-y-1">
+                <h4 className="font-semibold text-blue-400">User Data:</h4>
+                <div className="bg-black/50 p-2 rounded text-xs font-mono">
+                  <div>ID: {user.id}</div>
+                  <div>Name: {user.first_name} {user.last_name}</div>
+                  {user.username && <div>Username: @{user.username}</div>}
+                  <div>Language: {user.language_code || 'unknown'}</div>
+                  <div>Premium: {String(user.is_premium)}</div>
+                  <div>Photo: {user.photo_url ? '✓' : '✗'}</div>
+                </div>
+              </div>
+            )}
+
+            {/* InitData */}
+            {initDataRaw && (
+              <div className="space-y-1">
+                <h4 className="font-semibold text-purple-400">Init Data:</h4>
+                <div className="bg-black/50 p-2 rounded text-xs font-mono">
+                  <div>Length: {initDataRaw.length} chars</div>
+                  <div className="truncate">Preview: {initDataRaw.substring(0, 50)}...</div>
+                </div>
+              </div>
+            )}
+
+            {/* Платформа */}
+            <div className="space-y-1">
+              <h4 className="font-semibold text-orange-400">Platform:</h4>
+              <div className="bg-black/50 p-2 rounded text-xs font-mono">
+                <div>User Agent: {navigator.userAgent.substring(0, 30)}...</div>
+                <div>Is Mobile: {/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'Yes' : 'No'}</div>
+                <div>Telegram App: {navigator.userAgent.includes('Telegram') ? 'Yes' : 'No'}</div>
+              </div>
+            </div>
+
+            {/* Логи */}
+            <div className="space-y-1">
+              <h4 className="font-semibold text-gray-400">Logs:</h4>
+              <div className="bg-black/50 p-2 rounded text-xs font-mono max-h-24 overflow-y-auto">
+                {logs.length === 0 ? (
+                  <div className="text-gray-500">No logs yet...</div>
+                ) : (
+                  logs.map((log, index) => (
+                    <div key={index} className="text-gray-300">
+                      {log}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Кнопки действий */}
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setLogs([])}
+                variant="outline"
+                size="sm"
+                className="text-xs h-6 border-gray-600 text-white hover:bg-white/20"
+              >
+                Clear Logs
+              </Button>
+              <Button
+                onClick={() => {
+                  const debugData = {
+                    launchParams,
+                    initDataRaw: initDataRaw ? initDataRaw.substring(0, 100) + '...' : null,
+                    userAgent: navigator.userAgent,
+                    timestamp: new Date().toISOString()
+                  };
+                  console.log('📊 Telegram Debug Data:', debugData);
+                  addLog('Debug data logged to console');
+                }}
+                variant="outline"
+                size="sm"
+                className="text-xs h-6 border-gray-600 text-white hover:bg-white/20"
+              >
+                Log to Console
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Хук для отслеживания состояния Telegram SDK
+ */
+export function useTelegramDebugState() {
+  const [state, setState] = useState({
+    hasLaunchParams: false,
+    hasInitData: false,
+    hasUser: false,
+    platform: 'unknown',
+    errors: [] as string[]
+  });
+
+  let launchParams: any = null;
+  let initDataRaw: string | undefined = undefined;
+  const errors: string[] = [];
+
+  try {
+    launchParams = useLaunchParams(true);
+  } catch (error) {
+    errors.push(`useLaunchParams: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  try {
+    initDataRaw = useRawInitData();
+  } catch (error) {
+    errors.push(`useRawInitData: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  useEffect(() => {
+    setState({
+      hasLaunchParams: !!launchParams,
+      hasInitData: !!initDataRaw,
+      hasUser: !!launchParams?.tgWebAppData?.user,
+      platform: launchParams?.tgWebAppPlatform || 'unknown',
+      errors
+    });
+  }, [launchParams, initDataRaw, errors.length]);
+
+  return state;
+}

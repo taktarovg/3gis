@@ -12,6 +12,7 @@ import { logger } from '@/utils/logger';
 
 // Telegram SDK v3.x imports
 import { useRawInitData, useLaunchParams } from '@telegram-apps/sdk-react';
+import { useTelegramApp } from '@telegram-apps/sdk-react';
 
 // Используем Prisma.UserGetPayload для правильного типирования
 const userWithRelationsPayload = Prisma.validator<Prisma.UserDefaultArgs>()({
@@ -82,16 +83,63 @@ export function useTelegramAuth(): AuthState & AuthActions {
     isAuthenticated: false,
   });
 
-  // Получаем Telegram данные через SDK v3.x хуки
-  const initDataRaw = useRawInitData(); // Сырые данные в формате строки
-  const launchParams = useLaunchParams(true); // SSR-совместимый режим для Next.js
+  // Получаем Telegram данные через SDK v3.x хуки с защитой от ошибок
+  let initDataRaw: string | undefined;
+  let launchParams: any;
+  let telegramApp: any;
   
-  // Извлекаем пользовательские данные из launchParams
-  const webAppData = launchParams?.tgWebAppData || null;
+  try {
+    initDataRaw = useRawInitData();
+  } catch (error) {
+    console.warn('⚠️ useRawInitData error:', error);
+    initDataRaw = undefined;
+  }
+  
+  try {
+    launchParams = useLaunchParams(true); // SSR-совместимый режим для Next.js
+  } catch (error) {
+    console.warn('⚠️ useLaunchParams error:', error);
+    launchParams = null;
+  }
+  
+  try {
+    telegramApp = useTelegramApp();
+  } catch (error) {
+    console.warn('⚠️ useTelegramApp error:', error);
+    telegramApp = null;
+  }
+  
+  // Извлекаем пользовательские данные из launchParams для SDK v3.x
+  // В v3.x структура изменилась: tgWebAppData содержит объект с полями user, authDate, queryId, hash
+  const webAppData = launchParams?.tgWebAppData;
   const telegramUser = webAppData?.user || null;
+  const authDate = webAppData?.authDate || webAppData?.auth_date || null;
+  const queryId = webAppData?.queryId || webAppData?.query_id || null;
+  const hash = webAppData?.hash || null;
   
-  // Логируем получение данных
+  // Логируем получение данных с подробной структурой для отладки
   useEffect(() => {
+    console.log('📊 Telegram SDK v3.x Data Debug:', {
+      hasInitDataRaw: !!initDataRaw,
+      initDataLength: initDataRaw?.length || 0,
+      hasLaunchParams: !!launchParams,
+      launchParamsKeys: launchParams ? Object.keys(launchParams) : [],
+      hasWebAppData: !!webAppData,
+      webAppDataKeys: webAppData ? Object.keys(webAppData) : [],
+      hasUser: !!telegramUser,
+      userDetails: telegramUser ? {
+        id: telegramUser.id,
+        firstName: telegramUser.first_name,
+        lastName: telegramUser.last_name,
+        username: telegramUser.username,
+        hasPhotoUrl: !!telegramUser.photo_url,
+        languageCode: telegramUser.language_code
+      } : null,
+      authDate,
+      queryId,
+      hash: hash ? hash.substring(0, 10) + '...' : null
+    });
+
     if (initDataRaw) {
       logger.logAuth('✅ Telegram initData получен через SDK v3.x:', {
         hasInitData: !!initDataRaw,
@@ -107,9 +155,9 @@ export function useTelegramAuth(): AuthState & AuthActions {
         } : null
       });
     } else {
-      logger.warn('⚠️ Telegram initData пока не получен');
+      logger.warn('⚠️ Telegram initData пока не получен, ожидаем инициализации SDK...');
     }
-  }, [initDataRaw, telegramUser]);
+  }, [initDataRaw, telegramUser, launchParams, webAppData, authDate, queryId, hash]);
 
   /**
    * Загрузка пользователя по токену из БД
@@ -135,7 +183,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
   }, []);
 
   /**
-   * Аутентификация через Telegram initData
+   * Аутентификация через Telegram initData для SDK v3.x
    */
   const authenticateWithTelegram = useCallback(async (): Promise<{ user: UserWithRelations; token: string } | null> => {
     try {
@@ -143,21 +191,31 @@ export function useTelegramAuth(): AuthState & AuthActions {
         throw new Error('No Telegram initData available');
       }
 
-      logger.logAuth('🚀 Начинаем аутентификацию с initData:', {
+      logger.logAuth('🚀 Начинаем аутентификацию с initData (SDK v3.x):', {
         hasInitData: !!initDataRaw,
         initDataLength: initDataRaw.length,
-        hasWebAppData: !!webAppData?.user
+        hasWebAppData: !!webAppData,
+        hasUser: !!telegramUser,
+        userId: telegramUser?.id,
+        platform: launchParams?.tgWebAppPlatform || 'unknown'
       });
 
       // Аутентификация через API
       const response = await apiClient.post<{ user: UserWithRelations; token: string }>('/api/auth/telegram', {
         initData: initDataRaw,
+        // Дополнительная информация для отладки
+        debug: {
+          platform: launchParams?.tgWebAppPlatform,
+          version: launchParams?.tgWebAppVersion,
+          hasUser: !!telegramUser,
+          userId: telegramUser?.id
+        }
       }, {
         skipAuth: true,
         skipAutoRefresh: true,
       });
 
-      logger.logAuth('✅ Telegram authentication successful');
+      logger.logAuth('✅ Telegram authentication successful (SDK v3.x)');
       return response;
     } catch (error) {
       logger.error('❌ Telegram authentication failed:', error);
@@ -168,7 +226,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
       
       throw new Error('Не удалось выполнить авторизацию через Telegram');
     }
-  }, [initDataRaw, webAppData]);
+  }, [initDataRaw, webAppData, telegramUser, launchParams]);
 
   const refreshToken = useCallback(async (): Promise<boolean> => {
     try {
@@ -322,32 +380,62 @@ export function useTelegramAuth(): AuthState & AuthActions {
         }
 
         // Шаг 2: Проверяем наличие initData для авторизации через Telegram
-        if ((!token || !isValid || shouldRefreshToken()) && initDataRaw && telegramUser) {
-          logger.logAuth('🔐 Нет действительного токена, пытаемся авторизоваться через Telegram', {
-            hasInitData: !!initDataRaw,
-            hasUser: !!telegramUser,
-            userId: telegramUser?.id
-          });
+        if (!token || !isValid || shouldRefreshToken()) {
+          // Даем время SDK инициализироваться на мобильных устройствах
+          const maxWaitTime = 5000; // 5 секунд
+          const startTime = Date.now();
           
-          const authResult = await authenticateWithTelegram();
-          if (authResult && isMounted) {
-            const { user, token: newToken } = authResult;
+          const waitForTelegramData = () => {
+            return new Promise<boolean>((resolve) => {
+              const checkData = () => {
+                if (initDataRaw && telegramUser) {
+                  resolve(true);
+                  return;
+                }
+                
+                if (Date.now() - startTime > maxWaitTime) {
+                  resolve(false);
+                  return;
+                }
+                
+                setTimeout(checkData, 100);
+              };
+              
+              checkData();
+            });
+          };
+          
+          const hasData = await waitForTelegramData();
+          
+          if (hasData && initDataRaw && telegramUser) {
+            logger.logAuth('🔐 Нет действительного токена, пытаемся авторизоваться через Telegram', {
+              hasInitData: !!initDataRaw,
+              hasUser: !!telegramUser,
+              userId: telegramUser?.id
+            });
             
-            setToken(newToken);
-            setAuth(user, newToken);
-            markRefreshTime();
-            
-            setAuthState(prev => ({
-              ...prev,
-              user,
-              token: newToken,
-              isAuthenticated: true,
-              isLoading: false,
-              error: null,
-            }));
-            
-            logger.logAuth('✅ Новая аутентификация завершена успешно');
-            return;
+            const authResult = await authenticateWithTelegram();
+            if (authResult && isMounted) {
+              const { user, token: newToken } = authResult;
+              
+              setToken(newToken);
+              setAuth(user, newToken);
+              markRefreshTime();
+              
+              setAuthState(prev => ({
+                ...prev,
+                user,
+                token: newToken,
+                isAuthenticated: true,
+                isLoading: false,
+                error: null,
+              }));
+              
+              logger.logAuth('✅ Новая аутентификация завершена успешно');
+              return;
+            }
+          } else {
+            logger.warn('⏳ Telegram данные не получены в течение 5 секунд');
           }
         }
 

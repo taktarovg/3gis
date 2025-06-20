@@ -4,6 +4,7 @@
 import { TelegramProvider } from '@/components/telegram/TelegramProvider';
 import { TelegramAuth } from '@/components/auth/TelegramAuth';
 import { NavigationLayout } from '@/components/navigation/BottomNavigation';
+import { TelegramDebug } from '@/components/debug/TelegramDebug';
 import { initAuthStore } from '@/store/auth-store';
 import { useEffect } from 'react';
 
@@ -29,6 +30,8 @@ export default function TelegramLayout({
         <NavigationLayout>
           {children}
         </NavigationLayout>
+        {/* Отладочный компонент для разработки */}
+        <TelegramDebug />
       </TelegramAuth>
     </TelegramProvider>
   );
