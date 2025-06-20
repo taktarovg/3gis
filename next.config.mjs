@@ -126,7 +126,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '3gis-photos.s3.us-east-1.amazonaws.com',
+        hostname: '3gis-photos.s3.us-east-2.amazonaws.com',
         port: '',
         pathname: '/**',
       },

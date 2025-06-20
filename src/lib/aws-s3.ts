@@ -10,7 +10,7 @@ import sharp from 'sharp';
 
 // Конфигурация S3 Client
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-1',
+  region: process.env.AWS_REGION || 'us-east-2',
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
@@ -18,7 +18,7 @@ const s3Client = new S3Client({
 });
 
 const BUCKET_NAME = process.env.S3_BUCKET_NAME || '3gis-photos';
-const S3_BASE_URL = process.env.NEXT_PUBLIC_S3_BASE_URL || `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com`;
+const S3_BASE_URL = process.env.NEXT_PUBLIC_S3_BASE_URL || `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-2'}.amazonaws.com`;
 
 /**
  * Конфигурации обработки изображений
