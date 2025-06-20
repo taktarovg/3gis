@@ -16,7 +16,9 @@ export function TelegramDebug() {
   const [logs, setLogs] = useState<string[]>([]);
 
   // Получаем данные из SDK v3.x без условных вызовов (Rules of Hooks)
+  // useLaunchParams(true) - включает SSR режим для Next.js
   const launchParams = useLaunchParams(true);
+  // useRawInitData() - НЕ принимает параметров в SDK v3.x
   const initDataRaw = useRawInitData();
 
   const addLog = (message: string) => {
@@ -79,8 +81,6 @@ export function TelegramDebug() {
                 </Badge>
               </div>
             </div>
-
-
 
             {/* Данные launchParams */}
             {launchParams && (
@@ -183,7 +183,8 @@ export function TelegramDebug() {
 }
 
 /**
- * Хук для отслеживания состояния Telegram SDK
+ * Хук для отслеживания состояния Telegram SDK v3.x
+ * Исправлен useEffect - убрана зависимость errors из dependency array
  */
 export function useTelegramDebugState() {
   const [state, setState] = useState({
@@ -194,19 +195,30 @@ export function useTelegramDebugState() {
     errors: [] as string[]
   });
 
-  const launchParams = useLaunchParams(true);
-  const initDataRaw = useRawInitData();
-  const errors: string[] = [];
+  // Используем хуки согласно SDK v3.x документации
+  const launchParams = useLaunchParams(true); // SSR режим
+  const initDataRaw = useRawInitData(); // Без параметров
 
   useEffect(() => {
+    // Создаем errors локально внутри useEffect
+    const errors: string[] = [];
+    
+    // Проверяем ошибки инициализации
+    if (!launchParams) {
+      errors.push('Launch parameters not available');
+    }
+    if (!initDataRaw) {
+      errors.push('Raw init data not available');
+    }
+    
     setState({
       hasLaunchParams: !!launchParams,
       hasInitData: !!initDataRaw,
       hasUser: !!launchParams?.tgWebAppData?.user,
       platform: launchParams?.tgWebAppPlatform || 'unknown',
-      errors
+      errors // Используем локальную переменную
     });
-  }, [launchParams, initDataRaw]);
+  }, [launchParams, initDataRaw]); // Убрали errors из зависимостей
 
   return state;
 }

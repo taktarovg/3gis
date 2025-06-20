@@ -285,7 +285,7 @@ export function MobileAuthHandler({
                 <ul className="text-xs text-blue-800 space-y-2">
                   <li>1. Полностью закройте и перезапустите Telegram</li>
                   <li>2. Проверьте стабильность интернет-соединения</li>
-                  <li>3. Найдите бота @ThreeGIS_bot и нажмите "Запустить"</li>
+                  <li>3. Найдите бота @ThreeGIS_bot и нажмите &quot;Запустить&quot;</li>
                   <li>4. Обновите Telegram до последней версии</li>
                   {platform.isAndroid && (
                     <li>5. На Android: очистите кэш Telegram в настройках</li>
