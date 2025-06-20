@@ -15,23 +15,9 @@ export function TelegramDebug() {
   const [isVisible, setIsVisible] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
 
-  // Получаем данные из SDK v3.x с отслеживанием ошибок
-  let launchParams: any = null;
-  let launchParamsError: string | null = null;
-  let initDataRaw: string | undefined = undefined;
-  let initDataError: string | null = null;
-
-  try {
-    launchParams = useLaunchParams(true);
-  } catch (error) {
-    launchParamsError = error instanceof Error ? error.message : String(error);
-  }
-
-  try {
-    initDataRaw = useRawInitData();
-  } catch (error) {
-    initDataError = error instanceof Error ? error.message : String(error);
-  }
+  // Получаем данные из SDK v3.x без условных вызовов (Rules of Hooks)
+  const launchParams = useLaunchParams(true);
+  const initDataRaw = useRawInitData();
 
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -39,12 +25,12 @@ export function TelegramDebug() {
   };
 
   useEffect(() => {
-    addLog(`Launch params: ${launchParams ? 'OK' : 'NULL'} ${launchParamsError ? `(Error: ${launchParamsError})` : ''}`);
-  }, [launchParams, launchParamsError]);
+    addLog(`Launch params: ${launchParams ? 'OK' : 'NULL'}`);
+  }, [launchParams]);
 
   useEffect(() => {
-    addLog(`Init data: ${initDataRaw ? 'OK' : 'NULL'} ${initDataError ? `(Error: ${initDataError})` : ''}`);
-  }, [initDataRaw, initDataError]);
+    addLog(`Init data: ${initDataRaw ? 'OK' : 'NULL'}`);
+  }, [initDataRaw]);
 
   // Показываем только в development
   if (process.env.NODE_ENV !== 'development') {
@@ -94,18 +80,7 @@ export function TelegramDebug() {
               </div>
             </div>
 
-            {/* Ошибки */}
-            {(launchParamsError || initDataError) && (
-              <div className="space-y-1">
-                <h4 className="font-semibold text-red-400">Errors:</h4>
-                {launchParamsError && (
-                  <div className="text-red-300 text-xs">{launchParamsError}</div>
-                )}
-                {initDataError && (
-                  <div className="text-red-300 text-xs">{initDataError}</div>
-                )}
-              </div>
-            )}
+
 
             {/* Данные launchParams */}
             {launchParams && (
@@ -219,21 +194,9 @@ export function useTelegramDebugState() {
     errors: [] as string[]
   });
 
-  let launchParams: any = null;
-  let initDataRaw: string | undefined = undefined;
+  const launchParams = useLaunchParams(true);
+  const initDataRaw = useRawInitData();
   const errors: string[] = [];
-
-  try {
-    launchParams = useLaunchParams(true);
-  } catch (error) {
-    errors.push(`useLaunchParams: ${error instanceof Error ? error.message : String(error)}`);
-  }
-
-  try {
-    initDataRaw = useRawInitData();
-  } catch (error) {
-    errors.push(`useRawInitData: ${error instanceof Error ? error.message : String(error)}`);
-  }
 
   useEffect(() => {
     setState({
@@ -243,7 +206,7 @@ export function useTelegramDebugState() {
       platform: launchParams?.tgWebAppPlatform || 'unknown',
       errors
     });
-  }, [launchParams, initDataRaw, errors.length]);
+  }, [launchParams, initDataRaw]);
 
   return state;
 }

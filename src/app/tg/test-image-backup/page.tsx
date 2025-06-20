@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 
 export default function TestImagePage() {
   const [imageStatus, setImageStatus] = useState<string>('loading');
@@ -48,7 +49,7 @@ export default function TestImagePage() {
       {/* Тест через img tag */}
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Тест через img tag (без Next.js Image)</h2>
-        <img 
+        <Image 
           src={directUrl}
           alt="Test avatar"
           width={64}
@@ -56,30 +57,33 @@ export default function TestImagePage() {
           onLoad={handleImageLoad}
           onError={handleImageError}
           className="border rounded"
+          unoptimized
         />
       </div>
 
       {/* Тест через Next.js Image с unoptimized */}
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Тест через Next.js Image (unoptimized)</h2>
-        <img 
+        <Image 
           src={directUrl}
           alt="Test avatar optimized"
           width={64}
           height={64}
           className="border rounded"
+          unoptimized
         />
       </div>
 
       {/* Fallback изображение */}
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Fallback изображение</h2>
-        <img 
+        <Image 
           src="https://avatar.iran.liara.run/public/80954049"
           alt="Fallback avatar"
           width={64}
           height={64}
           className="border rounded"
+          unoptimized
         />
       </div>
     </div>

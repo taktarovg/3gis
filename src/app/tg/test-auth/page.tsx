@@ -3,6 +3,7 @@
 import { useTelegramAuth } from '@/hooks/use-telegram-auth';
 import { useRawInitData, useLaunchParams } from '@telegram-apps/sdk-react';
 import { Loader2 } from 'lucide-react';
+import Image from 'next/image';
 
 export default function TestAuthPage() {
   const { user, isLoading, error, isAuthenticated } = useTelegramAuth();
@@ -90,10 +91,12 @@ export default function TestAuthPage() {
             <h2 className="font-semibold mb-2">👤 Информация о пользователе</h2>
             <div className="flex items-center space-x-3 mb-3">
               {user.avatar && (
-                <img 
+                <Image 
                   src={user.avatar} 
                   alt="Аватар" 
-                  className="w-16 h-16 rounded-full"
+                  width={64}
+                  height={64}
+                  className="w-16 h-16 rounded-full object-cover"
                   onError={(e) => {
                     e.currentTarget.src = 'https://avatar.iran.liara.run/public';
                   }}

@@ -41,21 +41,9 @@ export function MobileAuthHandler({
     platform: 'unknown'
   });
 
-  // Получаем данные из SDK v3.x
-  let launchParams: any = null;
-  let initDataRaw: string | undefined = undefined;
-  
-  try {
-    launchParams = useLaunchParams(true); // SSR-совместимый режим
-  } catch (e) {
-    console.warn('useLaunchParams error:', e);
-  }
-  
-  try {
-    initDataRaw = useRawInitData();
-  } catch (e) {
-    console.warn('useRawInitData error:', e);
-  }
+  // Получаем данные из SDK v3.x без условных вызовов (Rules of Hooks)
+  const launchParams = useLaunchParams(true); // SSR-совместимый режим
+  const initDataRaw = useRawInitData();
 
   // Определяем платформу при монтировании компонента
   useEffect(() => {
@@ -359,21 +347,9 @@ export function useTelegramPlatform() {
     debugInfo: ''
   });
 
-  // Получаем данные из SDK v3.x с защитой от ошибок
-  let launchParams: any = null;
-  let initDataRaw: string | undefined = undefined;
-  
-  try {
-    launchParams = useLaunchParams(true);
-  } catch (e) {
-    console.warn('Platform detection: useLaunchParams error:', e);
-  }
-  
-  try {
-    initDataRaw = useRawInitData();
-  } catch (e) {
-    console.warn('Platform detection: useRawInitData error:', e);
-  }
+  // Получаем данные из SDK v3.x без условных вызовов (Rules of Hooks)
+  const launchParams = useLaunchParams(true);
+  const initDataRaw = useRawInitData();
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
