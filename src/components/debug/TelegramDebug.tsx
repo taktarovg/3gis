@@ -87,10 +87,10 @@ export function TelegramDebug() {
               <div className="space-y-1">
                 <h4 className="font-semibold text-green-400">Launch Params:</h4>
                 <div className="bg-black/50 p-2 rounded text-xs font-mono">
-                  <div>Platform: {launchParams.tgWebAppPlatform || 'unknown'}</div>
-                  <div>Version: {launchParams.tgWebAppVersion || 'unknown'}</div>
-                  <div>Bot Inline: {String(launchParams.tgWebAppBotInline)}</div>
-                  <div>Start Param: {launchParams.tgWebAppStartParam || 'none'}</div>
+                  <div>Platform: {String(launchParams.tgWebAppPlatform || 'unknown')}</div>
+                  <div>Version: {String(launchParams.tgWebAppVersion || 'unknown')}</div>
+                  <div>Bot Inline: {String(launchParams.tgWebAppBotInline || false)}</div>
+                  <div>Start Param: {String(launchParams.tgWebAppStartParam || 'none')}</div>
                 </div>
               </div>
             )}
@@ -100,10 +100,10 @@ export function TelegramDebug() {
               <div className="space-y-1">
                 <h4 className="font-semibold text-blue-400">User Data:</h4>
                 <div className="bg-black/50 p-2 rounded text-xs font-mono">
-                  <div>ID: {user.id}</div>
+                  <div>ID: {String(user.id || '')}</div>
                   <div>Name: {String(user.first_name || '')} {String(user.last_name || '')}</div>
-                  {user.username && <div>Username: @{user.username}</div>}
-                  <div>Language: {user.language_code || 'unknown'}</div>
+                  {user.username && <div>Username: @{String(user.username)}</div>}
+                  <div>Language: {String(user.language_code || 'unknown')}</div>
                   <div>Premium: {String(user.is_premium || false)}</div>
                   <div>Photo: {user.photo_url ? '✓' : '✗'}</div>
                 </div>
@@ -215,7 +215,7 @@ export function useTelegramDebugState() {
       hasLaunchParams: !!launchParams,
       hasInitData: !!initDataRaw,
       hasUser: !!launchParams?.tgWebAppData?.user,
-      platform: launchParams?.tgWebAppPlatform || 'unknown',
+      platform: String(launchParams?.tgWebAppPlatform || 'unknown'),
       errors // Используем локальную переменную
     });
   }, [launchParams, initDataRaw]); // Убрали errors из зависимостей
