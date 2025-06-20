@@ -101,10 +101,10 @@ export function TelegramDebug() {
                 <h4 className="font-semibold text-blue-400">User Data:</h4>
                 <div className="bg-black/50 p-2 rounded text-xs font-mono">
                   <div>ID: {user.id}</div>
-                  <div>Name: {user.first_name} {user.last_name}</div>
+                  <div>Name: {String(user.first_name || '')} {String(user.last_name || '')}</div>
                   {user.username && <div>Username: @{user.username}</div>}
                   <div>Language: {user.language_code || 'unknown'}</div>
-                  <div>Premium: {String(user.is_premium)}</div>
+                  <div>Premium: {String(user.is_premium || false)}</div>
                   <div>Photo: {user.photo_url ? '✓' : '✗'}</div>
                 </div>
               </div>
