@@ -61,10 +61,10 @@ export default function ProfilePage() {
     );
   }
 
-  // Безопасные вычисления статистики с fallback значениями
-  const businessesCount = user.businesses?.length || 0;
-  const favoritesCount = user.favorites?.length || user.favoriteBusinesses?.length || 0;
-  const reviewsCount = 0; // TODO: Добавить когда будет таблица отзывов
+  // Заглушки для статистики (будут заполнены при реализации соответствующего функционала)
+  const businessesCount = 0; // TODO: Получать из API когда будет готово
+  const favoritesCount = 0;  // TODO: Получать из API когда будет готово
+  const reviewsCount = 0;    // TODO: Получать из API когда будет готово
 
   return (
     <div className="p-4 space-y-6">
@@ -150,7 +150,7 @@ export default function ProfilePage() {
             <div>
               <p className="font-medium">Мой город</p>
               <p className="text-sm text-gray-500">
-                {user.city?.name || 'Нью-Йорк'}, {user.city?.state || 'NY'}
+                Нью-Йорк, NY
               </p>
             </div>
             <Button 
