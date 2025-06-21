@@ -252,18 +252,6 @@ export function BusinessCard({
             Маршрут
             {!platform.canOpenMaps && <ExternalLink className="h-3 w-3 ml-1" />}
           </button>
-
-          {business.website && (
-            <button
-              onClick={handleWebsite}
-              className="flex-1 min-w-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center transition-colors"
-              title="Откроется в новой вкладке"
-            >
-              <Globe className="h-4 w-4 mr-1" />
-              Сайт
-              <ExternalLink className="h-3 w-3 ml-1" />
-            </button>
-          )}
         </div>
 
         {/* Link to detail page */}

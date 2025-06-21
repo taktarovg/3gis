@@ -234,9 +234,14 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
           )}
 
           {business.website && (
-            <div className="flex items-center">
+            <div className="flex items-center cursor-pointer" onClick={handleWebsite}>
               <Globe className="h-5 w-5 text-threegis-secondary mr-3 flex-shrink-0" />
-              <p className="text-threegis-accent truncate">{business.website}</p>
+              <div className="flex-1">
+                <p className="text-blue-600 underline truncate hover:text-blue-800 transition-colors">
+                  {business.website.replace(/^https?:\/\//, '')}
+                </p>
+                <p className="text-xs text-gray-500">Нажмите для перехода</p>
+              </div>
             </div>
           )}
 
@@ -364,16 +369,6 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
             <MapPin className="h-5 w-5 mr-2" />
             Маршрут
           </button>
-
-          {business.website && (
-            <button
-              onClick={handleWebsite}
-              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-semibold flex items-center justify-center transition-all duration-200 active:scale-95 shadow-md"
-            >
-              <Globe className="h-5 w-5 mr-2" />
-              Сайт
-            </button>
-          )}
         </div>
       </div>
     </div>
