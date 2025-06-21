@@ -2,14 +2,38 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { User } from '@prisma/client';
+import { User, Prisma } from '@prisma/client';
 import { useAuthStore } from '@/store/auth-store';
 
 // Telegram SDK v3.x imports - убираем условные вызовы
 import { useRawInitData, useLaunchParams } from '@telegram-apps/sdk-react';
 
+// Импортируем правильный тип пользователя с отношениями
+const userWithRelationsPayload = Prisma.validator<Prisma.UserDefaultArgs>()({
+  include: {
+    city: true,
+    businesses: {
+      include: {
+        category: true,
+        city: true
+      }
+    },
+    favorites: {
+      include: {
+        business: {
+          include: {
+            category: true
+          }
+        }
+      }
+    }
+  }
+});
+
+type UserWithRelations = Prisma.UserGetPayload<typeof userWithRelationsPayload>;
+
 interface AuthState {
-  user: User | null;
+  user: UserWithRelations | null;
   token: string | null;
   isLoading: boolean;
   error: string | null;
@@ -29,6 +53,7 @@ interface AuthActions {
  * ✅ Убраны условные вызовы хуков
  * ✅ Совместимость с @telegram-apps/sdk-react v3.3.1
  * ✅ SSR поддержка для Next.js
+ * ✅ Правильная типизация UserWithRelations
  */
 export function useTelegramAuth(): AuthState & AuthActions {
   const { setAuth, setLoading, setError, updateUserLocation, logout: clearAuth } = useAuthStore();
@@ -55,7 +80,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
   /**
    * Аутентификация через Telegram initData для SDK v3.x
    */
-  const authenticateWithTelegram = useCallback(async (): Promise<{ user: User; token: string } | null> => {
+  const authenticateWithTelegram = useCallback(async (): Promise<{ user: UserWithRelations; token: string } | null> => {
     try {
       if (!initDataRaw) {
         throw new Error('No Telegram initData available');
@@ -109,7 +134,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
   /**
    * Загрузка пользователя по токену из localStorage
    */
-  const loadUserFromToken = useCallback(async (authToken: string): Promise<User | null> => {
+  const loadUserFromToken = useCallback(async (authToken: string): Promise<UserWithRelations | null> => {
     try {
       const response = await fetch('/api/auth/me', {
         headers: { Authorization: `Bearer ${authToken}` },
@@ -120,7 +145,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
         return null;
       }
 
-      const user = await response.json();
+      const user = await response.json() as UserWithRelations;
       console.log('User loaded from token successfully');
       return user;
     } catch (error) {
@@ -418,7 +443,7 @@ export const AuthUtils = {
   /**
    * Получение приветственного сообщения
    */
-  getWelcomeMessage(user: User | null): string {
+  getWelcomeMessage(user: UserWithRelations | null): string {
     if (!user) return 'Добро пожаловать в 3GIS!';
     
     const name = user.firstName || user.username || 'Пользователь';
@@ -428,14 +453,14 @@ export const AuthUtils = {
   /**
    * Проверка премиум статуса
    */
-  isPremiumUser(user: User | null): boolean {
+  isPremiumUser(user: UserWithRelations | null): boolean {
     return user?.isPremium || false;
   },
 
   /**
    * Форматирование времени последней активности
    */
-  formatLastSeen(user: User | null): string {
+  formatLastSeen(user: UserWithRelations | null): string {
     if (!user?.lastSeenAt) return 'Никогда';
     
     return new Date(user.lastSeenAt).toLocaleString('ru-RU');
