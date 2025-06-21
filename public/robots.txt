@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Disallow admin and API routes
+Disallow: /admin/
+Disallow: /api/
+
+# Allow Telegram app routes
+Allow: /tg/
+
+# Main sitemap
+Sitemap: https://3gis.vercel.app/sitemap.xml
