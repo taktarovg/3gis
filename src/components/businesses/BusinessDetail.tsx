@@ -127,6 +127,7 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
                 size="lg"
                 variant="overlay"
                 showCount={true}
+                layout="horizontal"
               />
               <button
                 onClick={handleShare}
@@ -162,6 +163,7 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
                 size="lg"
                 variant="overlay"
                 showCount={true}
+                layout="horizontal"
               />
               <button
                 onClick={handleShare}

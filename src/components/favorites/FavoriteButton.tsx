@@ -13,6 +13,7 @@ interface FavoriteButtonProps {
   variant?: 'default' | 'outline' | 'ghost' | 'overlay'
   showLabel?: boolean
   showCount?: boolean
+  layout?: 'vertical' | 'horizontal' // Новый prop для контроля layout
   className?: string
 }
 
@@ -24,6 +25,7 @@ export function FavoriteButton({
   variant = 'default',
   showLabel = false,
   showCount = false,
+  layout = 'vertical',
   className = ''
 }: FavoriteButtonProps) {
   const toggleFavorite = useToggleFavorite()
@@ -95,6 +97,7 @@ export function FavoriteButton({
   const currentSizeClass = sizeClasses[size]
   const currentVariantClass = variantClasses[variant]
 
+  // Версия с лейблом
   if (showLabel) {
     return (
       <button
@@ -137,39 +140,104 @@ export function FavoriteButton({
     )
   }
 
-  return (
-    <div className={`flex flex-col items-center ${className}`}>
-      <button
-        onClick={handleToggle}
-        disabled={isLoading}
-        className={`
-          ${currentSizeClass.button}
-          flex items-center justify-center rounded-full border
-          transition-all duration-200
-          ${currentVariantClass}
-          ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-        `}
-        title={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
-        aria-label={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
-      >
-        {isLoading ? (
-          <Loader2 className={`${currentSizeClass.icon} animate-spin`} />
-        ) : (
-          <Heart 
-            className={`${currentSizeClass.icon} ${isFavorite ? 'fill-current' : ''}`} 
-          />
-        )}
-      </button>
-      
-      {/* Счетчик под кнопкой */}
-      {showCount && (
+  // Горизонтальный layout - счетчик справа
+  if (layout === 'horizontal' && showCount) {
+    return (
+      <div className={`flex items-center gap-1 ${className}`}>
+        <button
+          onClick={handleToggle}
+          disabled={isLoading}
+          className={`
+            ${currentSizeClass.button}
+            flex items-center justify-center rounded-full border
+            transition-all duration-200
+            ${currentVariantClass}
+            ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+          `}
+          title={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+          aria-label={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+        >
+          {isLoading ? (
+            <Loader2 className={`${currentSizeClass.icon} animate-spin`} />
+          ) : (
+            <Heart 
+              className={`${currentSizeClass.icon} ${isFavorite ? 'fill-current' : ''}`} 
+            />
+          )}
+        </button>
+        
+        {/* Счетчик справа */}
+        <span className={`
+          ${size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-sm' : 'text-xs'} 
+          ${variant === 'overlay' ? 'text-white bg-black bg-opacity-50 px-1 rounded' : 'text-gray-500'} 
+          font-medium
+        `}>
+          {currentCount > 0 ? currentCount : 0}
+        </span>
+      </div>
+    )
+  }
+
+  // Вертикальный layout - счетчик под кнопкой
+  if (showCount) {
+    return (
+      <div className={`flex flex-col items-center ${className}`}>
+        <button
+          onClick={handleToggle}
+          disabled={isLoading}
+          className={`
+            ${currentSizeClass.button}
+            flex items-center justify-center rounded-full border
+            transition-all duration-200
+            ${currentVariantClass}
+            ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+          `}
+          title={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+          aria-label={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+        >
+          {isLoading ? (
+            <Loader2 className={`${currentSizeClass.icon} animate-spin`} />
+          ) : (
+            <Heart 
+              className={`${currentSizeClass.icon} ${isFavorite ? 'fill-current' : ''}`} 
+            />
+          )}
+        </button>
+        
+        {/* Счетчик под кнопкой */}
         <span className={`
           ${size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-sm' : 'text-xs'} 
           text-gray-500 mt-1 font-medium
         `}>
           {currentCount > 0 ? currentCount : 0}
         </span>
+      </div>
+    )
+  }
+
+  // Обычная кнопка без счетчика
+  return (
+    <button
+      onClick={handleToggle}
+      disabled={isLoading}
+      className={`
+        ${currentSizeClass.button}
+        flex items-center justify-center rounded-full border
+        transition-all duration-200
+        ${currentVariantClass}
+        ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+        ${className}
+      `}
+      title={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+      aria-label={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+    >
+      {isLoading ? (
+        <Loader2 className={`${currentSizeClass.icon} animate-spin`} />
+      ) : (
+        <Heart 
+          className={`${currentSizeClass.icon} ${isFavorite ? 'fill-current' : ''}`} 
+        />
       )}
-    </div>
+    </button>
   )
 }
