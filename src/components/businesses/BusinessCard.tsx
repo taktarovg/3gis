@@ -105,8 +105,10 @@ export function BusinessCard({
           <FavoriteButton
             businessId={business.id}
             initialIsFavorite={isFavorite || business.isFavorite}
+            favoritesCount={business._count.favorites}
             size="md"
             variant="default"
+            showCount={true}
           />
         )}
       </div>

@@ -123,8 +123,10 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
             <div className="absolute top-4 right-4 flex gap-2">
               <FavoriteButton
                 businessId={business.id}
+                favoritesCount={business._count.favorites}
                 size="lg"
                 variant="overlay"
+                showCount={true}
               />
               <button
                 onClick={handleShare}
@@ -156,8 +158,10 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
             <div className="absolute top-4 right-4 flex gap-2">
               <FavoriteButton
                 businessId={business.id}
+                favoritesCount={business._count.favorites}
                 size="lg"
                 variant="overlay"
+                showCount={true}
               />
               <button
                 onClick={handleShare}

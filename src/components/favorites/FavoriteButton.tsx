@@ -8,18 +8,22 @@ import { useHapticFeedback } from '@/hooks/use-haptic-feedback'
 interface FavoriteButtonProps {
   businessId: number
   initialIsFavorite?: boolean
+  favoritesCount?: number
   size?: 'sm' | 'md' | 'lg'
   variant?: 'default' | 'outline' | 'ghost' | 'overlay'
   showLabel?: boolean
+  showCount?: boolean
   className?: string
 }
 
 export function FavoriteButton({ 
   businessId, 
   initialIsFavorite = false,
+  favoritesCount = 0,
   size = 'md',
   variant = 'default',
   showLabel = false,
+  showCount = false,
   className = ''
 }: FavoriteButtonProps) {
   const toggleFavorite = useToggleFavorite()
@@ -27,6 +31,11 @@ export function FavoriteButton({
   // Получаем актуальный статус избранного
   const { data: favoriteStatus } = useFavoriteStatus(businessId)
   const isFavorite = favoriteStatus?.isFavorite ?? initialIsFavorite
+  
+  // Optimistic updates для счетчика
+  const currentCount = toggleFavorite.isPending 
+    ? (initialIsFavorite ? favoritesCount - 1 : favoritesCount + 1)
+    : favoritesCount
   
   // Haptic feedback для Telegram
   const haptic = useHapticFeedback()
@@ -117,32 +126,50 @@ export function FavoriteButton({
             }
           </span>
         )}
+        
+        {/* Счетчик для версии с лейблом */}
+        {showCount && showLabel && (
+          <span className={`${currentSizeClass.text} text-gray-500`}>
+            ({currentCount})
+          </span>
+        )}
       </button>
     )
   }
 
   return (
-    <button
-      onClick={handleToggle}
-      disabled={isLoading}
-      className={`
-        ${currentSizeClass.button}
-        flex items-center justify-center rounded-full border
-        transition-all duration-200
-        ${currentVariantClass}
-        ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-        ${className}
-      `}
-      title={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
-      aria-label={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
-    >
-      {isLoading ? (
-        <Loader2 className={`${currentSizeClass.icon} animate-spin`} />
-      ) : (
-        <Heart 
-          className={`${currentSizeClass.icon} ${isFavorite ? 'fill-current' : ''}`} 
-        />
+    <div className={`flex flex-col items-center ${className}`}>
+      <button
+        onClick={handleToggle}
+        disabled={isLoading}
+        className={`
+          ${currentSizeClass.button}
+          flex items-center justify-center rounded-full border
+          transition-all duration-200
+          ${currentVariantClass}
+          ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+        `}
+        title={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+        aria-label={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+      >
+        {isLoading ? (
+          <Loader2 className={`${currentSizeClass.icon} animate-spin`} />
+        ) : (
+          <Heart 
+            className={`${currentSizeClass.icon} ${isFavorite ? 'fill-current' : ''}`} 
+          />
+        )}
+      </button>
+      
+      {/* Счетчик под кнопкой */}
+      {showCount && (
+        <span className={`
+          ${size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-sm' : 'text-xs'} 
+          text-gray-500 mt-1 font-medium
+        `}>
+          {currentCount > 0 ? currentCount : 0}
+        </span>
       )}
-    </button>
+    </div>
   )
 }
