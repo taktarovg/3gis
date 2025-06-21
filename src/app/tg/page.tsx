@@ -58,39 +58,6 @@ export default async function ThreeGISHomePage() {
         <div className="px-4">
           <CategoryGrid categories={categories} />
         </div>
-        
-        {/* Статистика */}
-        <div className="px-4 mt-8 text-center">
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-threegis-text mb-2">
-              🇺🇸 Русскоязычная Америка
-            </h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <div className="text-2xl font-bold text-threegis-accent">5.5M</div>
-                <div className="text-threegis-secondary">Русскоговорящих</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-threegis-accent">{categories?.length || 8}</div>
-                <div className="text-threegis-secondary">Категорий услуг</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Популярные города */}
-        <div className="px-4 mt-6">
-          <h3 className="text-lg font-semibold text-threegis-text mb-3">
-            🏙️ Популярные города
-          </h3>
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {['New York', 'Los Angeles', 'Chicago', 'Miami', 'San Francisco'].map((city) => (
-              <div key={city} className="flex-shrink-0 bg-white border rounded-lg px-3 py-2 text-sm">
-                {city}
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
       
       {/* Debug информация */}
