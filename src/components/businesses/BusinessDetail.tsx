@@ -9,6 +9,7 @@ import { formatRating, formatPhoneNumber, formatBusinessHours, isBusinessOpen } 
 import { InlineMap } from '@/components/maps/InlineMap';
 import { usePlatformActions } from '@/hooks/use-platform-detection';
 import { FavoriteButton } from '@/components/favorites/FavoriteButton';
+import { useHapticFeedback } from '@/hooks/use-haptic-feedback';
 
 interface BusinessDetailProps {
   business: {
@@ -61,29 +62,37 @@ interface BusinessDetailProps {
 export function BusinessDetail({ business }: BusinessDetailProps) {
   const router = useRouter();
   const { makeCall, openMaps, shareLocation } = usePlatformActions();
+  const { buttonPress, success } = useHapticFeedback();
 
   const handleBack = () => {
     router.back();
   };
 
   const handleCall = () => {
+    buttonPress(); // Haptic feedback
     if (business.phone) {
       makeCall(business.phone);
+      success(); // Успешное действие
     }
   };
 
   const handleRoute = () => {
+    buttonPress(); // Haptic feedback
     const fullAddress = `${business.address}, ${business.city.name}, ${business.city.state}`;
     openMaps(fullAddress);
+    success(); // Успешное действие
   };
 
   const handleWebsite = () => {
+    buttonPress(); // Haptic feedback
     if (business.website) {
       window.open(business.website, '_blank');
+      success(); // Успешное действие
     }
   };
 
   const handleShare = () => {
+    buttonPress(); // Haptic feedback
     shareLocation(business.name, window.location.href);
   };
 
@@ -178,7 +187,7 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
       </div>
 
       {/* Content */}
-      <div className="p-4">
+      <div className="p-4 pb-32">
         {/* Business name and category (только если есть фото) */}
         {business.photos.length > 0 && (
           <div className="mb-4">
@@ -335,13 +344,13 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
         )}
       </div>
 
-      {/* Fixed action buttons */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-container">
-        <div className="flex gap-3">
+      {/* Fixed action buttons - над нижней навигацией */}
+      <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg z-40">
+        <div className="flex gap-3 max-w-md mx-auto">
           {business.phone && (
             <button
               onClick={handleCall}
-              className="flex-1 bg-threegis-primary text-white py-3 px-4 rounded-lg font-semibold flex items-center justify-center"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold flex items-center justify-center transition-all duration-200 active:scale-95 shadow-md"
             >
               <Phone className="h-5 w-5 mr-2" />
               Позвонить
@@ -350,7 +359,7 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
           
           <button
             onClick={handleRoute}
-            className="flex-1 bg-gray-100 text-threegis-text py-3 px-4 rounded-lg font-semibold flex items-center justify-center"
+            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-semibold flex items-center justify-center transition-all duration-200 active:scale-95 shadow-md"
           >
             <MapPin className="h-5 w-5 mr-2" />
             Маршрут
@@ -359,7 +368,7 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
           {business.website && (
             <button
               onClick={handleWebsite}
-              className="flex-1 bg-gray-100 text-threegis-text py-3 px-4 rounded-lg font-semibold flex items-center justify-center"
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-semibold flex items-center justify-center transition-all duration-200 active:scale-95 shadow-md"
             >
               <Globe className="h-5 w-5 mr-2" />
               Сайт
