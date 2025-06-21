@@ -323,6 +323,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
                 token: null,
                 isLoading: false,
                 error: 'Ожидание данных Telegram... Убедитесь, что приложение открыто через бота @ThreeGIS_bot',
+                isAuthenticated: false,
               });
             }
             return;
@@ -366,6 +367,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
             token: null,
             isLoading: false,
             error: 'Не удалось выполнить авторизацию через Telegram',
+            isAuthenticated: false,
           });
           console.warn('❌ Authentication failed');
         }
