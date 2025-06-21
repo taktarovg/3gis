@@ -28,10 +28,10 @@ export function AdminNavigation() {
       description: 'Общая статистика'
     },
     {
-      name: 'Заведения',
+      name: 'Бизнесы',
       href: '/admin/businesses',
       icon: Building2,
-      description: 'Модерация и управление'
+      description: 'Управление и модерация'
     },
     {
       name: 'Пользователи',

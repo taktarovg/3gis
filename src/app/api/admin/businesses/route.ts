@@ -91,6 +91,94 @@ export async function GET(request: NextRequest) {
 }
 
 /**
+ * Создание нового бизнеса из админки
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // Простая проверка авторизации
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== 'Bearer charlotte-admin') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { 
+      name, 
+      nameEn, 
+      description, 
+      categoryId, 
+      address, 
+      cityId, 
+      phone, 
+      website, 
+      languages, 
+      photos,
+      status = 'ACTIVE'
+    } = body;
+
+    if (!name || !categoryId || !address || !cityId) {
+      return NextResponse.json(
+        { error: 'Требуются обязательные поля: название, категория, адрес, город' },
+        { status: 400 }
+      );
+    }
+
+    // Создаем бизнес и связанные фотографии в транзакции
+    const newBusiness = await prisma.$transaction(async (tx) => {
+      // Создаем бизнес
+      const business = await tx.business.create({
+        data: {
+          name,
+          nameEn,
+          description,
+          categoryId: parseInt(categoryId),
+          address,
+          cityId: parseInt(cityId),
+          phone,
+          website,
+          languages: languages || ['ru', 'en'],
+          status,
+          // Админ создает от имени системы, можно добавить отдельное поле adminCreated
+          ownerId: 1, // ID системного пользователя или первого админа
+          rating: 0,
+          reviewCount: 0
+        },
+        include: {
+          category: true,
+          city: true
+        }
+      });
+
+      // Добавляем фотографии если есть
+      if (photos && photos.length > 0) {
+        await tx.businessPhoto.createMany({
+          data: photos.map((url: string, index: number) => ({
+            url,
+            businessId: business.id,
+            order: index
+          }))
+        });
+      }
+
+      return business;
+    });
+
+    return NextResponse.json({
+      success: true,
+      business: newBusiness,
+      message: 'Бизнес успешно создан'
+    });
+
+  } catch (error) {
+    console.error('Admin business create error:', error);
+    return NextResponse.json(
+      { error: 'Ошибка создания бизнеса' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * Обновление статуса заведения (модерация)
  */
 export async function PATCH(request: NextRequest) {

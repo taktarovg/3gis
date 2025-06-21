@@ -20,9 +20,11 @@ import {
   Globe,
   Star,
   Heart,
-  RefreshCw
+  RefreshCw,
+  Plus
 } from 'lucide-react';
 import Image from 'next/image';
+import { AddBusinessForm } from '@/components/admin/AddBusinessForm';
 
 interface Business {
   id: number;
@@ -67,6 +69,7 @@ export default function AdminBusinessesPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const fetchBusinesses = async () => {
     try {
@@ -149,9 +152,16 @@ export default function AdminBusinessesPage() {
       {/* Заголовок */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Заведения</h1>
-          <p className="text-gray-600 mt-1">Управление и модерация заведений в справочнике</p>
+          <h1 className="text-3xl font-bold text-gray-900">Бизнесы</h1>
+          <p className="text-gray-600 mt-1">Управление и модерация бизнесов в справочнике</p>
         </div>
+        <Button 
+          onClick={() => setShowAddForm(true)}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Добавить бизнес
+        </Button>
       </div>
 
       {/* Фильтры */}
@@ -180,7 +190,7 @@ export default function AdminBusinessesPage() {
                 <SelectValue placeholder="Статус" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Все заведения</SelectItem>
+                <SelectItem value="all">Все бизнесы</SelectItem>
                 <SelectItem value="pending">На модерации</SelectItem>
                 <SelectItem value="active">Активные</SelectItem>
                 <SelectItem value="rejected">Отклоненные</SelectItem>
@@ -206,14 +216,14 @@ export default function AdminBusinessesPage() {
       {loading ? (
         <div className="text-center py-12">
           <RefreshCw className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-600">Загрузка заведений...</p>
+          <p className="text-gray-600">Загрузка бизнесов...</p>
         </div>
       ) : (
         <div className="space-y-4">
           {businesses.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
-                <p className="text-gray-500">Заведения не найдены</p>
+                <p className="text-gray-500">Бизнесы не найдены</p>
               </CardContent>
             </Card>
           ) : (
@@ -369,6 +379,17 @@ export default function AdminBusinessesPage() {
             Следующая
           </Button>
         </div>
+      )}
+
+      {/* Форма добавления бизнеса */}
+      {showAddForm && (
+        <AddBusinessForm
+          onClose={() => setShowAddForm(false)}
+          onSuccess={() => {
+            fetchBusinesses(); // Обновляем список
+            setShowAddForm(false);
+          }}
+        />
       )}
     </div>
   );

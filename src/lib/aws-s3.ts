@@ -142,7 +142,10 @@ export async function uploadBusinessPhoto(
     const webpBuffer = await processImageToWebP(buffer, IMAGE_CONFIGS.BUSINESS_PHOTO);
     
     const fileName = `${uuidv4()}.webp`;
-    const key = `business-photos/${category}/${businessId}/${fileName}`;
+    // Для админки используем специальную папку
+    const key = businessId === 0 
+      ? `business-photos/admin-uploads/${fileName}`
+      : `business-photos/${category}/${businessId}/${fileName}`;
     
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,

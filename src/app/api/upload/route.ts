@@ -90,6 +90,11 @@ async function handleSingleUpload(formData: FormData) {
       data: { avatar: imageUrl }
     });
     
+  } else if (type === 'business' && category === 'admin') {
+    // Специальный случай для админки - загружаем без businessId
+    imageUrl = await uploadBusinessPhoto(buffer, 'admin', 0, file.name);
+    // Не сохраняем в БД, только возвращаем URL
+    
   } else {
     return NextResponse.json(
       { error: 'Неверные параметры загрузки' },
