@@ -24,9 +24,9 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Валидация обязательных полей
-    if (!name || !categoryId || !address || !ownerId) {
+    if (!name || !categoryId || !address || !cityId || !ownerId) {
       return NextResponse.json(
-        { error: 'Обязательные поля: name, categoryId, address, ownerId' },
+        { error: 'Обязательные поля: name, categoryId, address, cityId, ownerId' },
         { status: 400 }
       );
     }
@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
           categoryId: parseInt(categoryId),
           address,
           cityId: parseInt(cityId),
+          stateId: city.stateId, // Автоматически определяем штат из города
           state: city.state,
           phone: phone || null,
           website: website || null,

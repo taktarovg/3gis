@@ -22,6 +22,7 @@ interface City {
   id: number;
   name: string;
   state: string;
+  stateId: string;
 }
 
 interface AddBusinessFormProps {
@@ -46,6 +47,7 @@ export function AddBusinessForm({ onClose, onSuccess }: AddBusinessFormProps) {
     categoryId: '',
     address: '',
     cityId: '',
+    stateId: '',
     phone: '',
     website: '',
     languages: ['ru', 'en']
@@ -114,6 +116,18 @@ export function AddBusinessForm({ onClose, onSuccess }: AddBusinessFormProps) {
 
   const removeImage = (index: number) => {
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Автоматическое определение stateId при выборе города
+  const handleCityChange = (cityId: string) => {
+    const selectedCity = cities.find(city => city.id.toString() === cityId);
+    if (selectedCity) {
+      setFormData(prev => ({ 
+        ...prev, 
+        cityId,
+        stateId: selectedCity.stateId 
+      }));
+    }
   };
 
   return (
@@ -197,7 +211,7 @@ export function AddBusinessForm({ onClose, onSuccess }: AddBusinessFormProps) {
                 <label className="block text-sm font-medium mb-1">
                   Город (обязательно)
                 </label>
-                <Select value={formData.cityId} onValueChange={(value) => setFormData(prev => ({ ...prev, cityId: value }))}>
+                <Select value={formData.cityId} onValueChange={handleCityChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Выберите город" />
                   </SelectTrigger>

@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
       categoryId, 
       address, 
       cityId, 
+      stateId,
       phone, 
       website, 
       languages, 
@@ -116,9 +117,9 @@ export async function POST(request: NextRequest) {
       status = 'ACTIVE'
     } = body;
 
-    if (!name || !categoryId || !address || !cityId) {
+    if (!name || !categoryId || !address || !cityId || !stateId) {
       return NextResponse.json(
-        { error: 'Требуются обязательные поля: название, категория, адрес, город' },
+        { error: 'Требуются обязательные поля: название, категория, адрес, город, штат' },
         { status: 400 }
       );
     }
@@ -134,6 +135,7 @@ export async function POST(request: NextRequest) {
           categoryId: parseInt(categoryId),
           address,
           cityId: parseInt(cityId),
+          stateId, // Добавляем обязательное поле штата
           phone,
           website,
           languages: languages || ['ru', 'en'],
