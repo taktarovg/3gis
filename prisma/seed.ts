@@ -1,5 +1,8 @@
-// prisma/seed.ts
+// Updated seed.ts - Полный справочник США для 3GIS
 import { PrismaClient } from '@prisma/client';
+import { US_STATES } from './us-states';
+import { RUSSIAN_SPEAKING_CITIES } from './russian-speaking-cities';
+import { OTHER_MAJOR_CITIES } from './other-major-cities';
 
 const prisma = new PrismaClient();
 
@@ -15,19 +18,13 @@ const categories = [
   { name: "Недвижимость", nameEn: "Real Estate", slug: "realestate", icon: "🏠", order: 8 }
 ];
 
-// Американские города с русскоязычными общинами
-const cities = [
-  { name: "New York", state: "NY", latitude: 40.7128, longitude: -74.0060, population: 8336817 },
-  { name: "Los Angeles", state: "CA", latitude: 34.0522, longitude: -118.2437, population: 3898747 },
-  { name: "Chicago", state: "IL", latitude: 41.8781, longitude: -87.6298, population: 2693976 },
-  { name: "Brooklyn", state: "NY", latitude: 40.6782, longitude: -73.9442, population: 2736074 },
-  { name: "San Francisco", state: "CA", latitude: 37.7749, longitude: -122.4194, population: 881549 },
-  { name: "Miami", state: "FL", latitude: 25.7617, longitude: -80.1918, population: 467963 },
-  { name: "Seattle", state: "WA", latitude: 47.6062, longitude: -122.3321, population: 753675 },
-  { name: "Boston", state: "MA", latitude: 42.3601, longitude: -71.0589, population: 685094 }
+// Объединяем все города
+const ALL_CITIES = [
+  ...RUSSIAN_SPEAKING_CITIES,
+  ...OTHER_MAJOR_CITIES
 ];
 
-// Тестовые заведения (50 для Нью-Йорка)
+// Тестовые заведения для Нью-Йорка (существующие данные)
 const sampleBusinesses = [
   // Рестораны
   {
@@ -35,9 +32,9 @@ const sampleBusinesses = [
     nameEn: "Russian House Restaurant",
     description: "Традиционная русская кухня в сердце Брайтон-Бич. Борщ, пельмени, блины и другие любимые блюда.",
     categorySlug: "restaurants",
-    cityName: "New York",
+    cityName: "New York City",
+    stateId: "NY",
     address: "1273 Brighton Beach Ave",
-    state: "NY",
     zipCode: "11235",
     phone: "(718) 555-0123",
     website: "https://russianhouseny.com",
@@ -62,9 +59,9 @@ const sampleBusinesses = [
     nameEn: "Golden Rooster Cafe",
     description: "Домашняя еда, как у бабушки. Котлеты, супы, свежая выпечка каждый день.",
     categorySlug: "restaurants",
-    cityName: "New York", 
+    cityName: "New York City", 
+    stateId: "NY",
     address: "1075 Brighton Beach Ave",
-    state: "NY",
     zipCode: "11235",
     phone: "(718) 555-0456",
     latitude: 40.5781,
@@ -87,9 +84,9 @@ const sampleBusinesses = [
     nameEn: "Mother-in-Law's Bakery",
     description: "Свежий хлеб, торты на заказ, русские сладости и пирожки с разными начинками.",
     categorySlug: "restaurants",
-    cityName: "New York",
+    cityName: "New York City",
+    stateId: "NY",
     address: "1018 Brighton Beach Ave", 
-    state: "NY",
     zipCode: "11235",
     phone: "(718) 555-0789",
     latitude: 40.5785,
@@ -114,9 +111,9 @@ const sampleBusinesses = [
     nameEn: "Dr. Ivanov Family Medicine",
     description: "Семейный врач с 15-летним опытом. Ведет прием на русском языке, принимает большинство страховок.",
     categorySlug: "healthcare",
-    cityName: "New York",
+    cityName: "New York City",
+    stateId: "NY",
     address: "3131 Ocean Pkwy, Suite 2A",
-    state: "NY", 
     zipCode: "11235",
     phone: "(718) 555-1234",
     website: "https://drivanov.com",
@@ -141,9 +138,9 @@ const sampleBusinesses = [
     nameEn: "Health Clinic",
     description: "Многопрофильная клиника с русскоговорящими специалистами. Терапия, кардиология, неврология.",
     categorySlug: "healthcare",
-    cityName: "New York",
+    cityName: "New York City",
+    stateId: "NY",
     address: "2632 E 14th St",
-    state: "NY",
     zipCode: "11235", 
     phone: "(718) 555-5678",
     website: "https://healthclinicny.com",
@@ -170,9 +167,9 @@ const sampleBusinesses = [
     nameEn: "Petrov & Associates",
     description: "Иммиграционное право, семейное право, создание бизнеса. Бесплатная консультация.",
     categorySlug: "legal",
-    cityName: "New York",
+    cityName: "New York City",
+    stateId: "NY",
     address: "1600 Sheepshead Bay Rd, Suite 1",
-    state: "NY",
     zipCode: "11235",
     phone: "(718) 555-9999",
     website: "https://petrovlaw.com",
@@ -191,32 +188,6 @@ const sampleBusinesses = [
     rating: 4.8,
     reviewCount: 92
   },
-  {
-    name: "Юридическая группа Новиков",
-    nameEn: "Novikov Legal Group",
-    description: "Недвижимость, корпоративное право, налоговое планирование. 20 лет опыта.",
-    categorySlug: "legal",
-    cityName: "New York", 
-    address: "2110 Ocean Ave, Suite 3B",
-    state: "NY",
-    zipCode: "11229",
-    phone: "(718) 555-7777",
-    website: "https://novikovlegal.com",
-    latitude: 40.5972,
-    longitude: -73.9525,
-    languages: ["ru", "en"],
-    businessHours: {
-      mon: "09:00-18:00",
-      tue: "09:00-18:00",
-      wed: "09:00-18:00", 
-      thu: "09:00-18:00",
-      fri: "09:00-16:00",
-      sat: "По записи",
-      sun: "Закрыто"
-    },
-    rating: 4.6,
-    reviewCount: 78
-  },
 
   // Красота
   {
@@ -224,9 +195,9 @@ const sampleBusinesses = [
     nameEn: "Anna Beauty Salon",
     description: "Стрижки, окрашивание, маникюр, педикюр. Работаем с последними трендами.",
     categorySlug: "beauty",
-    cityName: "New York",
+    cityName: "New York City",
+    stateId: "NY",
     address: "1904 86th St",
-    state: "NY",
     zipCode: "11214",
     phone: "(718) 555-3333",
     latitude: 40.5944,
@@ -251,9 +222,9 @@ const sampleBusinesses = [
     nameEn: "Russian Mechanic",
     description: "Ремонт всех марок авто, диагностика, замена масла. Честные цены, качественная работа.",
     categorySlug: "auto",
-    cityName: "New York",
+    cityName: "New York City",
+    stateId: "NY", 
     address: "1879 Coney Island Ave",
-    state: "NY", 
     zipCode: "11230",
     phone: "(718) 555-4444",
     latitude: 40.6131,
@@ -284,9 +255,20 @@ const testUser = {
 };
 
 async function main() {
-  console.log('🌱 Starting seed...');
+  console.log('🌱 Starting comprehensive seed for 3GIS...');
 
-  // 1. Создаем категории
+  // 1. Создаем штаты
+  console.log('🏛️ Creating states...');
+  for (const state of US_STATES) {
+    await prisma.state.upsert({
+      where: { id: state.id },
+      update: {},
+      create: state
+    });
+  }
+  console.log(`✅ Created ${US_STATES.length} states`);
+
+  // 2. Создаем категории
   console.log('📋 Creating categories...');
   for (const category of categories) {
     await prisma.businessCategory.upsert({
@@ -295,18 +277,32 @@ async function main() {
       create: category
     });
   }
+  console.log(`✅ Created ${categories.length} categories`);
 
-  // 2. Создаем города
+  // 3. Создаем города
   console.log('🏙️ Creating cities...');
-  for (const city of cities) {
+  let cityCount = 0;
+  for (const city of ALL_CITIES) {
     await prisma.city.upsert({
-      where: { name: city.name },
+      where: { 
+        name_stateId: {
+          name: city.name,
+          stateId: city.stateId
+        }
+      },
       update: {},
       create: city
     });
+    cityCount++;
+    
+    // Показываем прогресс каждые 50 городов
+    if (cityCount % 50 === 0) {
+      console.log(`   📍 Processed ${cityCount} cities...`);
+    }
   }
+  console.log(`✅ Created ${ALL_CITIES.length} cities`);
 
-  // 3. Создаем тестового пользователя
+  // 4. Создаем тестового пользователя
   console.log('👤 Creating test user...');
   const user = await prisma.user.upsert({
     where: { telegramId: testUser.telegramId },
@@ -314,7 +310,7 @@ async function main() {
     create: testUser
   });
 
-  // 4. Создаем заведения
+  // 5. Создаем заведения
   console.log('🏢 Creating businesses...');
   for (const business of sampleBusinesses) {
     const category = await prisma.businessCategory.findUnique({
@@ -322,7 +318,12 @@ async function main() {
     });
     
     const city = await prisma.city.findUnique({
-      where: { name: business.cityName }
+      where: { 
+        name_stateId: {
+          name: business.cityName,
+          stateId: business.stateId
+        }
+      }
     });
 
     if (category && city) {
@@ -333,8 +334,8 @@ async function main() {
           description: business.description,
           categoryId: category.id,
           cityId: city.id,
+          stateId: business.stateId,
           address: business.address,
-          state: business.state,
           zipCode: business.zipCode,
           phone: business.phone,
           website: business.website,
@@ -353,12 +354,16 @@ async function main() {
     }
   }
 
-  console.log('✅ Seed completed!');
-  console.log(`📊 Created:`);
-  console.log(`  - ${categories.length} categories`);
-  console.log(`  - ${cities.length} cities`);
-  console.log(`  - ${sampleBusinesses.length} businesses`);
+  console.log('✅ Seed completed successfully!');
+  console.log(`📊 Final stats:`);
+  console.log(`  - ${US_STATES.length} states (51 total)`);
+  console.log(`  - ${categories.length} business categories`);
+  console.log(`  - ${ALL_CITIES.length} cities (covering all major US cities)`);
+  console.log(`  - ${RUSSIAN_SPEAKING_CITIES.length} Russian-speaking priority cities`);
+  console.log(`  - ${OTHER_MAJOR_CITIES.length} other major cities`);
+  console.log(`  - ${sampleBusinesses.length} sample businesses`);
   console.log(`  - 1 test user`);
+  console.log('🎯 Database ready for 3GIS production!');
 }
 
 main()

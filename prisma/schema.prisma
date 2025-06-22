@@ -51,7 +51,7 @@ model Business {
   categoryId    Int
   address       String
   cityId        Int
-  state         String             @default("NY")
+  stateId       String // Связь со штатом
   zipCode       String?
   phone         String?
   website       String?
@@ -81,6 +81,7 @@ model Business {
   reviews       BusinessReview[]
   category      BusinessCategory   @relation(fields: [categoryId], references: [id])
   city          City               @relation(fields: [cityId], references: [id])
+  state         State              @relation(fields: [stateId], references: [id])
   owner         User               @relation("BusinessOwner", fields: [ownerId], references: [id])
 
   @@map("businesses")
@@ -99,17 +100,32 @@ model BusinessCategory {
   @@map("business_categories")
 }
 
+model State {
+  id       String @id // "NY", "CA", "TX", etc.
+  name     String @unique // "New York", "California"
+  fullName String // "New York"
+  region   String // "Northeast", "South", "Midwest", "West"
+  
+  cities     City[]
+  businesses Business[]
+  
+  @@map("states")
+}
+
 model City {
-  id         Int        @id @default(autoincrement())
-  name       String     @unique
-  state      String
-  country    String     @default("USA")
+  id         Int    @id @default(autoincrement())
+  name       String
+  stateId    String // Связь со штатом
+  country    String @default("USA")
   latitude   Float?
   longitude  Float?
   population Int?
+  
+  state      State      @relation(fields: [stateId], references: [id])
   businesses Business[]
   users      User[]
-
+  
+  @@unique([name, stateId]) // Город уникален в рамках штата
   @@map("cities")
 }
 
