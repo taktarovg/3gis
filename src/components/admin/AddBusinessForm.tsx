@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { X, Upload, Loader2, Check } from 'lucide-react';
 import { AdminImageUpload } from '@/components/admin/AdminImageUpload';
+import Image from 'next/image';
 
 interface Category {
   id: number;
@@ -275,9 +276,11 @@ export function AddBusinessForm({ onClose, onSuccess }: AddBusinessFormProps) {
                 <div className="grid grid-cols-3 gap-2 mb-4">
                   {uploadedImages.map((imageUrl, index) => (
                     <div key={index} className="relative">
-                      <img
+                      <Image
                         src={imageUrl}
                         alt={`Фото ${index + 1}`}
+                        width={96}
+                        height={96}
                         className="w-full h-24 object-cover rounded-lg border"
                       />
                       <button

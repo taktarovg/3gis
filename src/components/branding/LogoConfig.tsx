@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 // Адаптация логотипа для разных контекстов
 export const LogoConfig = {
   // Полный логотип для больших размеров
@@ -31,5 +33,5 @@ export function AdaptiveLogo({ size, context }: { size: number; context?: string
   };
   
   const logo = getLogoVersion(size);
-  return <img src={logo.src} alt="3GIS" width={size} height={size} />;
+  return <Image src={logo.src} alt="3GIS" width={size} height={size} />;
 }

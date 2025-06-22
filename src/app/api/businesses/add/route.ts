@@ -40,7 +40,10 @@ export async function POST(request: NextRequest) {
 
     // Проверяем существование города
     const cityExists = await prisma.city.findFirst({
-      where: { name: city }
+      where: { name: city },
+      include: {
+        state: true // Включаем связанную информацию о штате
+      }
     });
 
     if (!cityExists) {
@@ -63,6 +66,7 @@ export async function POST(request: NextRequest) {
         // Связи
         categoryId: categoryExists.id,
         cityId: cityExists.id,
+        stateId: cityExists.stateId, // Используем штат города
         ownerId: 1, // TODO: Получать из авторизации
         
         // Статус в зависимости от типа

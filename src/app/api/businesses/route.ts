@@ -79,7 +79,6 @@ export async function POST(request: NextRequest) {
           address,
           cityId: parseInt(cityId),
           stateId: city.stateId, // Автоматически определяем штат из города
-          state: city.state,
           phone: phone || null,
           website: website || null,
           email: email || null,

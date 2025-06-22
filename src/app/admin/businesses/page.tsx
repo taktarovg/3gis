@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -71,7 +71,7 @@ export default function AdminBusinessesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [showAddForm, setShowAddForm] = useState(false);
 
-  const fetchBusinesses = async () => {
+  const fetchBusinesses = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -101,7 +101,7 @@ export default function AdminBusinessesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, filter, search]);
 
   const updateBusinessStatus = async (businessId: number, newStatus: string) => {
     try {
@@ -130,7 +130,7 @@ export default function AdminBusinessesPage() {
 
   useEffect(() => {
     fetchBusinesses();
-  }, [filter, search, page]);
+  }, [fetchBusinesses]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
