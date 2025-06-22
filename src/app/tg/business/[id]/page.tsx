@@ -24,7 +24,11 @@ async function getBusiness(id: string) {
       },
       include: {
         category: true,
-        city: true,
+        city: {
+          include: {
+            state: true // Включаем связь с штатом
+          }
+        },
         photos: {
           orderBy: { order: 'asc' }
         },
@@ -55,11 +59,20 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
   // Await params для Next.js 15
   const { id } = await params;
   
-  const business = await getBusiness(id);
+  const businessData = await getBusiness(id);
 
-  if (!business) {
+  if (!businessData) {
     notFound();
   }
+
+  // Преобразуем данные для компонента
+  const business = {
+    ...businessData,
+    city: {
+      name: businessData.city.name,
+      state: businessData.city.state?.name || businessData.city.stateId
+    }
+  };
 
   return (
     <div className="threegis-app-container">
