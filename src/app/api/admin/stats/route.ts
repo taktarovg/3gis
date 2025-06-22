@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
       })),
       cities: topCities.map(city => ({
         name: city.name,
-        state: city.state,
+        state: city.stateId, // Исправлено: используем stateId вместо state
         count: city._count.businesses
       })),
       lastUpdated: new Date().toISOString()
