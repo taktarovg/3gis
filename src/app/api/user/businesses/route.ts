@@ -35,7 +35,11 @@ export async function GET(request: NextRequest) {
       },
       include: {
         category: true,
-        city: true,
+        city: {
+          include: {
+            state: true // Включаем связь с штатом
+          }
+        },
         photos: {
           orderBy: { order: 'asc' },
           take: 1
@@ -59,7 +63,7 @@ export async function GET(request: NextRequest) {
       },
       city: {
         name: business.city.name,
-        state: business.city.state
+        state: business.city.state?.name || business.city.stateId
       },
       address: business.address,
       status: business.status,
