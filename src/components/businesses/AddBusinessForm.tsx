@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,29 @@ interface AddBusinessFormProps {
   onCancel?: () => void;
 }
 
+interface State {
+  id: string;
+  name: string;
+  region: string;
+}
+
+interface City {
+  id: number;
+  name: string;
+  stateId: string;
+  state?: {
+    name: string;
+  };
+}
+
+interface Category {
+  id: number;
+  name: string;
+  nameEn: string;
+  slug: string;
+  icon: string;
+}
+
 interface BusinessFormData {
   name: string;
   nameEn: string;
@@ -24,6 +47,7 @@ interface BusinessFormData {
   categoryId: string;
   address: string;
   cityId: string;
+  stateId: string;
   phone: string;
   website: string;
   email: string;
@@ -34,27 +58,7 @@ interface BusinessFormData {
   businessHours: Record<string, { open: string; close: string; closed: boolean }>;
 }
 
-const CATEGORIES = [
-  { id: 1, name: 'Рестораны и кафе', slug: 'restaurants' },
-  { id: 2, name: 'Медицина', slug: 'healthcare' },
-  { id: 3, name: 'Юридические услуги', slug: 'legal' },
-  { id: 4, name: 'Красота и здоровье', slug: 'beauty' },
-  { id: 5, name: 'Автосервисы', slug: 'auto' },
-  { id: 6, name: 'Финансовые услуги', slug: 'finance' },
-  { id: 7, name: 'Образование', slug: 'education' },
-  { id: 8, name: 'Недвижимость', slug: 'realestate' }
-];
 
-const CITIES = [
-  { id: 1, name: 'Нью-Йорк', state: 'NY' },
-  { id: 2, name: 'Лос-Анджелес', state: 'CA' },
-  { id: 3, name: 'Чикаго', state: 'IL' },
-  { id: 4, name: 'Майами', state: 'FL' },
-  { id: 5, name: 'Сан-Франциско', state: 'CA' },
-  { id: 6, name: 'Бостон', state: 'MA' },
-  { id: 7, name: 'Сиэтл', state: 'WA' },
-  { id: 8, name: 'Лас-Вегас', state: 'NV' }
-];
 
 const DAYS_OF_WEEK = [
   { key: 'mon', name: 'Понедельник' },
@@ -72,13 +76,21 @@ export function AddBusinessForm({ onSuccess, onCancel }: AddBusinessFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   
+  // Data from API
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [states, setStates] = useState<State[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [selectedState, setSelectedState] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  
   const [formData, setFormData] = useState<BusinessFormData>({
     name: '',
     nameEn: '',
     description: '',
     categoryId: '',
     address: '',
-    cityId: '1', // Нью-Йорк по умолчанию
+    cityId: '',
+    stateId: '',
     phone: '',
     website: '',
     email: '',
@@ -97,8 +109,70 @@ export function AddBusinessForm({ onSuccess, onCancel }: AddBusinessFormProps) {
     }
   });
 
+  // Load categories and states on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [categoriesRes, statesRes] = await Promise.all([
+          fetch('/api/categories'),
+          fetch('/api/states')
+        ]);
+
+        const categoriesData = await categoriesRes.json();
+        const statesData = await statesRes.json();
+
+        setCategories(categoriesData);
+        setStates(statesData);
+      } catch (err) {
+        console.error('Error loading data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Load cities when state is selected
+  useEffect(() => {
+    if (selectedState) {
+      const fetchCities = async () => {
+        try {
+          const response = await fetch(`/api/cities?state=${selectedState}`);
+          const citiesData = await response.json();
+          setCities(citiesData);
+        } catch (err) {
+          console.error('Error loading cities:', err);
+        }
+      };
+      
+      fetchCities();
+    } else {
+      setCities([]);
+    }
+  }, [selectedState]);
+
   const updateFormData = (field: keyof BusinessFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Handle state selection
+  const handleStateChange = (stateId: string) => {
+    setSelectedState(stateId);
+    setFormData(prev => ({ 
+      ...prev, 
+      stateId,
+      cityId: '' // Reset city when state changes
+    }));
+  };
+
+  // Handle city selection
+  const handleCityChange = (cityId: string) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      cityId
+    }));
   };
 
   const updateBusinessHours = (day: string, field: string, value: string | boolean) => {
@@ -154,7 +228,7 @@ export function AddBusinessForm({ onSuccess, onCancel }: AddBusinessFormProps) {
     }
   };
 
-  const selectedCategory = CATEGORIES.find(cat => cat.id === parseInt(formData.categoryId));
+  const selectedCategory = categories.find(cat => cat.id === parseInt(formData.categoryId));
 
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-6">
@@ -214,9 +288,9 @@ export function AddBusinessForm({ onSuccess, onCancel }: AddBusinessFormProps) {
                   <SelectValue placeholder="Выберите категорию" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map((category) => (
+                  {categories.map((category) => (
                     <SelectItem key={category.id} value={category.id.toString()}>
-                      {category.name}
+                      {category.icon} {category.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -265,20 +339,41 @@ export function AddBusinessForm({ onSuccess, onCancel }: AddBusinessFormProps) {
             </div>
 
             <div>
-              <Label htmlFor="city">Город *</Label>
-              <Select value={formData.cityId} onValueChange={(value) => updateFormData('cityId', value)}>
+              <Label htmlFor="state">Штат *</Label>
+              <Select value={selectedState} onValueChange={handleStateChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Выберите город" />
+                  <SelectValue placeholder="Сначала выберите штат" />
                 </SelectTrigger>
-                <SelectContent>
-                  {CITIES.map((city) => (
-                    <SelectItem key={city.id} value={city.id.toString()}>
-                      {city.name}, {city.state}
+                <SelectContent className="max-h-60 overflow-y-auto">
+                  {states.map((state) => (
+                    <SelectItem key={state.id} value={state.id}>
+                      {state.name} ({state.region})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            {selectedState && (
+              <div>
+                <Label htmlFor="city">Город *</Label>
+                <Select value={formData.cityId} onValueChange={handleCityChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите город" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60 overflow-y-auto">
+                    {cities.map((city) => (
+                      <SelectItem key={city.id} value={city.id.toString()}>
+                        {city.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Города в штате {states.find(s => s.id === selectedState)?.name}
+                </p>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
@@ -372,7 +467,7 @@ export function AddBusinessForm({ onSuccess, onCancel }: AddBusinessFormProps) {
             </Button>
             <Button 
               onClick={() => setCurrentStep(3)}
-              disabled={!formData.address}
+              disabled={!formData.address || !formData.cityId || !selectedState}
               className="flex-1"
             >
               Далее →

@@ -19,11 +19,19 @@ interface Category {
   icon: string;
 }
 
+interface State {
+  id: string;
+  name: string;
+  region: string;
+}
+
 interface City {
   id: number;
   name: string;
-  state: string;
   stateId: string;
+  state?: {
+    name: string;
+  };
 }
 
 interface AddBusinessFormProps {
@@ -36,7 +44,9 @@ interface AddBusinessFormProps {
  */
 export function AddBusinessForm({ onClose, onSuccess }: AddBusinessFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [states, setStates] = useState<State[]>([]);
   const [cities, setCities] = useState<City[]>([]);
+  const [selectedState, setSelectedState] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
@@ -54,20 +64,20 @@ export function AddBusinessForm({ onClose, onSuccess }: AddBusinessFormProps) {
     languages: ['ru', 'en']
   });
 
-  // Загружаем категории и города
+  // Загружаем категории и штаты
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [categoriesRes, citiesRes] = await Promise.all([
+        const [categoriesRes, statesRes] = await Promise.all([
           fetch('/api/categories'),
-          fetch('/api/cities')
+          fetch('/api/states')
         ]);
 
         const categoriesData = await categoriesRes.json();
-        const citiesData = await citiesRes.json();
+        const statesData = await statesRes.json();
 
         setCategories(categoriesData);
-        setCities(citiesData);
+        setStates(statesData);
       } catch (err) {
         setError('Ошибка загрузки данных');
       }
@@ -75,6 +85,25 @@ export function AddBusinessForm({ onClose, onSuccess }: AddBusinessFormProps) {
 
     fetchData();
   }, []);
+
+  // Загружаем города при выборе штата
+  useEffect(() => {
+    if (selectedState) {
+      const fetchCities = async () => {
+        try {
+          const response = await fetch(`/api/cities?state=${selectedState}`);
+          const citiesData = await response.json();
+          setCities(citiesData);
+        } catch (err) {
+          setError('Ошибка загрузки городов');
+        }
+      };
+      
+      fetchCities();
+    } else {
+      setCities([]);
+    }
+  }, [selectedState]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,16 +148,22 @@ export function AddBusinessForm({ onClose, onSuccess }: AddBusinessFormProps) {
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Автоматическое определение stateId при выборе города
+  // Обработка выбора штата
+  const handleStateChange = (stateId: string) => {
+    setSelectedState(stateId);
+    setFormData(prev => ({ 
+      ...prev, 
+      stateId,
+      cityId: '' // Сбрасываем выбранный город
+    }));
+  };
+
+  // Обработка выбора города
   const handleCityChange = (cityId: string) => {
-    const selectedCity = cities.find(city => city.id.toString() === cityId);
-    if (selectedCity) {
-      setFormData(prev => ({ 
-        ...prev, 
-        cityId,
-        stateId: selectedCity.stateId 
-      }));
-    }
+    setFormData(prev => ({ 
+      ...prev, 
+      cityId
+    }));
   };
 
   return (
@@ -188,7 +223,7 @@ export function AddBusinessForm({ onClose, onSuccess }: AddBusinessFormProps) {
               />
             </div>
 
-            {/* Категория и город */}
+            {/* Категория и местоположение */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">
@@ -210,22 +245,46 @@ export function AddBusinessForm({ onClose, onSuccess }: AddBusinessFormProps) {
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Город (обязательно)
+                  Штат (обязательно)
                 </label>
-                <Select value={formData.cityId} onValueChange={handleCityChange}>
+                <Select value={selectedState} onValueChange={handleStateChange}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Выберите город" />
+                    <SelectValue placeholder="Сначала выберите штат" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {cities.map(city => (
-                      <SelectItem key={city.id} value={city.id.toString()}>
-                        {city.name}, {city.state}
+                  <SelectContent className="max-h-60 overflow-y-auto">
+                    {states.map(state => (
+                      <SelectItem key={state.id} value={state.id}>
+                        {state.name} ({state.region})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
+            {/* Город (показываем только после выбора штата) */}
+            {selectedState && (
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Город (обязательно)
+                </label>
+                <Select value={formData.cityId} onValueChange={handleCityChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите город" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60 overflow-y-auto">
+                    {cities.map(city => (
+                      <SelectItem key={city.id} value={city.id.toString()}>
+                        {city.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Города в штате {states.find(s => s.id === selectedState)?.name}
+                </p>
+              </div>
+            )}
 
             {/* Адрес */}
             <div>

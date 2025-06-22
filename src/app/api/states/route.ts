@@ -1,27 +1,23 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET() {
+/**
+ * API для получения списка штатов США
+ */
+export async function GET(request: NextRequest) {
   try {
     const states = await prisma.state.findMany({
-      include: {
-        _count: {
-          select: {
-            cities: true,
-            businesses: true
-          }
-        }
-      },
       orderBy: {
         name: 'asc'
       }
     });
 
     return NextResponse.json(states);
+    
   } catch (error) {
     console.error('Error fetching states:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch states' },
+      { error: 'Ошибка при получении штатов' },
       { status: 500 }
     );
   }
