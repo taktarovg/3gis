@@ -106,12 +106,16 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
     shareLocation(business.name, window.location.href);
   };
 
+  const hasPhotos = business.photos.length > 0;
+  const hasRating = business.rating > 0;
+  const isPremium = business.premiumTier !== 'FREE';
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="relative">
         {/* Photo gallery или header без фото */}
-        {business.photos.length > 0 ? (
+        {hasPhotos ? (
           <div className="relative h-64 overflow-hidden">
             <Image
               src={business.photos[0].url}
@@ -148,7 +152,7 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
             </div>
 
             {/* Premium badge */}
-            {business.premiumTier !== 'FREE' && (
+            {isPremium && (
               <div className="absolute bottom-4 right-4 bg-threegis-accent text-threegis-text px-3 py-1 rounded-md text-sm font-bold">
                 PREMIUM
               </div>
@@ -193,7 +197,7 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
             </div>
 
             {/* Premium badge */}
-            {business.premiumTier !== 'FREE' && (
+            {isPremium && (
               <div className="absolute bottom-4 right-4 bg-yellow-500 text-black px-3 py-1 rounded-md text-sm font-bold">
                 PREMIUM
               </div>
@@ -205,7 +209,7 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
       {/* Content */}
       <div className="p-4 pb-32">
         {/* Business name and category (только если есть фото) */}
-        {business.photos.length > 0 && (
+        {hasPhotos && (
           <div className="mb-4">
             <h1 className="text-2xl font-bold text-threegis-text mb-1">
               {business.name}
@@ -218,7 +222,7 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
         )}
 
         {/* Rating */}
-        {business.rating > 0 && (
+        {hasRating && (
           <div className="flex items-center mb-4">
             <div className="flex items-center text-yellow-500 mr-2">
               <Star className="h-5 w-5 fill-current" />
@@ -367,7 +371,7 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
         )}
 
         {/* Premium Benefits Display (for all users) */}
-        {business.premiumTier !== 'FREE' && (
+        {isPremium && (
           <div className="mb-6">
             <div className="bg-gradient-to-r from-yellow-100 to-yellow-200 border border-yellow-300 rounded-lg p-4">
               <div className="flex items-center mb-2">
