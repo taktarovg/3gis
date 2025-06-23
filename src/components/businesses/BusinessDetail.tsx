@@ -401,7 +401,7 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
                       {feature}
                     </span>
                   ));
-                })()}}
+                })()}
               </div>
             </div>
           </div>
