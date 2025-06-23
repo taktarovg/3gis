@@ -384,22 +384,24 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
                 Это заведение имеет премиум статус и получает приоритет в поиске.
               </p>
               <div className="flex flex-wrap gap-2">
-                {
-                  business.premiumTier === 'BASIC' ? (
-                    ['✅ Верифицировано', '📸 Больше фото', '📊 Статистика']
-                  ) : business.premiumTier === 'STANDARD' ? (
-                    ['🔝 Приоритет в поиске', '📈 Аналитика', '📱 Соцсети']
-                  ) : (
-                    ['👑 Позиция #1', '🎯 Реклама', '🎨 Кастом дизайн']
-                  )
-                }.map((feature, index) => (
-                  <span
-                    key={index}
-                    className="bg-yellow-300 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium"
-                  >
-                    {feature}
-                  </span>
-                ))}
+                {(() => {
+                  let features = [];
+                  if (business.premiumTier === 'BASIC') {
+                    features = ['✅ Верифицировано', '📸 Больше фото', '📊 Статистика'];
+                  } else if (business.premiumTier === 'STANDARD') {
+                    features = ['🔝 Приоритет в поиске', '📈 Аналитика', '📱 Соцсети'];
+                  } else {
+                    features = ['👑 Позиция #1', '🎯 Реклама', '🎨 Кастом дизайн'];
+                  }
+                  return features.map((feature, index) => (
+                    <span
+                      key={index}
+                      className="bg-yellow-300 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium"
+                    >
+                      {feature}
+                    </span>
+                  ));
+                })()}}
               </div>
             </div>
           </div>
