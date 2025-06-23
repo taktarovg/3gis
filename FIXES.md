@@ -26,9 +26,20 @@ Warning: React Hook useEffect has a missing dependency: 'fetchSubscriptionStatus
 
 **Решение:** Обернули `fetchSubscriptionStatus` в `useCallback` и добавили в зависимости
 
+### 3. **TypeScript ошибка в DonationWidget** ✅
+**Файл:** `src/components/donations/DonationWidget.tsx`
+
+**Проблема:** 'option.starsAmount' is possibly 'null'
+```
+Type error: 'option.starsAmount' is possibly 'null'.
+```
+
+**Решение:** Добавили null-safety проверки с `??` и условные рендеры
+
 ## Статус сборки:
 - ✅ TypeScript ошибки исправлены
 - ✅ ESLint warnings исправлены  
+- ✅ Null safety добавлена
 - ✅ Готово к новой сборке на Vercel
 
 ## Для деплоя:

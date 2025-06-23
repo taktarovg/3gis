@@ -108,8 +108,10 @@ export function DonationWidget() {
               {option.name}
             </div>
             <div className="flex items-center justify-between mt-2">
-              <div className="text-xs text-gray-500">{option.starsAmount} ⭐</div>
-              <div className="text-xs text-green-600 font-medium">~${option.starsAmount / 100}</div>
+              <div className="text-xs text-gray-500">{option.starsAmount ?? 'Custom'} ⭐</div>
+              <div className="text-xs text-green-600 font-medium">
+                {option.starsAmount ? `~${option.starsAmount / 100}` : 'Custom'}
+              </div>
             </div>
             <p className="text-xs text-gray-500 mt-1">{option.description}</p>
           </button>
