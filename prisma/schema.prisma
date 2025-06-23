@@ -79,6 +79,7 @@ model Business {
   favorites     BusinessFavorite[]
   photos        BusinessPhoto[]
   reviews       BusinessReview[]
+  subscriptions BusinessSubscription[]
   category      BusinessCategory   @relation(fields: [categoryId], references: [id])
   city          City               @relation(fields: [cityId], references: [id])
   state         State              @relation(fields: [stateId], references: [id])
@@ -177,6 +178,91 @@ model BusinessFavorite {
   @@map("business_favorites")
 }
 
+// Модель подписок для Telegram Stars
+model BusinessSubscription {
+  id              Int           @id @default(autoincrement())
+  business        Business      @relation(fields: [businessId], references: [id])
+  businessId      Int
+  
+  // Детали подписки
+  tier            PremiumTier   // BASIC, STANDARD, PREMIUM
+  startDate       DateTime      @default(now())
+  endDate         DateTime
+  
+  // Детали платежа Telegram Stars
+  starsAmount     Int           // Сумма в Stars
+  dollarPrice     Int           // Эквивалент в долларах (центы)
+  invoiceId       String?       // ID счета из Telegram
+  
+  // Статус
+  status          SubscriptionStatus @default(PENDING)
+  paymentStatus   PaymentStatus      @default(PENDING)
+  
+  // Метаданные
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Связи
+  transactions    PaymentTransaction[]
+  
+  @@map("business_subscriptions")
+}
+
+// Модель транзакций платежей
+model PaymentTransaction {
+  id                String        @id @default(uuid())
+  
+  // Связь с подпиской (опционально для донатов)
+  subscription      BusinessSubscription? @relation(fields: [subscriptionId], references: [id])
+  subscriptionId    Int?
+  
+  // Связь с донатом (опционально)
+  donation          Donation?     @relation(fields: [donationId], references: [id])
+  donationId        String?
+  
+  // Telegram данные
+  telegramInvoiceId String?       // Telegram invoice ID
+  telegramPaymentId String?       // Telegram payment charge ID
+  starsAmount       Int           // Сумма в Stars
+  
+  // Статус платежа
+  status            PaymentStatus @default(PENDING)
+  
+  // Временные метки
+  createdAt         DateTime      @default(now())
+  paidAt            DateTime?
+  
+  // Дополнительные данные
+  telegramUserId    String        // ID пользователя Telegram
+  metadata          Json?         // Дополнительная информация
+  
+  @@map("payment_transactions")
+}
+
+// Модель донатов от пользователей
+model Donation {
+  id              String        @id @default(uuid())
+  type            String        // coffee, lunch, support, custom
+  starsAmount     Int
+  message         String?       // Сообщение от донатера
+  
+  // Telegram данные
+  telegramUserId  String?       // ID пользователя Telegram
+  telegramInvoiceId String?     // Telegram invoice ID
+  
+  // Статус
+  status          PaymentStatus @default(PENDING)
+  
+  // Временные метки
+  createdAt       DateTime      @default(now())
+  paidAt          DateTime?
+  
+  // Связи
+  transactions    PaymentTransaction[]
+  
+  @@map("donations")
+}
+
 enum UserRole {
   GUEST
   USER
@@ -196,4 +282,19 @@ enum PremiumTier {
   BASIC
   STANDARD
   PREMIUM
+}
+
+enum SubscriptionStatus {
+  PENDING     // Ожидает оплаты
+  ACTIVE      // Активна
+  EXPIRED     // Истекла
+  CANCELLED   // Отменена
+}
+
+enum PaymentStatus {
+  PENDING     // Ожидает оплаты
+  PROCESSING  // Обрабатывается
+  PAID        // Оплачено
+  FAILED      // Ошибка оплаты
+  REFUNDED    // Возвращено
 }
