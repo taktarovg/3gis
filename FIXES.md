@@ -36,10 +36,21 @@ Type error: 'option.starsAmount' is possibly 'null'.
 
 **Решение:** Добавили null-safety проверки с `??` и условные рендеры
 
+### 4. **JavaScript TDZ (Temporal Dead Zone) ошибка** ✅
+**Файл:** `src/components/premium/SubscriptionStatus.tsx`
+
+**Проблема:** Block-scoped variable 'fetchSubscriptionStatus' used before its declaration
+```
+Type error: Block-scoped variable 'fetchSubscriptionStatus' used before its declaration.
+```
+
+**Решение:** Переместили `useCallback` выше `useEffect` для правильного порядка объявления
+
 ## Статус сборки:
 - ✅ TypeScript ошибки исправлены
 - ✅ ESLint warnings исправлены  
 - ✅ Null safety добавлена
+- ✅ TDZ ошибка исправлена
 - ✅ Готово к новой сборке на Vercel
 
 ## Для деплоя:

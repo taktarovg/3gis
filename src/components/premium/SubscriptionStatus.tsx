@@ -22,10 +22,6 @@ export function SubscriptionStatus({ businessId }: SubscriptionStatusProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  useEffect(() => {
-    fetchSubscriptionStatus();
-  }, [fetchSubscriptionStatus, businessId]);
-  
   const fetchSubscriptionStatus = useCallback(async () => {
     try {
       setLoading(true);
@@ -46,6 +42,10 @@ export function SubscriptionStatus({ businessId }: SubscriptionStatusProps) {
       setLoading(false);
     }
   }, [businessId]);
+  
+  useEffect(() => {
+    fetchSubscriptionStatus();
+  }, [fetchSubscriptionStatus]);
   
   if (loading) {
     return (
