@@ -8,7 +8,8 @@ export async function POST(request: NextRequest) {
     const body = await request.text();
     
     const { verifyTelegramWebhook } = await import('@/lib/telegram-bot');
-    if (!verifyTelegramWebhook(body, signature || '')) {
+    const isValidSignature = await verifyTelegramWebhook(body, signature || '');
+    if (!isValidSignature) {
       return NextResponse.json(
         { error: 'Invalid webhook signature' },
         { status: 401 }

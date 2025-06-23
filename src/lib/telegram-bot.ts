@@ -86,7 +86,7 @@ export async function createTelegramInvoice(params: CreateInvoiceParams): Promis
 /**
  * Проверка валидности подписи webhook'а от Telegram
  */
-export function verifyTelegramWebhook(body: string, signature: string): boolean {
+export async function verifyTelegramWebhook(body: string, signature: string): Promise<boolean> {
   if (!process.env.TELEGRAM_WEBHOOK_SECRET) {
     console.warn('TELEGRAM_WEBHOOK_SECRET не настроен, пропускаем проверку подписи');
     return true; // В development режиме
