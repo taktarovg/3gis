@@ -111,15 +111,15 @@ export function AddressStep({ formData, setFormData }: AddressStepProps) {
       <CardHeader>
         <CardTitle className="flex items-center">
           <MapPin className="w-5 h-5 mr-2" />
-          Address and Contacts
+          Адрес и контакты
         </CardTitle>
         <CardDescription>
-          Where is the business located
+          Где находится заведение
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <Label htmlFor="address">Full Address *</Label>
+          <Label htmlFor="address">Полный адрес *</Label>
           <Input
             id="address"
             value={formData.address}
@@ -130,10 +130,10 @@ export function AddressStep({ formData, setFormData }: AddressStepProps) {
         </div>
         
         <div>
-          <Label htmlFor="state">State *</Label>
+          <Label htmlFor="state">Штат *</Label>
           <Select value={selectedState} onValueChange={handleStateChange} disabled={loading}>
             <SelectTrigger className="mt-2">
-              <SelectValue placeholder={loading ? "Loading states..." : "First select state"} />
+              <SelectValue placeholder={loading ? "Загружаем штаты..." : "Сначала выберите штат"} />
             </SelectTrigger>
             <SelectContent className="max-h-60 overflow-y-auto">
               {states.map((state) => (
@@ -147,17 +147,17 @@ export function AddressStep({ formData, setFormData }: AddressStepProps) {
 
         {selectedState && (
           <div>
-            <Label htmlFor="city">City *</Label>
+            <Label htmlFor="city">Город *</Label>
             <Select value={selectedCityId} onValueChange={handleCityChange} disabled={citiesLoading}>
               <SelectTrigger className="mt-2">
-                <SelectValue placeholder={citiesLoading ? "Loading cities..." : "Select city"} />
+                <SelectValue placeholder={citiesLoading ? "Загружаем города..." : "Выберите город"} />
               </SelectTrigger>
               <SelectContent className="max-h-60 overflow-y-auto">
                 {citiesLoading ? (
                   <SelectItem value="loading" disabled>
                     <div className="flex items-center">
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Loading...
+                      Загружаем...
                     </div>
                   </SelectItem>
                 ) : (
@@ -170,14 +170,14 @@ export function AddressStep({ formData, setFormData }: AddressStepProps) {
               </SelectContent>
             </Select>
             <p className="text-xs text-gray-500 mt-1">
-              Cities in {states.find(s => s.id === selectedState)?.name}
+              Города в штате {states.find(s => s.id === selectedState)?.name}
             </p>
           </div>
         )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="phone">Phone</Label>
+            <Label htmlFor="phone">Телефон</Label>
             <Input
               id="phone"
               type="tel"
@@ -189,7 +189,7 @@ export function AddressStep({ formData, setFormData }: AddressStepProps) {
           </div>
           
           <div>
-            <Label htmlFor="website">Website</Label>
+            <Label htmlFor="website">Веб-сайт</Label>
             <Input
               id="website"
               type="url"
@@ -204,16 +204,16 @@ export function AddressStep({ formData, setFormData }: AddressStepProps) {
         {/* Additional features */}
         <div>
           <Label className="text-sm font-medium text-gray-700 mb-3">
-            Additional Features
+            Дополнительные возможности
           </Label>
           <div className="grid grid-cols-2 gap-3 mt-3">
             {[
-              { key: 'parking', label: '🅿️ Parking' },
+              { key: 'parking', label: '🅿️ Парковка' },
               { key: 'wifi', label: '📶 Wi-Fi' },
-              { key: 'delivery', label: '🚚 Delivery' },
-              { key: 'takeout', label: '🥡 Takeout' },
-              { key: 'cards', label: '💳 Cards' },
-              { key: 'accessible', label: '♿ Accessible' }
+              { key: 'delivery', label: '🚚 Доставка' },
+              { key: 'takeout', label: '🥡 На вынос' },
+              { key: 'cards', label: '💳 Принимаем карты' },
+              { key: 'accessible', label: '♿ Доступность' }
             ].map((feature) => (
               <label key={feature.key} className="flex items-center space-x-2 cursor-pointer">
                 <input
