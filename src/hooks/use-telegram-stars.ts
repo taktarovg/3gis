@@ -2,12 +2,13 @@
 
 import { useCallback } from 'react';
 import { openInvoice, isInvoiceOpened } from '@telegram-apps/sdk';
-import { useLaunchParams } from '@telegram-apps/sdk-react';
+import { useLaunchParams, useRawInitData } from '@telegram-apps/sdk-react';
 import { PremiumPlan, DonationType } from '@/lib/telegram-stars/plans';
 
 export function useTelegramStars() {
-  const launchParams = useLaunchParams(true); // SSR-safe для Next.js
-  const user = launchParams.tgWebAppData?.user;
+  const launchParams = useLaunchParams(); // SDK v3.x корректное использование
+  const rawInitData = useRawInitData(); // Для авторизации API
+  const user = launchParams?.tgWebAppData?.user;
   
   const openBusinessSubscription = useCallback(async (params: {
     businessId: number;
@@ -23,6 +24,7 @@ export function useTelegramStars() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `tma ${rawInitData || ''}`
         },
         body: JSON.stringify({
           businessId: params.businessId,
@@ -55,7 +57,7 @@ export function useTelegramStars() {
       console.error('Payment error:', error);
       throw error;
     }
-  }, [user?.id]);
+  }, [user?.id, rawInitData]);
   
   const openDonation = useCallback(async (params: {
     type: DonationType;
@@ -72,6 +74,7 @@ export function useTelegramStars() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `tma ${rawInitData || ''}`
         },
         body: JSON.stringify({
           type: params.type,
@@ -105,7 +108,7 @@ export function useTelegramStars() {
       console.error('Donation error:', error);
       throw error;
     }
-  }, [user?.id]);
+  }, [user?.id, rawInitData]);
   
   const isPaymentInProgress = useCallback(() => {
     return isInvoiceOpened();
@@ -116,6 +119,8 @@ export function useTelegramStars() {
     openDonation,
     isPaymentInProgress,
     userId: user?.id,
-    isAuthenticated: !!user?.id
+    isAuthenticated: !!user?.id && !!rawInitData,
+    user,
+    rawInitData
   };
 }

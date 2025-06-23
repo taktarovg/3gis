@@ -1,5 +1,25 @@
-// Премиум планы для 3GIS Telegram Stars
-export const PREMIUM_PLANS = {
+// lib/telegram-stars/plans.ts
+export type PremiumPlan = 'basic' | 'standard' | 'premium';
+export type DonationType = 'coffee' | 'lunch' | 'support' | 'custom';
+
+export interface PlanConfig {
+  starsAmount: number;
+  dollarPrice: number;
+  name: string;
+  nameEn: string;
+  duration: number; // дней
+  features: string[];
+}
+
+export interface DonationConfig {
+  starsAmount: number | null;
+  name: string;
+  nameEn: string;
+  icon: string;
+  description: string;
+}
+
+export const PREMIUM_PLANS: Record<PremiumPlan, PlanConfig> = {
   basic: {
     starsAmount: 500,      // ~$5 USD
     dollarPrice: 49,       // Основная цена в долларах
@@ -41,12 +61,9 @@ export const PREMIUM_PLANS = {
       'Брендированный дизайн карточки'
     ]
   }
-} as const;
+};
 
-export type PremiumPlan = keyof typeof PREMIUM_PLANS;
-
-// Опции донатов для пользователей
-export const DONATION_OPTIONS = {
+export const DONATION_OPTIONS: Record<DonationType, DonationConfig> = {
   coffee: {
     starsAmount: 100,     // ~$1 USD
     name: 'Кофе разработчику',
@@ -75,6 +92,39 @@ export const DONATION_OPTIONS = {
     icon: '⭐',
     description: 'Введите желаемую сумму Stars'
   }
-} as const;
+};
 
-export type DonationType = keyof typeof DONATION_OPTIONS;
+/**
+ * Получение конфигурации плана по типу
+ */
+export function getPlanConfig(plan: PremiumPlan): PlanConfig {
+  return PREMIUM_PLANS[plan];
+}
+
+/**
+ * Получение конфигурации доната по типу
+ */
+export function getDonationConfig(type: DonationType): DonationConfig {
+  return DONATION_OPTIONS[type];
+}
+
+/**
+ * Валидация суммы Stars
+ */
+export function validateStarsAmount(amount: number): boolean {
+  return amount >= 1 && amount <= 10000 && Number.isInteger(amount);
+}
+
+/**
+ * Конвертация Stars в доллары (приблизительно)
+ */
+export function starsToUsd(stars: number): number {
+  return stars * 0.01;
+}
+
+/**
+ * Конвертация долларов в Stars (приблизительно)
+ */
+export function usdToStars(usd: number): number {
+  return Math.round(usd * 100);
+}

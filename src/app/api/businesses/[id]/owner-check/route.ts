@@ -31,10 +31,10 @@ export async function GET(
       );
     }
 
-    // Простая проверка авторизации (в реальном проекте нужна полная верификация подписи)
+    // Парсим данные Telegram (упрощенная версия для демо)
     let userData;
     try {
-      // Пример парсинга - в реальном проекте должна быть полная верификация
+      // В реальном проекте здесь должна быть полная верификация подписи
       const initDataObj = JSON.parse(telegramInitData);
       userData = {
         telegramId: initDataObj.user?.id?.toString() || ''
@@ -67,7 +67,7 @@ export async function GET(
       );
     }
 
-    // Проверяем права владельца заведения
+    // Проверяем владельца заведения
     const business = await prisma.business.findFirst({
       where: {
         id: businessId,
@@ -75,15 +75,8 @@ export async function GET(
       }
     });
 
-    if (!business) {
-      return NextResponse.json(
-        { error: 'Заведение не найдено или у вас нет доступа' },
-        { status: 404 }
-      );
-    }
-
     // Получаем активную подписку
-    const currentSubscription = await prisma.businessSubscription.findFirst({
+    const currentSubscription = business ? await prisma.businessSubscription.findFirst({
       where: {
         businessId: businessId,
         status: 'ACTIVE'
@@ -91,29 +84,28 @@ export async function GET(
       orderBy: {
         endDate: 'desc'
       }
-    });
+    }) : null;
+
+    const isOwner = !!business;
 
     return NextResponse.json({
-      subscription: currentSubscription ? {
+      isOwner,
+      currentSubscription: currentSubscription ? {
         tier: currentSubscription.tier,
         endDate: currentSubscription.endDate.toISOString(),
-        status: currentSubscription.status,
-        starsAmount: currentSubscription.starsAmount,
-        dollarPrice: currentSubscription.dollarPrice,
-        startDate: currentSubscription.startDate.toISOString()
+        status: currentSubscription.status
       } : null,
-      business: {
-        id: business.id,
-        name: business.name,
-        premiumTier: business.premiumTier,
-        premiumUntil: business.premiumUntil?.toISOString()
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        role: user.role
       }
     });
 
   } catch (error) {
-    console.error('Subscription status error:', error);
+    console.error('Owner check error:', error);
     return NextResponse.json(
-      { error: 'Ошибка получения статуса подписки' },
+      { error: 'Ошибка проверки владельца' },
       { status: 500 }
     );
   }

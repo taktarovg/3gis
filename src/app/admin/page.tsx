@@ -1,6 +1,4 @@
-'use client';
-
-import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -13,7 +11,8 @@ import {
   CheckCircle, 
   TrendingUp,
   MapPin,
-  RefreshCw
+  RefreshCw,
+  CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -308,25 +307,31 @@ export default function AdminDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
-              <Clock className="w-6 h-6 mb-2" />
-              Модерация заведений
-              {overview.pendingBusinesses > 0 && (
-                <Badge className="mt-1" variant="destructive">
-                  {overview.pendingBusinesses}
-                </Badge>
-              )}
-            </Button>
+            <Link href="/admin/businesses">
+              <Button variant="outline" className="h-20 flex flex-col items-center justify-center w-full">
+                <Clock className="w-6 h-6 mb-2" />
+                Модерация заведений
+                {overview.pendingBusinesses > 0 && (
+                  <Badge className="mt-1" variant="destructive">
+                    {overview.pendingBusinesses}
+                  </Badge>
+                )}
+              </Button>
+            </Link>
             
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
-              <Users className="w-6 h-6 mb-2" />
-              Управление пользователями
-            </Button>
+            <Link href="/admin/users">
+              <Button variant="outline" className="h-20 flex flex-col items-center justify-center w-full">
+                <Users className="w-6 h-6 mb-2" />
+                Управление пользователями
+              </Button>
+            </Link>
             
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
-              <Star className="w-6 h-6 mb-2" />
-              Просмотр отзывов
-            </Button>
+            <Link href="/admin/payments">
+              <Button variant="outline" className="h-20 flex flex-col items-center justify-center w-full">
+                <CreditCard className="w-6 h-6 mb-2" />
+                Telegram Stars
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>

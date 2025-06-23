@@ -3,6 +3,7 @@ import React from 'react';
 import { CategoryGrid } from '@/components/categories/CategoryGrid';
 import { SearchBox } from '@/components/search/SearchBox';
 import { NearbyButton } from '@/components/location/NearbyButton';
+import { DonationWidget } from '@/components/donations/DonationWidget';
 import { PlatformDebug } from '@/components/debug/PlatformDebug';
 
 async function getCategories() {
@@ -55,8 +56,31 @@ export default async function ThreeGISHomePage() {
         </div>
         
         {/* Сетка категорий */}
-        <div className="px-4">
+        <div className="px-4 mb-6">
           <CategoryGrid categories={categories} />
+        </div>
+
+        {/* Виджет донатов */}
+        <div className="px-4 mb-6">
+          <DonationWidget />
+        </div>
+
+        {/* Дополнительная информация о проекте */}
+        <div className="px-4 mb-6 text-center">
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">
+              О проекте 3GIS
+            </h3>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Первый современный справочник русскоязычных организаций в США.
+              Помогаем найти врачей, юристов, рестораны и другие услуги на родном языке.
+            </p>
+            <div className="mt-3 flex items-center justify-center text-xs text-gray-500">
+              <span className="mr-4">🏢 {categories.length} категорий</span>
+              <span className="mr-4">🌎 По всей Америке</span>
+              <span>🇷🇺 На русском языке</span>
+            </div>
+          </div>
         </div>
       </div>
       

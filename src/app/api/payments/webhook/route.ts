@@ -3,7 +3,19 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
-    const update = await request.json();
+    // Проверяем подпись webhook'а
+    const signature = request.headers.get('x-telegram-bot-api-secret-token');
+    const body = await request.text();
+    
+    const { verifyTelegramWebhook } = await import('@/lib/telegram-bot');
+    if (!verifyTelegramWebhook(body, signature || '')) {
+      return NextResponse.json(
+        { error: 'Invalid webhook signature' },
+        { status: 401 }
+      );
+    }
+    
+    const update = JSON.parse(body);
     
     // Логируем для отладки
     console.log('Telegram webhook update:', JSON.stringify(update, null, 2));
@@ -39,34 +51,25 @@ async function handlePreCheckoutQuery(preCheckoutQuery: any) {
     const isValid = await validateOrder(payload);
     
     // Отвечаем Telegram Bot API
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const response = await fetch(`https://api.telegram.org/bot${botToken}/answerPreCheckoutQuery`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        pre_checkout_query_id: queryId,
-        ok: isValid,
-        error_message: isValid ? undefined : 'Заказ недействителен'
-      })
-    });
+    const { answerPreCheckoutQuery } = await import('@/lib/telegram-bot');
+    const result = await answerPreCheckoutQuery(
+      queryId, 
+      isValid, 
+      isValid ? undefined : 'Заказ недействителен'
+    );
     
-    const result = await response.json();
     console.log('Pre-checkout response:', result);
     
   } catch (error) {
     console.error('Pre-checkout error:', error);
     
     // В случае ошибки отклоняем платеж
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    await fetch(`https://api.telegram.org/bot${botToken}/answerPreCheckoutQuery`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        pre_checkout_query_id: preCheckoutQuery.id,
-        ok: false,
-        error_message: 'Ошибка валидации заказа'
-      })
-    });
+    const { answerPreCheckoutQuery } = await import('@/lib/telegram-bot');
+    await answerPreCheckoutQuery(
+      preCheckoutQuery.id,
+      false,
+      'Ошибка валидации заказа'
+    );
   }
 }
 

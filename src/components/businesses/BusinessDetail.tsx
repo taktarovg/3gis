@@ -1,15 +1,19 @@
 // src/components/businesses/BusinessDetail.tsx
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
-import { ArrowLeft, MapPin, Phone, Globe, Clock, Star, Share, Heart } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Globe, Clock, Star, Share, Heart, Crown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { formatRating, formatPhoneNumber, formatBusinessHours, isBusinessOpen } from '@/lib/utils';
 import { InlineMap } from '@/components/maps/InlineMap';
 import { usePlatformActions } from '@/hooks/use-platform-detection';
 import { FavoriteButton } from '@/components/favorites/FavoriteButton';
 import { useHapticFeedback } from '@/hooks/use-haptic-feedback';
+import { PremiumPlansModal } from '@/components/premium/PremiumPlansModal';
+import { SubscriptionStatus } from '@/components/premium/SubscriptionStatus';
+import { useTelegramStars } from '@/hooks/use-telegram-stars';
+import { useBusinessOwner } from '@/hooks/use-business-owner';
 
 interface BusinessDetailProps {
   business: {
@@ -63,6 +67,12 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
   const router = useRouter();
   const { makeCall, openMaps, shareLocation } = usePlatformActions();
   const { buttonPress, success } = useHapticFeedback();
+  const { isAuthenticated } = useTelegramStars();
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  
+  // Проверяем, является ли текущий пользователь владельцем заведения
+  const { data: ownerData, isLoading: isOwnerLoading } = useBusinessOwner(business.id);
+  const isOwner = ownerData?.isOwner || false;
 
   const handleBack = () => {
     router.back();
@@ -323,33 +333,70 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
           </div>
         </div>
 
-        {/* Reviews section */}
-        {business.reviews.length > 0 && (
+        {/* Premium Status Section (only for owners) */}
+        {!isOwnerLoading && isOwner && (
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-threegis-text mb-3">Отзывы</h3>
-            <div className="space-y-4">
-              {business.reviews.slice(0, 3).map((review) => (
-                <div key={review.id} className="border-b border-gray-200 pb-4 last:border-b-0">
-                  <div className="flex items-center mb-2">
-                    <div className="flex items-center text-yellow-500 mr-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-4 w-4 ${i < review.rating ? 'fill-current' : 'text-gray-300'}`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm text-threegis-secondary">
-                      {review.user.firstName} {review.user.lastName}
-                    </span>
-                  </div>
-                  {review.comment && (
-                    <p className="text-threegis-text text-sm">
-                      {review.comment}
-                    </p>
-                  )}
-                </div>
-              ))}
+            <h3 className="text-lg font-semibold text-threegis-text mb-3 flex items-center">
+              <Crown className="h-5 w-5 text-yellow-500 mr-2" />
+              Статус подписки
+            </h3>
+            <SubscriptionStatus businessId={business.id} />
+            
+            {business.premiumTier === 'FREE' && (
+              <div className="mt-4">
+                <button
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      alert('Необходима авторизация через Telegram');
+                      return;
+                    }
+                    buttonPress();
+                    setShowPremiumModal(true);
+                  }}
+                  className="w-full bg-gradient-to-r from-yellow-400 to-yellow-600 text-black py-3 px-4 rounded-lg font-semibold flex items-center justify-center hover:from-yellow-500 hover:to-yellow-700 transition-all duration-200 active:scale-95 shadow-lg"
+                >
+                  <Crown className="h-5 w-5 mr-2" />
+                  Обновить до Премиум
+                </button>
+                <p className="text-xs text-gray-500 text-center mt-2">
+                  Увеличьте видимость вашего заведения!
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Premium Benefits Display (for all users) */}
+        {business.premiumTier !== 'FREE' && (
+          <div className="mb-6">
+            <div className="bg-gradient-to-r from-yellow-100 to-yellow-200 border border-yellow-300 rounded-lg p-4">
+              <div className="flex items-center mb-2">
+                <Crown className="h-5 w-5 text-yellow-600 mr-2" />
+                <h3 className="font-semibold text-yellow-800">
+                  Премиум заведение
+                </h3>
+              </div>
+              <p className="text-sm text-yellow-700 mb-3">
+                Это заведение имеет премиум статус и получает приоритет в поиске.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {
+                  business.premiumTier === 'BASIC' ? (
+                    ['✅ Верифицировано', '📸 Больше фото', '📊 Статистика']
+                  ) : business.premiumTier === 'STANDARD' ? (
+                    ['🔝 Приоритет в поиске', '📈 Аналитика', '📱 Соцсети']
+                  ) : (
+                    ['👑 Позиция #1', '🎯 Реклама', '🎨 Кастом дизайн']
+                  )
+                }.map((feature, index) => (
+                  <span
+                    key={index}
+                    className="bg-yellow-300 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium"
+                  >
+                    {feature}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -377,6 +424,19 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
           </button>
         </div>
       </div>
+
+      {/* Модал премиум планов */}
+      <PremiumPlansModal
+        businessId={business.id}
+        isOpen={showPremiumModal}
+        onClose={() => setShowPremiumModal(false)}
+        onSuccess={() => {
+          setShowPremiumModal(false);
+          success();
+          // Обновляем страницу через 3 секунды
+          setTimeout(() => window.location.reload(), 3000);
+        }}
+      />
     </div>
   );
 }
