@@ -23,42 +23,48 @@ export async function createTelegramInvoice(params: CreateInvoiceParams): Promis
     throw new Error('TELEGRAM_BOT_TOKEN не настроен');
   }
 
-  const payload = JSON.stringify({
-    type: params.businessId ? 'subscription' : 'donation',
-    businessId: params.businessId,
-    subscriptionId: params.businessId, // будет обновлено после создания в БД
-    donationId: params.donationId,
-    plan: params.plan,
-    donationType: params.donationType,
-    timestamp: Date.now(),
-    userId: params.userId
-  });
+  // Создаем короткий payload (до 128 байт)
+  const payloadData = {
+    t: params.businessId ? 'sub' : 'don', // type (сокращенно)
+    bid: params.businessId,               // businessId
+    did: params.donationId,               // donationId  
+    p: params.plan,                       // plan
+    dt: params.donationType,              // donationType
+    ts: Math.floor(Date.now() / 1000),    // timestamp (в секундах)
+    uid: params.userId                    // userId
+  };
+  
+  const payload = JSON.stringify(payloadData);
+  
+  // Проверяем длину payload (должен быть до 128 байт)
+  if (payload.length > 128) {
+    throw new Error(`Payload слишком длинный: ${payload.length} байт (максимум 128)`);
+  }
 
-  const invoiceData = {
+  // Для Telegram Stars используем минимальный набор параметров
+  const invoiceData: any = {
     title: params.title,
     description: params.description,
     payload: payload,
-    provider_token: '', // Пустой для Telegram Stars
     currency: 'XTR', // Telegram Stars
     prices: [{
       label: params.title,
       amount: params.starsAmount
-    }],
-    max_tip_amount: 0,
-    suggested_tip_amounts: [],
-    start_parameter: 'threegis_payment',
-    photo_url: 'https://3gis.vercel.app/logo-512.png', // Логотип 3GIS
-    photo_size: 512,
-    photo_width: 512,
-    photo_height: 512,
-    need_name: false,
-    need_phone_number: false,
-    need_email: false,
-    need_shipping_address: false,
-    send_phone_number_to_provider: false,
-    send_email_to_provider: false,
-    is_flexible: false
+    }]
   };
+  
+  // НЕ добавляем provider_token вообще - даже как пустую строку!
+
+  console.log('Creating Telegram invoice with data:', {
+    title: invoiceData.title,
+    description: invoiceData.description,
+    currency: invoiceData.currency,
+    amount: invoiceData.prices[0].amount,
+    payloadLength: payload.length,
+    payload: payload
+  });
+  
+  console.log('Full invoice data being sent to Telegram:', JSON.stringify(invoiceData, null, 2));
 
   try {
     const response = await fetch(`https://api.telegram.org/bot${botToken}/createInvoiceLink`, {
@@ -71,11 +77,18 @@ export async function createTelegramInvoice(params: CreateInvoiceParams): Promis
 
     const result = await response.json();
     
+    console.log('Telegram API response:', {
+      ok: result.ok,
+      description: result.description,
+      error_code: result.error_code
+    });
+    
     if (!result.ok) {
       console.error('Telegram API Error:', result);
       throw new Error(`Telegram API Error: ${result.description}`);
     }
 
+    console.log('Invoice created successfully:', result.result);
     return result.result; // URL счета
   } catch (error) {
     console.error('Error creating Telegram invoice:', error);

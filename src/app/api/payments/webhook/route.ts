@@ -92,16 +92,30 @@ async function handleSuccessfulPayment(payment: any) {
     
     const payload = JSON.parse(invoice_payload);
     
-    if (payload.type === 'subscription') {
+    if (payload.t === 'sub') { // subscription
+      // Находим последнюю pending подписку для бизнеса
+      const subscription = await prisma.businessSubscription.findFirst({
+        where: {
+          businessId: payload.bid,
+          status: 'PENDING'
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      if (!subscription) {
+        console.error('No pending subscription found for business:', payload.bid);
+        return;
+      }
+      
       await activateBusinessSubscription({
-        subscriptionId: payload.subscriptionId,
-        businessId: payload.businessId,
+        subscriptionId: subscription.id,
+        businessId: payload.bid,
         telegramPaymentId: telegram_payment_charge_id,
         starsAmount: total_amount
       });
-    } else if (payload.type === 'donation') {
+    } else if (payload.t === 'don') { // donation
       await processDonation({
-        donationId: payload.donationId,
+        donationId: payload.did, // donationId теперь в did
         telegramPaymentId: telegram_payment_charge_id,
         starsAmount: total_amount
       });
@@ -116,35 +130,46 @@ async function handleSuccessfulPayment(payment: any) {
 async function validateOrder(payload: any): Promise<boolean> {
   try {
     // Проверяем что заказ не старше 10 минут
-    const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
-    if (payload.timestamp < tenMinutesAgo) {
-      console.log('Order is too old:', payload.timestamp);
+    const tenMinutesAgo = Math.floor(Date.now() / 1000) - (10 * 60); // в секундах
+    if (payload.ts < tenMinutesAgo) {
+      console.log('Order is too old:', payload.ts);
       return false;
     }
     
-    if (payload.type === 'subscription') {
-      // Проверяем существование подписки и заведения
-      const subscription = await prisma.businessSubscription.findUnique({
-        where: { id: payload.subscriptionId },
-        include: { business: true }
+    if (payload.t === 'sub') { // subscription
+      // Проверяем существование заведения по businessId
+      if (!payload.bid) {
+        console.log('Missing businessId in payload:', payload);
+        return false;
+      }
+      
+      const business = await prisma.business.findUnique({
+        where: { id: payload.bid },
+        include: { subscriptions: { where: { status: 'PENDING' } } }
       });
       
-      if (!subscription || subscription.status !== 'PENDING') {
-        console.log('Invalid subscription:', payload.subscriptionId);
+      if (!business) {
+        console.log('Business not found:', payload.bid);
+        return false;
+      }
+      
+      // Проверяем, что есть ожидающая подписка
+      if (business.subscriptions.length === 0) {
+        console.log('No pending subscriptions for business:', payload.bid);
         return false;
       }
       
       return true;
     }
     
-    if (payload.type === 'donation') {
+    if (payload.t === 'don') { // donation
       // Проверяем существование доната
       const donation = await prisma.donation.findUnique({
-        where: { id: payload.donationId }
+        where: { id: payload.did } // donationId теперь в did
       });
       
       if (!donation || donation.status !== 'PENDING') {
-        console.log('Invalid donation:', payload.donationId);
+        console.log('Invalid donation:', payload.did);
         return false;
       }
       
