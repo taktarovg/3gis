@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Crown, Calendar, Star, AlertTriangle } from 'lucide-react';
 
 interface SubscriptionStatusProps {
@@ -24,9 +24,9 @@ export function SubscriptionStatus({ businessId }: SubscriptionStatusProps) {
   
   useEffect(() => {
     fetchSubscriptionStatus();
-  }, [businessId]);
+  }, [fetchSubscriptionStatus, businessId]);
   
-  const fetchSubscriptionStatus = async () => {
+  const fetchSubscriptionStatus = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -45,7 +45,7 @@ export function SubscriptionStatus({ businessId }: SubscriptionStatusProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [businessId]);
   
   if (loading) {
     return (
