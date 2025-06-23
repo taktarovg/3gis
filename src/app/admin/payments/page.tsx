@@ -195,7 +195,7 @@ export default async function PaymentsDashboard() {
                           : 'Донат проекту'}
                       </div>
                       <div className="text-sm text-gray-600">
-                        {transaction.userName} • {formatDate(transaction.createdAt)}
+                        {transaction.userName} • {formatDate(transaction.createdAt.toISOString())}
                       </div>
                     </div>
                   </div>
