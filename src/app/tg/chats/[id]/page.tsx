@@ -2,10 +2,11 @@ import { notFound } from 'next/navigation';
 import { ChatDetail } from '@/components/chats/ChatDetail';
 import { prisma } from '@/lib/prisma';
 
+// ✅ Next.js 15: params теперь является Promise
 interface ChatPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 async function getChat(id: string) {
@@ -42,8 +43,10 @@ async function getChat(id: string) {
   }
 }
 
+// ✅ Next.js 15: await params перед использованием
 export default async function ChatDetailPage({ params }: ChatPageProps) {
-  const chat = await getChat(params.id);
+  const { id } = await params;
+  const chat = await getChat(id);
 
   if (!chat) {
     notFound();
@@ -52,8 +55,10 @@ export default async function ChatDetailPage({ params }: ChatPageProps) {
   return <ChatDetail chat={chat} />;
 }
 
+// ✅ Next.js 15: await params в generateMetadata
 export async function generateMetadata({ params }: ChatPageProps) {
-  const chat = await getChat(params.id);
+  const { id } = await params;
+  const chat = await getChat(id);
   
   if (!chat) {
     return {
