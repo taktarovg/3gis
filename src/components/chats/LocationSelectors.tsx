@@ -39,15 +39,25 @@ export function LocationSelectors({
       try {
         setLoadingStates(true);
         const response = await fetch('/api/states');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         
-        if (data.success) {
-          setStates(data.data || []);
-        } else {
+        // API states возвращает массив напрямую, не в data.success
+        if (Array.isArray(data)) {
+          setStates(data);
+        } else if (data.error) {
           console.error('Error fetching states:', data.error);
+          setStates([]);
+        } else {
+          setStates([]);
         }
       } catch (error) {
         console.error('Error fetching states:', error);
+        setStates([]);
       } finally {
         setLoadingStates(false);
       }
@@ -63,6 +73,11 @@ export function LocationSelectors({
         try {
           setLoadingCities(true);
           const response = await fetch(`/api/cities?stateId=${selectedStateId}`);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
           const data = await response.json();
           
           if (data.success) {
