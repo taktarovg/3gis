@@ -20,12 +20,12 @@ export async function GET(request: NextRequest) {
       ]
     });
 
-    return NextResponse.json({ cities });
+    return NextResponse.json({ success: true, cities });
 
   } catch (error) {
     console.error('Cities API error:', error);
     return NextResponse.json(
-      { error: 'Ошибка при получении городов' },
+      { success: false, error: 'Ошибка при получении городов', cities: [] },
       { status: 500 }
     );
   }
