@@ -4,59 +4,83 @@ import { prisma } from '@/lib/prisma';
 import { extractTokenFromHeader, requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 5;
 
-/**
- * GET /api/auth/me - Получение информации о текущем пользователе
- * Используется для проверки валидности токена и загрузки актуальных данных
- */
 export async function GET(request: NextRequest) {
+  console.log('🔍 /api/auth/me: Checking user...');
+  
   try {
-    // Извлекаем и проверяем токен
+    // Быстрая проверка БД
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+    } catch (dbError) {
+      console.error('❌ DB Error:', dbError);
+      return NextResponse.json(
+        { error: 'Database unavailable' },
+        { status: 503 }
+      );
+    }
+
     const authHeader = request.headers.get('authorization');
     const token = extractTokenFromHeader(authHeader);
+    
+    if (!token) {
+      console.log('❌ No token');
+      return NextResponse.json(
+        { error: 'Token invalid, user not found' },
+        { status: 401 }
+      );
+    }
+    
     const payload = requireAuth(token);
+    console.log('👤 User ID:', payload.userId);
 
-    // Получаем актуальные данные пользователя из БД
     const user = await prisma.user.findUnique({
-      where: { 
-        id: payload.userId 
-      },
-      include: {
-        city: true,
-        businesses: {
-          include: { 
-            category: true, 
-            city: true 
-          }
-        },
-        favorites: {
-          include: { 
-            business: { 
-              include: { 
-                category: true 
-              } 
-            } 
-          }
+      where: { id: payload.userId },
+      select: {
+        id: true,
+        telegramId: true,
+        firstName: true,
+        lastName: true,
+        username: true,
+        avatar: true,
+        role: true,
+        isPremium: true,
+        latitude: true,
+        longitude: true,
+        createdAt: true,
+        city: {
+          select: { id: true, name: true, state: true }
         }
-      },
+      }
     });
 
     if (!user) {
+      console.log('❌ User not found');
       return NextResponse.json(
-        { error: 'Пользователь не найден' },
+        { error: 'User not found' },
         { status: 404 }
       );
     }
 
-    // Обновляем время последней активности
-    await prisma.user.update({
+    // Обновляем lastSeenAt асинхронно
+    prisma.user.update({
       where: { id: user.id },
       data: { lastSeenAt: new Date() },
-    });
+    }).catch(console.error);
 
+    console.log(`✅ User verified: ${user.telegramId}`);
     return NextResponse.json(user);
+
   } catch (error) {
-    console.error('Error in /api/auth/me:', error);
+    console.error('❌ /api/auth/me error:', error);
+    
+    if (error instanceof Error && error.message.includes('Max client connections')) {
+      return NextResponse.json(
+        { error: 'Server overloaded' },
+        { status: 503, headers: { 'Retry-After': '3' } }
+      );
+    }
     
     if (error instanceof Error && error.message.includes('Токен')) {
       return NextResponse.json(
@@ -66,7 +90,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Ошибка сервера при получении данных пользователя' },
+      { error: 'Server error' },
       { status: 500 }
     );
   }
