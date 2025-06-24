@@ -112,12 +112,12 @@ export default function AdminDashboard() {
               <Building2 className="w-8 h-8 text-blue-500" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Заведения</p>
-                <p className="text-xl font-semibold">{stats?.businesses.total}</p>
+                <p className="text-xl font-semibold">{stats?.businesses?.total}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge className="bg-green-100 text-green-800 text-xs">
-                    {stats?.businesses.active} активных
+                    {stats?.businesses?.active} активных
                   </Badge>
-                  {stats?.businesses.pending > 0 && (
+                  {stats?.businesses?.pending && stats.businesses.pending > 0 && (
                     <Badge className="bg-yellow-100 text-yellow-800 text-xs">
                       {stats.businesses.pending} ожидают
                     </Badge>
@@ -134,9 +134,9 @@ export default function AdminDashboard() {
               <Users className="w-8 h-8 text-green-500" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Пользователи</p>
-                <p className="text-xl font-semibold">{stats?.users.total}</p>
+                <p className="text-xl font-semibold">{stats?.users?.total}</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  +{stats?.users.recent} за сегодня
+                  +{stats?.users?.recent} за сегодня
                 </p>
               </div>
             </div>
@@ -149,12 +149,12 @@ export default function AdminDashboard() {
               <MessageSquare className="w-8 h-8 text-purple-500" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Чаты</p>
-                <p className="text-xl font-semibold">{stats?.chats.total}</p>
+                <p className="text-xl font-semibold">{stats?.chats?.total}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge className="bg-green-100 text-green-800 text-xs">
-                    {stats?.chats.active} активных
+                    {stats?.chats?.active} активных
                   </Badge>
-                  {stats?.chats.pending > 0 && (
+                  {stats?.chats?.pending && stats.chats.pending > 0 && (
                     <Badge className="bg-yellow-100 text-yellow-800 text-xs">
                       {stats.chats.pending} на модерации
                     </Badge>
@@ -171,9 +171,9 @@ export default function AdminDashboard() {
               <Eye className="w-8 h-8 text-orange-500" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Просмотры</p>
-                <p className="text-xl font-semibold">{stats?.views.total.toLocaleString()}</p>
+                <p className="text-xl font-semibold">{stats?.views?.total?.toLocaleString()}</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  +{stats?.views.today} сегодня
+                  +{stats?.views?.today} сегодня
                 </p>
               </div>
             </div>
@@ -197,15 +197,15 @@ export default function AdminDashboard() {
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span>Активные заведения:</span>
-                <span className="font-medium">{stats?.businesses.active}</span>
+                <span className="font-medium">{stats?.businesses?.active}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Premium подписки:</span>
-                <span className="font-medium text-yellow-600">{stats?.businesses.premium}</span>
+                <span className="font-medium text-yellow-600">{stats?.businesses?.premium}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>На модерации:</span>
-                <span className="font-medium text-orange-600">{stats?.businesses.pending}</span>
+                <span className="font-medium text-orange-600">{stats?.businesses?.pending}</span>
               </div>
             </div>
             <div className="mt-4 space-y-2">
@@ -232,15 +232,15 @@ export default function AdminDashboard() {
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span>Всего чатов:</span>
-                <span className="font-medium">{stats?.chats.total}</span>
+                <span className="font-medium">{stats?.chats?.total}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Активные:</span>
-                <span className="font-medium text-green-600">{stats?.chats.active}</span>
+                <span className="font-medium text-green-600">{stats?.chats?.active}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>На модерации:</span>
-                <span className="font-medium text-yellow-600">{stats?.chats.pending}</span>
+                <span className="font-medium text-yellow-600">{stats?.chats?.pending}</span>
               </div>
             </div>
             <div className="mt-4 space-y-2">
@@ -273,11 +273,11 @@ export default function AdminDashboard() {
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span>Всего пользователей:</span>
-                <span className="font-medium">{stats?.users.total}</span>
+                <span className="font-medium">{stats?.users?.total}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Новых сегодня:</span>
-                <span className="font-medium text-green-600">+{stats?.users.recent}</span>
+                <span className="font-medium text-green-600">+{stats?.users?.recent}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Premium пользователи:</span>
