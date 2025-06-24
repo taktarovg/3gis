@@ -4,7 +4,7 @@ import { FeaturesSection } from '@/components/landing/FeaturesSection';
 import { StatsSection } from '@/components/landing/StatsSection';
 import { CategoriesSection } from '@/components/landing/CategoriesSection';
 import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
-import { FooterSection } from '@/components/landing/FooterSection';
+import { Footer } from '@/components/layout/Footer';
 
 export const metadata = {
   title: '3GIS - Русскоязычный справочник организаций в США',
@@ -37,7 +37,7 @@ export const metadata = {
 export default function LandingPage() {
   return (
     <main className="min-h-screen">
-      {/* Hero секция с главным CTA */}
+      {/* Hero секция с главным CTA и встроенным Header */}
       <HeroSection />
       
       {/* Статистика сообщества */}
@@ -53,7 +53,7 @@ export default function LandingPage() {
       <TestimonialsSection />
       
       {/* Footer с контактами */}
-      <FooterSection />
+      <Footer />
     </main>
   );
 }
