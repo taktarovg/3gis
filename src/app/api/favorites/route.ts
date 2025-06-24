@@ -150,14 +150,29 @@ export async function GET(request: NextRequest) {
     const allFavorites = [...businessFavorites, ...chatFavorites]
       .sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime())
 
+    // Возвращаем в формате, который ожидает useFavorites
+    if (type === 'businesses') {
+      return NextResponse.json({
+        success: true,
+        favorites: businessFavorites,
+        count: businessFavorites.length
+      })
+    }
+    
+    if (type === 'chats') {
+      return NextResponse.json({
+        success: true,
+        favorites: chatFavorites,
+        count: chatFavorites.length
+      })
+    }
+    
+    // По умолчанию возвращаем только заведения
     return NextResponse.json({
       success: true,
-      favorites: {
-        businesses: businessFavorites,
-        chats: chatFavorites,
-        all: allFavorites
-      },
-      count: {
+      favorites: businessFavorites,
+      count: businessFavorites.length,
+      meta: {
         businesses: businessFavorites.length,
         chats: chatFavorites.length,
         total: allFavorites.length

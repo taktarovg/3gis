@@ -14,17 +14,22 @@ export default function FavoritesPage() {
   const [favoriteChats, setFavoriteChats] = useState<any[]>([]);
   const [loadingChats, setLoadingChats] = useState(true);
   
-  const { data: businessFavorites } = useFavorites();
+  const { data: businessFavorites, isLoading: isLoadingBusinesses, error: businessError } = useFavorites();
   const businessCount = businessFavorites?.count || 0;
+  
+  // Debug логирование для отладки
+  console.log('🎯 [FAVORITES] businessFavorites data:', businessFavorites);
+  console.log('🎯 [FAVORITES] businessCount:', businessCount);
 
   // Загрузка избранных чатов
   useEffect(() => {
     const loadFavoriteChats = async () => {
       try {
         setLoadingChats(true);
-        const response = await fetch('/api/favorites/chats');
+        const response = await fetch('/api/favorites?type=chats');
         const data = await response.json();
-        setFavoriteChats(data || []);
+        console.log('💬 [FAVORITES] Chat favorites response:', data);
+        setFavoriteChats(data?.favorites || []);
       } catch (error) {
         console.error('Error loading favorite chats:', error);
         setFavoriteChats([]);

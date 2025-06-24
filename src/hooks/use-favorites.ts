@@ -58,7 +58,7 @@ export function useFavorites() {
   return useQuery({
     queryKey: ['favorites'],
     queryFn: async (): Promise<FavoritesResponse> => {
-      const response = await fetch('/api/favorites', {
+      const response = await fetch('/api/favorites?type=businesses', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
