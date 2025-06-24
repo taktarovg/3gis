@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 10;
+
 // Схема валидации для создания чата
 const CreateChatSchema = z.object({
   title: z.string().min(3).max(100),
@@ -19,8 +22,42 @@ const CreateChatSchema = z.object({
  * GET /api/chats - Получить список чатов с фильтрацией
  */
 export async function GET(request: NextRequest) {
+  const requestId = Math.random().toString(36).substring(7);
+  const startTime = Date.now();
+  
+  console.log(`🔍 [${requestId}] CHATS API: Request started`);
+  console.log(`📋 [${requestId}] URL: ${request.url}`);
+  console.log(`🕐 [${requestId}] Timestamp: ${new Date().toISOString()}`);
+  
   try {
+    // Проверка БД
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      console.log(`✅ [${requestId}] Database connection OK`);
+    } catch (dbError) {
+      console.error(`❌ [${requestId}] Database connection failed:`, dbError);
+      return NextResponse.json(
+        { error: 'Database unavailable' },
+        { status: 503 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
+    
+    // Логируем все параметры запроса
+    const params = {
+      type: searchParams.get('type'),
+      cityId: searchParams.get('cityId'),
+      stateId: searchParams.get('stateId'),
+      topic: searchParams.get('topic'),
+      search: searchParams.get('search'),
+      status: searchParams.get('status'),
+      isVerified: searchParams.get('isVerified'),
+      page: searchParams.get('page') || '1',
+      limit: searchParams.get('limit') || '20'
+    };
+    
+    console.log(`📊 [${requestId}] Request params:`, params);
     
     // Параметры фильтрации
     const type = searchParams.get('type') as 'GROUP' | 'CHAT' | 'CHANNEL' | null;
@@ -35,6 +72,8 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50);
     const offset = (page - 1) * limit;
+    
+    console.log(`📄 [${requestId}] Pagination: page=${page}, limit=${limit}, offset=${offset}`);
 
     // Условия фильтрации
     const where: any = {
@@ -56,11 +95,30 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    console.log(`🔍 [${requestId}] WHERE clause:`, JSON.stringify(where, null, 2));
+
+    // Засекаем время запроса к БД
+    const dbStartTime = Date.now();
+    
     // Запрос чатов
     const [chats, totalCount] = await Promise.all([
       prisma.telegramChat.findMany({
         where,
-        include: {
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          username: true,
+          inviteLink: true,
+          type: true,
+          topic: true,
+          memberCount: true,
+          isVerified: true,
+          isActive: true,
+          viewCount: true,
+          joinCount: true,
+          status: true,
+          createdAt: true,
           city: {
             select: { id: true, name: true, stateId: true }
           },
@@ -81,15 +139,25 @@ export async function GET(request: NextRequest) {
       }),
       prisma.telegramChat.count({ where })
     ]);
+    
+    const dbDuration = Date.now() - dbStartTime;
+    console.log(`⚡ [${requestId}] Database query completed in ${dbDuration}ms`);
+    console.log(`📊 [${requestId}] Found ${chats.length} chats, total: ${totalCount}`);
 
-    // Подсчет статистики
+    // Подсчет статистики (опционально, может тормозить)
+    const statsStartTime = Date.now();
     const stats = await prisma.telegramChat.aggregate({
       where: { status: 'ACTIVE', isActive: true },
       _count: { _all: true },
       _sum: { memberCount: true },
     });
+    const statsDuration = Date.now() - statsStartTime;
+    console.log(`📈 [${requestId}] Stats query completed in ${statsDuration}ms`);
 
-    return NextResponse.json({
+    const totalDuration = Date.now() - startTime;
+    console.log(`🎉 [${requestId}] CHATS API: Request completed successfully in ${totalDuration}ms`);
+
+    const response = {
       success: true,
       data: chats,
       pagination: {
@@ -103,15 +171,41 @@ export async function GET(request: NextRequest) {
       stats: {
         totalChats: stats._count._all,
         totalMembers: stats._sum.memberCount || 0,
+      },
+      debug: {
+        requestId,
+        duration: totalDuration,
+        dbDuration,
+        statsDuration,
+        timestamp: new Date().toISOString()
       }
-    });
+    };
+
+    return NextResponse.json(response);
 
   } catch (error) {
-    console.error('Error fetching chats:', error);
+    const totalDuration = Date.now() - startTime;
+    console.error(`❌ [${requestId}] CHATS API: Error after ${totalDuration}ms:`, error);
+    
+    if (error instanceof Error && error.message.includes('Max client connections')) {
+      console.error(`🔥 [${requestId}] DATABASE OVERLOAD - too many connections`);
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Server temporarily overloaded',
+          requestId,
+          duration: totalDuration
+        },
+        { status: 503, headers: { 'Retry-After': '5' } }
+      );
+    }
+    
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Ошибка получения списка чатов' 
+        error: 'Ошибка получения списка чатов',
+        requestId,
+        duration: totalDuration
       },
       { status: 500 }
     );
@@ -122,9 +216,29 @@ export async function GET(request: NextRequest) {
  * POST /api/chats - Создать новый чат (только для админов)
  */
 export async function POST(request: NextRequest) {
+  const requestId = Math.random().toString(36).substring(7);
+  const startTime = Date.now();
+  
+  console.log(`🔍 [${requestId}] CHATS POST: Create chat request started`);
+  
   try {
+    // Проверка БД
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      console.log(`✅ [${requestId}] Database connection OK`);
+    } catch (dbError) {
+      console.error(`❌ [${requestId}] Database connection failed:`, dbError);
+      return NextResponse.json(
+        { error: 'Database unavailable' },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
+    console.log(`📋 [${requestId}] Request body:`, body);
+    
     const validatedData = CreateChatSchema.parse(body);
+    console.log(`✅ [${requestId}] Data validation passed`);
 
     // TODO: Проверка прав администратора
     // const { user } = await verifyAuth(request);
@@ -133,6 +247,7 @@ export async function POST(request: NextRequest) {
     // }
 
     // Создание чата
+    const dbStartTime = Date.now();
     const chat = await prisma.telegramChat.create({
       data: {
         ...validatedData,
@@ -147,30 +262,61 @@ export async function POST(request: NextRequest) {
         }
       }
     });
+    
+    const dbDuration = Date.now() - dbStartTime;
+    const totalDuration = Date.now() - startTime;
+    
+    console.log(`✅ [${requestId}] Chat created successfully in ${dbDuration}ms`);
+    console.log(`🎉 [${requestId}] CHATS POST: Request completed in ${totalDuration}ms`);
 
     return NextResponse.json({
       success: true,
       data: chat,
-      message: 'Чат создан и отправлен на модерацию'
+      message: 'Чат создан и отправлен на модерацию',
+      debug: {
+        requestId,
+        duration: totalDuration,
+        dbDuration
+      }
     });
 
   } catch (error) {
+    const totalDuration = Date.now() - startTime;
+    console.error(`❌ [${requestId}] CHATS POST: Error after ${totalDuration}ms:`, error);
+    
     if (error instanceof z.ZodError) {
+      console.error(`📝 [${requestId}] Validation error:`, error.errors);
       return NextResponse.json(
         { 
           success: false,
           error: 'Ошибка валидации данных',
-          details: error.errors 
+          details: error.errors,
+          requestId,
+          duration: totalDuration
         },
         { status: 400 }
       );
     }
 
-    console.error('Error creating chat:', error);
+    if (error instanceof Error && error.message.includes('Max client connections')) {
+      console.error(`🔥 [${requestId}] DATABASE OVERLOAD during chat creation`);
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Server temporarily overloaded',
+          requestId,
+          duration: totalDuration
+        },
+        { status: 503, headers: { 'Retry-After': '5' } }
+      );
+    }
+
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Ошибка создания чата' 
+        error: 'Ошибка создания чата',
+        requestId,
+        duration: totalDuration
       },
       { status: 500 }
     );

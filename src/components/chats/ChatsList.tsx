@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ChatCard } from './ChatCard';
 import { ChatTypeSelector } from './ChatTypeSelector';
 import { LocationSelectors } from './LocationSelectors';
@@ -9,12 +9,26 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { useChats } from '@/hooks/use-chats';
 
 export function ChatsList() {
+  // Счетчик рендеров для отладки
+  const renderCount = useRef(0);
+  renderCount.current += 1;
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<'GROUP' | 'CHAT' | 'CHANNEL'>();
   const [selectedStateId, setSelectedStateId] = useState<string>();
   const [selectedCityId, setSelectedCityId] = useState<number>();
 
   const debouncedSearch = useDebounce(searchQuery, 300);
+
+  // Логируем каждый рендер компонента
+  console.log(`🎨 [RENDER-${renderCount.current}] ChatsList: Component render`);
+  console.log(`📋 [RENDER-${renderCount.current}] Current state:`, {
+    searchQuery,
+    debouncedSearch,
+    selectedType,
+    selectedStateId,
+    selectedCityId
+  });
 
   // Используем хук для получения чатов
   const {
@@ -25,7 +39,8 @@ export function ChatsList() {
     stats,
     refetch,
     loadMore,
-    hasNextPage
+    hasNextPage,
+    lastRequestId
   } = useChats({
     type: selectedType,
     stateId: selectedStateId,
@@ -34,24 +49,40 @@ export function ChatsList() {
     limit: 20
   });
 
+  console.log(`🔍 [RENDER-${renderCount.current}] Hook result:`, {
+    chatsCount: chats.length,
+    loading,
+    error,
+    hasNextPage,
+    lastRequestId
+  });
+
   const handleJoinChat = async (chatId: number) => {
+    const joinId = Math.random().toString(36).substring(7);
+    console.log(`🚀 [JOIN-${joinId}] ChatsList: Joining chat ${chatId}`);
+    
     try {
       // Отправляем статистику перехода
       await fetch(`/api/chats/${chatId}/join`, { method: 'POST' });
+      console.log(`✅ [JOIN-${joinId}] Statistics sent for chat ${chatId}`);
       
       // Находим чат и открываем ссылку
       const chat = chats.find(c => c.id === chatId);
       if (chat) {
         if (chat.username) {
           // Открываем Telegram ссылку
+          console.log(`🔗 [JOIN-${joinId}] Opening Telegram link: t.me/${chat.username}`);
           window.open(`https://t.me/${chat.username}`, '_blank');
         } else {
           // Показываем инструкцию
+          console.log(`💡 [JOIN-${joinId}] No username, showing instruction for "${chat.title}"`);
           alert(`Для вступления в "${chat.title}" откройте Telegram и найдите эту группу через поиск.`);
         }
+      } else {
+        console.warn(`⚠️ [JOIN-${joinId}] Chat ${chatId} not found in current list`);
       }
     } catch (error) {
-      console.error('Error tracking join:', error);
+      console.error(`❌ [JOIN-${joinId}] Error tracking join for chat ${chatId}:`, error);
       // Не показываем ошибку пользователю, так как статистика не критична
     }
   };
@@ -91,6 +122,7 @@ export function ChatsList() {
 
   // Компонент ошибки
   if (error) {
+    console.log(`❌ [RENDER-${renderCount.current}] ChatsList: Rendering error state`);
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
@@ -101,7 +133,10 @@ export function ChatsList() {
           {error}
         </p>
         <button
-          onClick={refetch}
+          onClick={() => {
+            console.log(`🔄 [RETRY] ChatsList: Manual retry button clicked`);
+            refetch();
+          }}
           className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
         >
           Попробовать снова
@@ -110,8 +145,24 @@ export function ChatsList() {
     );
   }
 
+  console.log(`✅ [RENDER-${renderCount.current}] ChatsList: Rendering main content`);
+
   return (
     <div className="space-y-4">
+      {/* Debug info в dev режиме */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs">
+          <div className="font-semibold text-yellow-800 mb-1">🐛 Debug Info:</div>
+          <div className="text-yellow-700 space-y-1">
+            <div>Renders: {renderCount.current}</div>
+            <div>Chats: {chats.length}</div>
+            <div>Loading: {loading ? 'Yes' : 'No'}</div>
+            <div>Last Request ID: {lastRequestId || 'None'}</div>
+            <div>Has Next Page: {hasNextPage ? 'Yes' : 'No'}</div>
+          </div>
+        </div>
+      )}
+
       {/* Поиск */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -119,7 +170,10 @@ export function ChatsList() {
           type="text"
           placeholder="Поиск групп, чатов, каналов..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => {
+            console.log(`🔍 [SEARCH] ChatsList: Search query changed to: "${e.target.value}"`);
+            setSearchQuery(e.target.value);
+          }}
           className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-base"
         />
       </div>
@@ -128,14 +182,28 @@ export function ChatsList() {
       <LocationSelectors
         selectedStateId={selectedStateId}
         selectedCityId={selectedCityId}
-        onStateChange={setSelectedStateId}
-        onCityChange={setSelectedCityId}
+        onStateChange={(newStateId) => {
+          console.log(`🗺️ [LOCATION] ChatsList: State changed to: ${newStateId}`);
+          setSelectedStateId(newStateId);
+          // Сбрасываем город при смене штата
+          if (selectedCityId) {
+            console.log(`🗺️ [LOCATION] ChatsList: Resetting city due to state change`);
+            setSelectedCityId(undefined);
+          }
+        }}
+        onCityChange={(newCityId) => {
+          console.log(`🏙️ [LOCATION] ChatsList: City changed to: ${newCityId}`);
+          setSelectedCityId(newCityId);
+        }}
       />
 
       {/* Селектор типов */}
       <ChatTypeSelector
         selectedType={selectedType}
-        onTypeChange={setSelectedType}
+        onTypeChange={(newType) => {
+          console.log(`📋 [TYPE] ChatsList: Type changed to: ${newType}`);
+          setSelectedType(newType);
+        }}
         counts={getCounts()}
       />
 
@@ -172,7 +240,10 @@ export function ChatsList() {
           {hasNextPage && (
             <div className="text-center py-4">
               <button
-                onClick={loadMore}
+                onClick={() => {
+                  console.log(`📄 [LOAD-MORE] ChatsList: Load more button clicked`);
+                  loadMore();
+                }}
                 disabled={loading}
                 className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors"
               >
@@ -196,6 +267,7 @@ export function ChatsList() {
           {(selectedType || selectedStateId || selectedCityId || debouncedSearch) && (
             <button
               onClick={() => {
+                console.log(`🔄 [RESET] ChatsList: Reset all filters button clicked`);
                 setSelectedType(undefined);
                 setSelectedStateId(undefined);
                 setSelectedCityId(undefined);
