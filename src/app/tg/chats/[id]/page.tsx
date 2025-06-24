@@ -56,7 +56,9 @@ export default async function ChatDetailPage({ params }: ChatPageProps) {
     ...chat,
     description: chat.description ?? undefined,
     username: chat.username ?? undefined,
-    topic: chat.topic ?? undefined
+    topic: chat.topic ?? undefined,
+    city: chat.city ?? undefined,
+    state: chat.state ?? undefined
   }} />;
 }
 
