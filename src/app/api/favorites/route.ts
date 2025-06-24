@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { verifyAuth } from '@/lib/auth'
 
 /**
- * GET /api/favorites - Получение списка избранных заведений пользователя
+ * GET /api/favorites - Получение списка избранных (заведения и чаты)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -16,79 +16,152 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Получаем избранные заведения с полной информацией
-    const favorites = await prisma.businessFavorite.findMany({
-      where: { userId: user.userId },
-      include: {
-        business: {
-          select: {
-            id: true,
-            name: true,
-            nameEn: true,
-            description: true,
-            address: true,
-            phone: true,
-            website: true,
-            rating: true,
-            reviewCount: true,
-            latitude: true,
-            longitude: true,
-            languages: true,
-            hasParking: true,
-            premiumTier: true,
-            category: {
-              select: {
-                id: true,
-                name: true,
-                nameEn: true,
-                slug: true,
-                icon: true
-              }
-            },
-            city: {
-              select: {
-                id: true,
-                name: true,
-                state: true
-              }
-            },
-            photos: {
-              take: 1,
-              orderBy: { order: 'asc' },
-              select: {
-                id: true,
-                url: true,
-                caption: true
-              }
-            },
-            _count: {
-              select: {
-                reviews: true,
-                favorites: true
+    const { searchParams } = new URL(request.url)
+    const type = searchParams.get('type') // 'businesses', 'chats', 'all'
+
+    // Получаем избранные заведения
+    let businessFavorites = []
+    if (type === 'businesses' || type === 'all' || !type) {
+      const favorites = await prisma.businessFavorite.findMany({
+        where: { userId: user.userId },
+        include: {
+          business: {
+            select: {
+              id: true,
+              name: true,
+              nameEn: true,
+              description: true,
+              address: true,
+              phone: true,
+              website: true,
+              rating: true,
+              reviewCount: true,
+              latitude: true,
+              longitude: true,
+              languages: true,
+              hasParking: true,
+              premiumTier: true,
+              category: {
+                select: {
+                  id: true,
+                  name: true,
+                  nameEn: true,
+                  slug: true,
+                  icon: true
+                }
+              },
+              city: {
+                select: {
+                  id: true,
+                  name: true,
+                  state: true
+                }
+              },
+              photos: {
+                take: 1,
+                orderBy: { order: 'asc' },
+                select: {
+                  id: true,
+                  url: true,
+                  caption: true
+                }
+              },
+              _count: {
+                select: {
+                  reviews: true,
+                  favorites: true
+                }
               }
             }
           }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+        },
+        orderBy: { createdAt: 'desc' }
+      })
 
-    // Форматируем ответ
-    const formattedFavorites = favorites.map(favorite => ({
-      id: favorite.id,
-      addedAt: favorite.createdAt,
-      business: {
-        ...favorite.business,
-        isFavorite: true, // Помечаем как избранное
-        distance: null, // Будет вычислено на клиенте если нужно
-        favoriteCount: favorite.business._count.favorites
-      }
-    }))
+      businessFavorites = favorites.map(favorite => ({
+        id: favorite.id,
+        type: 'business',
+        addedAt: favorite.createdAt,
+        business: {
+          ...favorite.business,
+          isFavorite: true,
+          distance: null,
+          favoriteCount: favorite.business._count.favorites
+        }
+      }))
+    }
+
+    // Получаем избранные чаты
+    let chatFavorites = []
+    if (type === 'chats' || type === 'all' || !type) {
+      const favorites = await prisma.chatFavorite.findMany({
+        where: { userId: user.userId },
+        include: {
+          chat: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              username: true,
+              inviteLink: true,
+              type: true,
+              topic: true,
+              memberCount: true,
+              isVerified: true,
+              status: true,
+              city: {
+                select: {
+                  id: true,
+                  name: true,
+                  stateId: true
+                }
+              },
+              state: {
+                select: {
+                  id: true,
+                  name: true,
+                  fullName: true
+                }
+              },
+              _count: {
+                select: {
+                  favorites: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      })
+
+      chatFavorites = favorites.map(favorite => ({
+        id: favorite.id,
+        type: 'chat',
+        addedAt: favorite.createdAt,
+        chat: {
+          ...favorite.chat,
+          isFavorite: true,
+          favoriteCount: favorite.chat._count.favorites
+        }
+      }))
+    }
+
+    // Объединяем результаты
+    const allFavorites = [...businessFavorites, ...chatFavorites]
+      .sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime())
 
     return NextResponse.json({
       success: true,
-      favorites: formattedFavorites,
-      count: formattedFavorites.length
+      favorites: {
+        businesses: businessFavorites,
+        chats: chatFavorites,
+        all: allFavorites
+      },
+      count: {
+        businesses: businessFavorites.length,
+        chats: chatFavorites.length,
+        total: allFavorites.length
+      }
     })
 
   } catch (error) {

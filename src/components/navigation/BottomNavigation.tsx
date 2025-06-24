@@ -2,7 +2,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, Heart, Building2, User } from 'lucide-react';
+import { Home, MessageSquare, Heart, Building2, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -15,8 +15,8 @@ interface NavItem {
 }
 
 /**
- * Нижнее навигационное меню для 3GIS MVP
- * Простое и эффективное меню с 4 основными разделами
+ * Нижнее навигационное меню для 3GIS с каталогом чатов
+ * Обновлено до 5 иконок: Главная, Чаты, Избранное, Бизнес, Профиль
  * Использует актуальные хуки @telegram-apps/sdk-react v3.3.1
  */
 export function BottomNavigation() {
@@ -24,13 +24,19 @@ export function BottomNavigation() {
   const router = useRouter();
   const [isBackButtonVisible, setIsBackButtonVisible] = useState(false);
 
-  // Навигационные элементы MVP
+  // Навигационные элементы с добавленным каталогом чатов
   const navItems: NavItem[] = [
     {
       id: 'home',
       label: 'Главная',
       icon: Home,
       path: '/tg',
+    },
+    {
+      id: 'chats',
+      label: 'Чаты',
+      icon: MessageSquare,
+      path: '/tg/chats',
     },
     {
       id: 'favorites',
@@ -41,7 +47,7 @@ export function BottomNavigation() {
     },
     {
       id: 'business',
-      label: 'Мой бизнес',
+      label: 'Бизнес',
       icon: Building2,
       path: '/tg/my-business',
     },
@@ -76,6 +82,7 @@ export function BottomNavigation() {
     if (pathname === '/tg') return 'home';
     
     // Проверяем вложенные пути
+    if (pathname.startsWith('/tg/chats')) return 'chats';
     if (pathname.startsWith('/tg/favorites')) return 'favorites';
     if (pathname.startsWith('/tg/my-business')) return 'business';
     if (pathname.startsWith('/tg/profile')) return 'profile';
@@ -117,7 +124,7 @@ export function BottomNavigation() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 safe-area-padding-bottom z-50">
-      <div className="grid grid-cols-4 h-16">
+      <div className="grid grid-cols-5 h-16">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeItem === item.id;
@@ -161,7 +168,7 @@ export function BottomNavigation() {
               
               {/* Активный индикатор */}
               {isActive && (
-                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-8 h-0.5 bg-blue-600 rounded-full" />
+                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-blue-600 rounded-full" />
               )}
             </button>
           );

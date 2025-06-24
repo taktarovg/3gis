@@ -1,46 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-/**
- * API для получения городов по штату
- */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const stateId = searchParams.get('state');
+    const stateId = searchParams.get('stateId');
 
-    if (!stateId) {
-      // Если штат не указан, возвращаем все города (для обратной совместимости)
-      const cities = await prisma.city.findMany({
-        include: {
-          state: true
-        },
-        orderBy: [
-          { state: { name: 'asc' } },
-          { name: 'asc' }
-        ]
-      });
-
-      return NextResponse.json(cities);
-    }
-
-    // Получаем города конкретного штата
     const cities = await prisma.city.findMany({
-      where: {
-        stateId: stateId
+      where: stateId ? { stateId } : undefined,
+      select: {
+        id: true,
+        name: true,
+        state: true,
+        population: true,
       },
-      include: {
-        state: true
-      },
-      orderBy: {
-        name: 'asc'
-      }
+      orderBy: [
+        { population: 'desc' },
+        { name: 'asc' }
+      ]
     });
 
-    return NextResponse.json(cities);
-    
+    return NextResponse.json({ cities });
+
   } catch (error) {
-    console.error('Error fetching cities:', error);
+    console.error('Cities API error:', error);
     return NextResponse.json(
       { error: 'Ошибка при получении городов' },
       { status: 500 }

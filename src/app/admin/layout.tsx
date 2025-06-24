@@ -1,4 +1,5 @@
 import { AdminAuth } from '@/components/admin/AdminAuth';
+import { AdminSidebar } from '@/components/admin/AdminSidebar';
 
 export const metadata = {
   title: '3GIS Admin Panel',
@@ -19,7 +20,14 @@ export default function AdminLayout({
 }) {
   return (
     <AdminAuth>
-      {children}
+      <div className="flex h-screen bg-gray-50">
+        <AdminSidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <main className="flex-1 overflow-y-auto">
+            {children}
+          </main>
+        </div>
+      </div>
     </AdminAuth>
   );
 }

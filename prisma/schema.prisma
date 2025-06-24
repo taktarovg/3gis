@@ -34,10 +34,14 @@ model User {
   updatedAt  DateTime           @updatedAt
   
   // Связи
-  favorites  BusinessFavorite[]
-  reviews    BusinessReview[]
-  businesses Business[]         @relation("BusinessOwner")
-  city       City?              @relation(fields: [cityId], references: [id])
+  favorites         BusinessFavorite[]
+  reviews           BusinessReview[]
+  businesses        Business[]         @relation("BusinessOwner")
+  city              City?              @relation(fields: [cityId], references: [id])
+  
+  // Связи с чатами
+  chatFavorites     ChatFavorite[]
+  moderatedChats    TelegramChat[]     @relation("ChatModerator")
 
   @@map("users")
 }
@@ -107,8 +111,9 @@ model State {
   fullName String // "New York"
   region   String // "Northeast", "South", "Midwest", "West"
   
-  cities     City[]
-  businesses Business[]
+  cities        City[]
+  businesses    Business[]
+  telegramChats TelegramChat[]
   
   @@map("states")
 }
@@ -122,9 +127,10 @@ model City {
   longitude  Float?
   population Int?
   
-  state      State      @relation(fields: [stateId], references: [id])
-  businesses Business[]
-  users      User[]
+  state         State           @relation(fields: [stateId], references: [id])
+  businesses    Business[]
+  users         User[]
+  telegramChats TelegramChat[]
   
   @@unique([name, stateId]) // Город уникален в рамках штата
   @@map("cities")
@@ -263,6 +269,62 @@ model Donation {
   @@map("donations")
 }
 
+// Модель Telegram-чатов
+model TelegramChat {
+  id            Int            @id @default(autoincrement())
+  title         String         // "NYC Russian Community"
+  description   String?        // Описание группы
+  username      String?        // nyc_russian (без @)
+  inviteLink    String?        // https://t.me/+xxxxx или https://t.me/username
+  
+  // Тип чата
+  type          ChatType       @default(GROUP)
+  
+  // Локация
+  city          City?          @relation(fields: [cityId], references: [id])
+  cityId        Int?
+  state         State?         @relation(fields: [stateId], references: [id])
+  stateId       String?
+  
+  // Простая тематика
+  topic         String?        // "Общение", "Работа", "Недвижимость"
+  
+  // Метаданные
+  memberCount   Int            @default(0)
+  isVerified    Boolean        @default(false)
+  isActive      Boolean        @default(true)
+  
+  // Статистика
+  viewCount     Int            @default(0)
+  joinCount     Int            @default(0)
+  
+  // Модерация
+  status        ChatStatus     @default(PENDING)
+  moderatedBy   User?          @relation("ChatModerator", fields: [moderatedById], references: [id])
+  moderatedById Int?
+  moderationNote String?       // Заметки модератора
+  
+  // Связи
+  favorites     ChatFavorite[]
+  
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  @@map("telegram_chats")
+}
+
+model ChatFavorite {
+  id        Int            @id @default(autoincrement())
+  chat      TelegramChat   @relation(fields: [chatId], references: [id])
+  chatId    Int
+  user      User           @relation(fields: [userId], references: [id])
+  userId    Int
+  createdAt DateTime       @default(now())
+  
+  @@unique([chatId, userId])
+  @@map("chat_favorites")
+}
+
 enum UserRole {
   GUEST
   USER
@@ -297,4 +359,16 @@ enum PaymentStatus {
   PAID        // Оплачено
   FAILED      // Ошибка оплаты
   REFUNDED    // Возвращено
+}
+
+enum ChatType {
+  GROUP     // Группы
+  CHAT      // Чаты
+  CHANNEL   // Каналы
+}
+
+enum ChatStatus {
+  PENDING   // На модерации
+  ACTIVE    // Одобрен
+  REJECTED  // Отклонен
 }

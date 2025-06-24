@@ -1,5 +1,7 @@
 // src/app/tg/page.tsx
 import React from 'react';
+import Link from 'next/link';
+import { MessageSquare } from 'lucide-react';
 import { CategoryGrid } from '@/components/categories/CategoryGrid';
 import { SearchBox } from '@/components/search/SearchBox';
 import { NearbyButton } from '@/components/location/NearbyButton';
@@ -55,6 +57,30 @@ export default async function ThreeGISHomePage() {
           <NearbyButton className="w-full" />
         </div>
         
+        {/* Каталог русских чатов */}
+        <div className="px-4 mb-6">
+          <Link
+            href="/tg/chats"
+            className="block bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-4 hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-3">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Русские чаты и группы</h3>
+                  <p className="text-sm opacity-90">Найдите свое сообщество в США</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold">18+</div>
+                <div className="text-xs opacity-90">групп</div>
+              </div>
+            </div>
+          </Link>
+        </div>
+        
         {/* Сетка категорий */}
         <div className="px-4 mb-6">
           <CategoryGrid categories={categories} />
@@ -72,11 +98,12 @@ export default async function ThreeGISHomePage() {
               О проекте 3GIS
             </h3>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Первый современный справочник русскоязычных организаций в США.
-              Помогаем найти врачей, юристов, рестораны и другие услуги на родном языке.
+              Первый современный справочник русскоязычных организаций и сообществ в США.
+              Помогаем найти врачей, юристов, рестораны, чаты и другие услуги на родном языке.
             </p>
             <div className="mt-3 flex items-center justify-center text-xs text-gray-500">
               <span className="mr-4">🏢 {categories.length} категорий</span>
+              <span className="mr-4">💬 Каталог чатов</span>
               <span className="mr-4">🌎 По всей Америке</span>
               <span>🇷🇺 На русском языке</span>
             </div>

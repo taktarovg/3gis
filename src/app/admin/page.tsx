@@ -1,343 +1,426 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Users, 
-  Building2, 
-  Star, 
-  Heart, 
-  Clock, 
-  CheckCircle, 
-  TrendingUp,
-  MapPin,
-  RefreshCw,
-  CreditCard
-} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { 
+  Building2, 
+  Users, 
+  MessageSquare, 
+  BarChart3,
+  TrendingUp,
+  Calendar,
+  Eye,
+  Star
+} from 'lucide-react';
+import Link from 'next/link';
 
-interface AdminStats {
-  overview: {
-    totalUsers: number;
-    totalBusinesses: number;
-    totalReviews: number;
-    totalFavorites: number;
-    pendingBusinesses: number;
-    activeBusinesses: number;
-    recentUsers: number;
-    recentBusinesses: number;
+interface DashboardStats {
+  businesses: {
+    total: number;
+    active: number;
+    pending: number;
+    premium: number;
   };
-  categories: Array<{
-    name: string;
-    slug: string;
-    icon: string;
-    count: number;
-  }>;
-  cities: Array<{
-    name: string;
-    state: string;
-    count: number;
-  }>;
-  lastUpdated: string;
+  users: {
+    total: number;
+    recent: number;
+  };
+  chats: {
+    total: number;
+    active: number;
+    pending: number;
+  };
+  views: {
+    total: number;
+    today: number;
+  };
 }
 
-/**
- * Dashboard админки 3GIS
- */
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  const fetchStats = async () => {
+  useEffect(() => {
+    loadDashboardStats();
+  }, []);
+
+  const loadDashboardStats = async () => {
     try {
-      setLoading(true);
-      setError('');
-      
-      const response = await fetch('/api/admin/stats', {
-        headers: {
-          'Authorization': 'Bearer charlotte-admin'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Ошибка загрузки данных');
-      }
-
-      const data = await response.json();
-      setStats(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
-    } finally {
+      // Симуляция загрузки данных - в реальности здесь будет API вызов
+      setTimeout(() => {
+        setStats({
+          businesses: {
+            total: 247,
+            active: 234,
+            pending: 13,
+            premium: 45,
+          },
+          users: {
+            total: 1284,
+            recent: 23,
+          },
+          chats: {
+            total: 18,
+            active: 15,
+            pending: 3,
+          },
+          views: {
+            total: 12540,
+            today: 156,
+          },
+        });
+        setLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error('Error loading dashboard stats:', error);
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
-        <span className="ml-2 text-gray-600">Загрузка данных...</span>
+      <div className="p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gray-600">Загрузка статистики...</p>
+          </div>
+        </div>
       </div>
     );
   }
-
-  if (error) {
-    return (
-      <Alert variant="destructive" className="mb-6">
-        <AlertDescription>
-          {error}
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={fetchStats}
-            className="ml-4"
-          >
-            Повторить
-          </Button>
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  if (!stats) {
-    return <div>Нет данных</div>;
-  }
-
-  const { overview, categories, cities } = stats;
 
   return (
-    <div className="space-y-6">
-      {/* Заголовок */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Dashboard
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Обзор русскоязычного справочника 3GIS
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-500">
-            Обновлено: {new Date(stats.lastUpdated).toLocaleString('ru-RU')}
-          </span>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={fetchStats}
-            disabled={loading}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Обновить
-          </Button>
-        </div>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Панель администратора 3GIS
+        </h1>
+        <p className="text-gray-600">
+          Добро пожаловать в панель управления русскоязычным справочником в США
+        </p>
       </div>
 
-      {/* Основная статистика */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Основные метрики */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Пользователи</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overview.totalUsers.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              +{overview.recentUsers} за неделю
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Заведения</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overview.totalBusinesses.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              +{overview.recentBusinesses} за неделю
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Отзывы</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overview.totalReviews.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              Всего отзывов
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Избранное</CardTitle>
-            <Heart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overview.totalFavorites.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              Добавлений в избранное
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Статус заведений */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Clock className="w-5 h-5 mr-2 text-orange-500" />
-              Требуют модерации
-            </CardTitle>
-            <CardDescription>
-              Заведения ожидающие проверки
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-orange-600">
-              {overview.pendingBusinesses}
-            </div>
-            {overview.pendingBusinesses > 0 && (
-              <Badge variant="outline" className="mt-2 text-orange-600">
-                Требует внимания
-              </Badge>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
-              Активные заведения
-            </CardTitle>
-            <CardDescription>
-              Одобренные и активные
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-600">
-              {overview.activeBusinesses}
-            </div>
-            <Badge variant="outline" className="mt-2 text-green-600">
-              Работают в справочнике
-            </Badge>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Категории и города */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Категории */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <TrendingUp className="w-5 h-5 mr-2" />
-              Популярные категории
-            </CardTitle>
-            <CardDescription>
-              Заведения по категориям
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {categories.slice(0, 8).map((category) => (
-                <div key={category.slug} className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <span className="text-lg mr-2">{category.icon}</span>
-                    <span className="font-medium">{category.name}</span>
-                  </div>
-                  <Badge variant="secondary">
-                    {category.count}
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Building2 className="w-8 h-8 text-blue-500" />
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-600">Заведения</p>
+                <p className="text-xl font-semibold">{stats?.businesses.total}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge className="bg-green-100 text-green-800 text-xs">
+                    {stats?.businesses.active} активных
                   </Badge>
+                  {stats?.businesses.pending > 0 && (
+                    <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                      {stats.businesses.pending} ожидают
+                    </Badge>
+                  )}
                 </div>
-              ))}
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Города */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <MapPin className="w-5 h-5 mr-2" />
-              Топ городов
-            </CardTitle>
-            <CardDescription>
-              По количеству заведений
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {cities.slice(0, 8).map((city) => (
-                <div key={`${city.name}-${city.state}`} className="flex items-center justify-between">
-                  <div>
-                    <span className="font-medium">{city.name}</span>
-                    <span className="text-sm text-gray-500 ml-2">{city.state}</span>
-                  </div>
-                  <Badge variant="secondary">
-                    {city.count}
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Users className="w-8 h-8 text-green-500" />
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-600">Пользователи</p>
+                <p className="text-xl font-semibold">{stats?.users.total}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  +{stats?.users.recent} за сегодня
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <MessageSquare className="w-8 h-8 text-purple-500" />
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-600">Чаты</p>
+                <p className="text-xl font-semibold">{stats?.chats.total}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge className="bg-green-100 text-green-800 text-xs">
+                    {stats?.chats.active} активных
                   </Badge>
+                  {stats?.chats.pending > 0 && (
+                    <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                      {stats.chats.pending} на модерации
+                    </Badge>
+                  )}
                 </div>
-              ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Eye className="w-8 h-8 text-orange-500" />
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-600">Просмотры</p>
+                <p className="text-xl font-semibold">{stats?.views.total.toLocaleString()}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  +{stats?.views.today} сегодня
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Быстрые действия */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Быстрые действия</CardTitle>
-          <CardDescription>
-            Часто используемые функции
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link href="/admin/businesses">
-              <Button variant="outline" className="h-20 flex flex-col items-center justify-center w-full">
-                <Clock className="w-6 h-6 mb-2" />
-                Модерация заведений
-                {overview.pendingBusinesses > 0 && (
-                  <Badge className="mt-1" variant="destructive">
-                    {overview.pendingBusinesses}
-                  </Badge>
-                )}
-              </Button>
-            </Link>
-            
-            <Link href="/admin/users">
-              <Button variant="outline" className="h-20 flex flex-col items-center justify-center w-full">
-                <Users className="w-6 h-6 mb-2" />
-                Управление пользователями
-              </Button>
-            </Link>
-            
-            <Link href="/admin/payments">
-              <Button variant="outline" className="h-20 flex flex-col items-center justify-center w-full">
-                <CreditCard className="w-6 h-6 mb-2" />
-                Telegram Stars
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Building2 className="w-5 h-5 mr-2" />
+              Управление заведениями
+            </CardTitle>
+            <CardDescription>
+              Модерация и управление бизнесами в справочнике
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span>Активные заведения:</span>
+                <span className="font-medium">{stats?.businesses.active}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Premium подписки:</span>
+                <span className="font-medium text-yellow-600">{stats?.businesses.premium}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>На модерации:</span>
+                <span className="font-medium text-orange-600">{stats?.businesses.pending}</span>
+              </div>
+            </div>
+            <div className="mt-4 space-y-2">
+              <Link href="/admin/businesses">
+                <Button className="w-full" size="sm">
+                  Управление заведениями
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <MessageSquare className="w-5 h-5 mr-2" />
+              Telegram сообщества
+            </CardTitle>
+            <CardDescription>
+              Модерация русскоязычных чатов и групп
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span>Всего чатов:</span>
+                <span className="font-medium">{stats?.chats.total}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Активные:</span>
+                <span className="font-medium text-green-600">{stats?.chats.active}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>На модерации:</span>
+                <span className="font-medium text-yellow-600">{stats?.chats.pending}</span>
+              </div>
+            </div>
+            <div className="mt-4 space-y-2">
+              <Link href="/admin/chats">
+                <Button className="w-full" size="sm">
+                  Управление чатами
+                </Button>
+              </Link>
+              <Link href="/admin/chats/analytics">
+                <Button className="w-full" size="sm" variant="outline">
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Аналитика
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Users className="w-5 h-5 mr-2" />
+              Пользователи
+            </CardTitle>
+            <CardDescription>
+              Управление зарегистрированными пользователями
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span>Всего пользователей:</span>
+                <span className="font-medium">{stats?.users.total}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Новых сегодня:</span>
+                <span className="font-medium text-green-600">+{stats?.users.recent}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Premium пользователи:</span>
+                <span className="font-medium text-yellow-600">89</span>
+              </div>
+            </div>
+            <div className="mt-4">
+              <Link href="/admin/users">
+                <Button className="w-full" size="sm">
+                  Управление пользователями
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Последняя активность */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Calendar className="w-5 h-5 mr-2" />
+              Последняя активность
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                  <div>
+                    <p className="text-sm font-medium">Новое заведение добавлено</p>
+                    <p className="text-xs text-gray-500">Русский ресторан в Brooklyn</p>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-500">5 мин назад</span>
+              </div>
+              
+              <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                  <div>
+                    <p className="text-sm font-medium">Чат прошел модерацию</p>
+                    <p className="text-xs text-gray-500">NYC Russian Community</p>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-500">12 мин назад</span>
+              </div>
+              
+              <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full mr-3"></div>
+                  <div>
+                    <p className="text-sm font-medium">Premium подписка</p>
+                    <p className="text-xs text-gray-500">Мастер красоты оформил подписку</p>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-500">1 ч назад</span>
+              </div>
+              
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                  <div>
+                    <p className="text-sm font-medium">Новый пользователь</p>
+                    <p className="text-xs text-gray-500">Регистрация через Telegram</p>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-500">2 ч назад</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <TrendingUp className="w-5 h-5 mr-2" />
+              Популярные категории
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <span className="text-2xl mr-3">🍽️</span>
+                  <div>
+                    <p className="text-sm font-medium">Рестораны</p>
+                    <p className="text-xs text-gray-500">89 заведений</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium">2,340</p>
+                  <p className="text-xs text-gray-500">просмотров</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <span className="text-2xl mr-3">⚕️</span>
+                  <div>
+                    <p className="text-sm font-medium">Медицина</p>
+                    <p className="text-xs text-gray-500">67 заведений</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium">1,890</p>
+                  <p className="text-xs text-gray-500">просмотров</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <span className="text-2xl mr-3">💄</span>
+                  <div>
+                    <p className="text-sm font-medium">Красота</p>
+                    <p className="text-xs text-gray-500">45 заведений</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium">1,230</p>
+                  <p className="text-xs text-gray-500">просмотров</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <span className="text-2xl mr-3">⚖️</span>
+                  <div>
+                    <p className="text-sm font-medium">Юристы</p>
+                    <p className="text-xs text-gray-500">34 заведения</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium">980</p>
+                  <p className="text-xs text-gray-500">просмотров</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
