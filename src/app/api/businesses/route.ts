@@ -133,6 +133,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Получаем stateId из города
+    const city = await prisma.city.findUnique({
+      where: { id: parseInt(cityId) },
+      select: { stateId: true }
+    });
+
+    if (!city) {
+      return NextResponse.json(
+        { error: 'City not found' },
+        { status: 400 }
+      );
+    }
+
     const business = await prisma.business.create({
       data: {
         name,
@@ -140,6 +153,7 @@ export async function POST(request: NextRequest) {
         categoryId: parseInt(categoryId),
         address,
         cityId: parseInt(cityId),
+        stateId: city.stateId, // ✅ Добавили обязательное поле
         phone: phone || null,
         website: website || null,
         languages,
