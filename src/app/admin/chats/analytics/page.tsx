@@ -57,7 +57,7 @@ export default function ChatAnalyticsPage() {
 
   useEffect(() => {
     loadAnalytics();
-  }, [period]);
+  }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadAnalytics = async () => {
     setLoading(true);

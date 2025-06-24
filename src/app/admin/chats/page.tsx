@@ -64,7 +64,7 @@ export default function AdminChatsPage() {
   // Загрузка чатов
   useEffect(() => {
     loadChats();
-  }, [statusFilter, searchQuery]);
+  }, [statusFilter, searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadChats = async () => {
     setLoading(true);

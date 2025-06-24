@@ -19,10 +19,11 @@ const UpdateChatSchema = z.object({
 // Получение чата по ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const chatId = parseInt(params.id);
+    const { id } = await params;
+    const chatId = parseInt(id);
 
     const chat = await prisma.telegramChat.findUnique({
       where: { id: chatId },
@@ -55,10 +56,11 @@ export async function GET(
 // Обновление чата
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const chatId = parseInt(params.id);
+    const { id } = await params;
+    const chatId = parseInt(id);
     const body = await request.json();
     const data = UpdateChatSchema.parse(body);
 
@@ -93,10 +95,11 @@ export async function PUT(
 // Удаление чата
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const chatId = parseInt(params.id);
+    const { id } = await params;
+    const chatId = parseInt(id);
 
     // Сначала удаляем связанные записи
     await prisma.chatFavorite.deleteMany({
