@@ -52,7 +52,12 @@ export default async function ChatDetailPage({ params }: ChatPageProps) {
     notFound();
   }
 
-  return <ChatDetail chat={chat} />;
+  return <ChatDetail chat={{
+    ...chat,
+    description: chat.description ?? undefined,
+    username: chat.username ?? undefined,
+    topic: chat.topic ?? undefined
+  }} />;
 }
 
 // ✅ Next.js 15: await params в generateMetadata
