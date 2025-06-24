@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Получаем названия штатов
-    const stateIds = topStates.map(s => s.stateId).filter(Boolean);
+    const stateIds = topStates.map(s => s.stateId).filter((id): id is string => id !== null);
     const states = await prisma.state.findMany({
       where: { id: { in: stateIds } },
       select: { id: true, name: true }
