@@ -77,13 +77,13 @@ export function ChatsList() {
   };
 
   // Подсчет чатов по типам для селектора
-  const getCounts = () => {
-    if (!stats) return {};
+  const getCounts = (): Record<string, number> => {
+    if (!stats) return { GROUP: 0, CHAT: 0, CHANNEL: 0 };
     
     // Простая логика - показываем общее количество для всех типов
     // В реальном приложении можно сделать отдельный запрос для подсчета по типам
     return {
-      GROUP: stats.totalChats,
+      GROUP: stats.totalChats || 0,
       CHAT: 0,
       CHANNEL: 0
     };
