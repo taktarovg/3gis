@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') // 'businesses', 'chats', 'all'
 
     // Получаем избранные заведения
-    let businessFavorites = []
+    let businessFavorites: any[] = []
     if (type === 'businesses' || type === 'all' || !type) {
       const favorites = await prisma.businessFavorite.findMany({
         where: { userId: user.userId },
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Получаем избранные чаты
-    let chatFavorites = []
+    let chatFavorites: any[] = []
     if (type === 'chats' || type === 'all' || !type) {
       const favorites = await prisma.chatFavorite.findMany({
         where: { userId: user.userId },
