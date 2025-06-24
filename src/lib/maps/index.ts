@@ -30,4 +30,4 @@ export {
 
 // Хуки
 export { useGeolocation } from '../../hooks/use-geolocation';
-export { useDebounce, useSimpleDebounce } from '../../hooks/use-debounce';
+export { useDebounce } from '../../hooks/use-debounce';
