@@ -170,17 +170,7 @@ export function useChats(filters: ChatsFilters = {}): UseChatsResult {
   }, [buildUrl]); // ✅ УБРАЛИ chats.length из зависимостей!
 
   // Стабилизируем фильтры через useMemo для предотвращения лишних рендеров
-  const stableFilters = useMemo(() => filters, [
-    filters.type,
-    filters.cityId,
-    filters.stateId,
-    filters.topic,
-    filters.search,
-    filters.isVerified,
-    filters.page,
-    filters.limit,
-    filters
-  ]);
+  const stableFilters = useMemo(() => filters, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Основная загрузка при изменении фильтров
   useEffect(() => {

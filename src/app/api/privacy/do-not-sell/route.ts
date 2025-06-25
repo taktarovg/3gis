@@ -28,12 +28,27 @@ export async function POST(request: NextRequest) {
 
     const { email, firstName, lastName, requestType, additionalInfo } = validationResult.data;
 
+    // Получение IP адреса из заголовков (Next.js 15 совместимо)
+    const getClientIP = (req: NextRequest): string => {
+      const forwarded = req.headers.get('x-forwarded-for');
+      const realIP = req.headers.get('x-real-ip');
+      const clientIP = req.headers.get('x-client-ip');
+      
+      if (forwarded) {
+        return forwarded.split(',')[0].trim();
+      }
+      
+      return realIP || clientIP || 'unknown';
+    };
+
     // Здесь в реальном проекте нужно:
     // 1. Сохранить запрос в базе данных
     // 2. Отправить email подтверждение
     // 3. Уведомить команду privacy для обработки
     // 4. Записать в audit log
 
+    const clientIP = getClientIP(request);
+    
     console.log('CCPA Do Not Sell Request:', {
       email,
       firstName,
@@ -41,7 +56,7 @@ export async function POST(request: NextRequest) {
       requestType,
       additionalInfo,
       timestamp: new Date().toISOString(),
-      ip: request.ip || 'unknown',
+      ip: clientIP,
       userAgent: request.headers.get('user-agent') || 'unknown'
     });
 
