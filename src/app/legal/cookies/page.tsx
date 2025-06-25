@@ -1,5 +1,7 @@
+'use client';
+
 // src/app/legal/cookies/page.tsx
-import { CookieSettings } from '@/components/legal/CookieBanner';
+// import { CookieSettings } from '@/components/legal/CookieBanner';
 
 export const metadata = {
   title: 'Политика Cookies | 3GIS',
@@ -268,7 +270,21 @@ export default function CookiePolicyPage() {
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">
                 Управление настройками
               </h2>
-              <CookieSettings />
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <p className="text-gray-700 mb-4">
+                  Чтобы изменить настройки cookies, обновите страницу или очистите cookies браузера.
+                  При следующем посещении появится баннер с настройками.
+                </p>
+                <button 
+                  onClick={() => {
+                    localStorage.removeItem('3gis-cookie-consent');
+                    window.location.reload();
+                  }}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Сбросить настройки cookies
+                </button>
+              </div>
             </div>
           </div>
         </div>

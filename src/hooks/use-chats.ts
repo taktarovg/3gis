@@ -178,7 +178,8 @@ export function useChats(filters: ChatsFilters = {}): UseChatsResult {
     filters.search,
     filters.isVerified,
     filters.page,
-    filters.limit
+    filters.limit,
+    filters
   ]);
 
   // Основная загрузка при изменении фильтров
