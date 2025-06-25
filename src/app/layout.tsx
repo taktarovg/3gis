@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import { ClientProvider } from './ClientProvider';
 import { inter } from './fonts';
 import { Toaster } from '@/components/ui/toaster';
+import { CookieBanner } from '@/components/legal/CookieBanner';
 import Script from 'next/script';
 
 export const metadata: Metadata = {
@@ -149,6 +150,9 @@ export default function RootLayout({
         
         {/* Глобальные уведомления */}
         <Toaster />
+        
+        {/* Cookie Banner */}
+        <CookieBanner />
         
         {/* Analytics (если понадобится) */}
         {process.env.NODE_ENV === 'production' && (

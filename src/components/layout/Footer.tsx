@@ -50,18 +50,38 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="#about" className="text-gray-300 hover:text-blue-400 transition-colors">
+                <Link href="/about" className="text-gray-300 hover:text-blue-400 transition-colors">
                   О проекте
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="text-gray-300 hover:text-blue-400 transition-colors">
+                <Link href="/legal/privacy" className="text-gray-300 hover:text-blue-400 transition-colors">
                   Конфиденциальность
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="text-gray-300 hover:text-blue-400 transition-colors">
+                <Link href="/legal/terms" className="text-gray-300 hover:text-blue-400 transition-colors">
                   Условия использования
+                </Link>
+              </li>
+              <li>
+                <Link href="/legal/disclaimer" className="text-gray-300 hover:text-blue-400 transition-colors">
+                  Отказ от ответственности
+                </Link>
+              </li>
+              <li>
+                <Link href="/legal/accessibility" className="text-gray-300 hover:text-blue-400 transition-colors">
+                  Доступность
+                </Link>
+              </li>
+              <li>
+                <Link href="/legal/do-not-sell" className="text-gray-300 hover:text-red-400 transition-colors font-medium">
+                  Do Not Sell My Information
+                </Link>
+              </li>
+              <li>
+                <Link href="/legal/refund-policy" className="text-gray-300 hover:text-blue-400 transition-colors">
+                  Возврат средств
                 </Link>
               </li>
             </ul>
@@ -113,15 +133,27 @@ export function Footer() {
               © 2025 3GIS. Все права защищены.
             </div>
             
-            <div className="flex items-center space-x-6 text-sm">
-              <Link href="/privacy" className="text-gray-400 hover:text-blue-400 transition-colors">
+            <div className="flex flex-wrap items-center gap-4 text-sm">
+              <Link href="/legal/privacy" className="text-gray-400 hover:text-blue-400 transition-colors">
                 Конфиденциальность
               </Link>
-              <Link href="/terms" className="text-gray-400 hover:text-blue-400 transition-colors">
+              <Link href="/legal/terms" className="text-gray-400 hover:text-blue-400 transition-colors">
                 Условия
               </Link>
-              <Link href="/sitemap" className="text-gray-400 hover:text-blue-400 transition-colors">
-                Карта сайта
+              <Link href="/legal/do-not-sell" className="text-gray-400 hover:text-red-400 transition-colors font-medium">
+                Do Not Sell My Information
+              </Link>
+              <Link href="/legal/refund-policy" className="text-gray-400 hover:text-blue-400 transition-colors">
+                Возврат
+              </Link>
+              <Link href="/legal/accessibility" className="text-gray-400 hover:text-blue-400 transition-colors">
+                Доступность
+              </Link>
+              <Link href="/legal/dmca" className="text-gray-400 hover:text-blue-400 transition-colors">
+                DMCA
+              </Link>
+              <Link href="/legal/cookies" className="text-gray-400 hover:text-blue-400 transition-colors">
+                Cookies
               </Link>
             </div>
           </div>
