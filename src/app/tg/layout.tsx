@@ -25,7 +25,8 @@ export default function TelegramLayout({
   }, []);
 
   return (
-    <TelegramProvider debug={process.env.NODE_ENV === 'development'}>
+    <>
+      {/* Используем только ClientProvider с SDK v3 для избежания конфликтов */}
       <TelegramAuth>
         <NavigationLayout>
           {children}
@@ -33,6 +34,6 @@ export default function TelegramLayout({
         {/* Отладочный компонент для разработки */}
         <TelegramDebug />
       </TelegramAuth>
-    </TelegramProvider>
+    </>
   );
 }

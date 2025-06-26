@@ -38,7 +38,7 @@ interface Business {
   photos: {
     url: string;
   }[];
-  _count: {
+  _count?: {
     reviews: number;
     favorites: number;
   };
@@ -105,7 +105,7 @@ export function BusinessCard({
           <FavoriteButton
             businessId={business.id}
             initialIsFavorite={isFavorite || business.isFavorite}
-            favoritesCount={business._count.favorites}
+            favoritesCount={business._count?.favorites || 0}
             size="md"
             variant="default"
             showCount={true}
@@ -167,7 +167,7 @@ export function BusinessCard({
                   ★ {formatRating(business.rating)}
                 </div>
                 <span className="text-sm text-gray-500">
-                  ({business._count.reviews} отзывов)
+                  ({business._count?.reviews || 0} отзывов)
                 </span>
               </div>
             )}

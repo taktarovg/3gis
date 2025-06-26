@@ -68,11 +68,14 @@ export function useTelegramAuth(): AuthState & AuthActions {
 
   // Безусловные вызовы хуков SDK v3.x согласно Rules of Hooks
   const initDataRaw = useRawInitData();
-  const launchParams = useLaunchParams(true); // SSR-совместимый режим для Next.js
+  const launchParams = useLaunchParams(); // В v3 без параметров
   
   // Извлекаем пользовательские данные из launchParams для SDK v3.x
+  // В v3 tgWebAppData это объект, а не строка
   const webAppData = launchParams?.tgWebAppData;
   const telegramUser = webAppData?.user || null;
+  
+  // В v3 доступны как camelCase, так и snake_case версии
   const authDate = webAppData?.authDate || webAppData?.auth_date || null;
   const queryId = webAppData?.queryId || webAppData?.query_id || null;
   const hash = webAppData?.hash || null;

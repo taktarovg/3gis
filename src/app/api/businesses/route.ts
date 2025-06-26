@@ -65,6 +65,12 @@ export async function GET(request: NextRequest) {
             select: { url: true },
             take: 1,
             orderBy: { order: 'asc' }
+          },
+          _count: {
+            select: {
+              reviews: true,
+              favorites: true
+            }
           }
         },
         orderBy: [

@@ -55,18 +55,24 @@ function TelegramInitializer() {
         
         // Проверяем, работаем ли мы в Telegram
         let isInTelegram = false;
+        let launchParams: any = null;
+        
         try {
-          // Даем больше времени для инициализации на мобильных устройствах
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          const launchParams = retrieveLaunchParams();
-          isInTelegram = !!launchParams.tgWebAppData || !!launchParams.initDataRaw;
-          
-          console.log('📱 Telegram environment check:', {
+        // Даем больше времени для инициализации на мобильных устройствах
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // В v3 используем правильную функцию
+        launchParams = retrieveLaunchParams();
+        
+        // В v3 структура изменилась - все свойства имеют префикс tgWebApp
+        isInTelegram = !!(launchParams?.tgWebAppData || launchParams?.tgWebAppBotInline !== undefined);
+        
+        console.log('📱 Telegram environment check:', {
             isInTelegram,
-            hasWebAppData: !!launchParams.tgWebAppData,
-            hasInitDataRaw: !!launchParams.initDataRaw,
-            platform: launchParams.tgWebAppPlatform || 'unknown'
+            hasWebAppData: !!launchParams?.tgWebAppData,
+            platform: launchParams?.tgWebAppPlatform || 'unknown',
+            version: launchParams?.tgWebAppVersion || 'unknown',
+            launchParamsKeys: launchParams ? Object.keys(launchParams) : []
           });
         } catch (error) {
           console.log('🔧 Не в Telegram окружении, включаем режим разработки:', error);
@@ -79,25 +85,7 @@ function TelegramInitializer() {
             
             // Мокаем Telegram окружение для разработки
             const randomId = Math.floor(Math.random() * 1000000000);
-            const mockInitDataRaw = new URLSearchParams([
-              ['user', JSON.stringify({
-                id: randomId,
-                first_name: 'Георгий',
-                last_name: 'Тактаров',
-                username: 'taktarovgv',
-                language_code: 'ru',
-                is_premium: false,
-                allows_write_to_pm: true,
-                // Добавляем реальный photo_url для тестирования
-                photo_url: 'https://t.me/i/userpic/320/4FPEE4tmP3ATHa57u6MqTDih13LTOiMoKoLDRG4PnSA.svg'
-              })],
-              ['hash', '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31'],
-              ['auth_date', Math.floor(Date.now() / 1000).toString()],
-              ['start_param', 'debug'],
-              ['chat_type', 'sender'],
-              ['chat_instance', '8428209589180549439'],
-            ]).toString();
-
+            
             // Правильная структура для SDK v3.x согласно документации
             const themeParams = {
               accent_text_color: '#6ab2f2' as `#${string}`,
@@ -115,13 +103,35 @@ function TelegramInitializer() {
               text_color: '#f5f5f5' as `#${string}`,
             };
 
+            // В v3 tgWebAppData должен быть объектом, содержащим parsed данные
+            const parsedWebAppData = {
+              user: {
+                id: randomId,
+                first_name: 'Георгий',
+                last_name: 'Тактаров',
+                username: 'taktarovgv',
+                language_code: 'ru',
+                is_premium: false,
+                allows_write_to_pm: true,
+                photo_url: 'https://t.me/i/userpic/320/4FPEE4tmP3ATHa57u6MqTDih13LTOiMoKoLDRG4PnSA.svg'
+              },
+              auth_date: Math.floor(Date.now() / 1000),
+              authDate: new Date(),
+              hash: '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31',
+              start_param: 'debug',
+              chat_type: 'sender',
+              chat_instance: '8428209589180549439'
+            };
+
+            // Используем правильную структуру v3.x
             mockTelegramEnv({
               launchParams: {
                 tgWebAppThemeParams: themeParams,
-                tgWebAppData: mockInitDataRaw,
+                tgWebAppData: parsedWebAppData, // Объект, а не URLSearchParams
                 tgWebAppVersion: '8.0',
                 tgWebAppPlatform: 'tdesktop',
-                tgWebAppStartParam: 'debug'
+                tgWebAppStartParam: 'debug',
+                tgWebAppBotInline: false
               }
             });
           } else {

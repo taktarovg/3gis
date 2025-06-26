@@ -31,7 +31,7 @@ interface Business {
   photos: {
     url: string;
   }[];
-  _count: {
+  _count?: {
     reviews: number;
     favorites: number;
   };
