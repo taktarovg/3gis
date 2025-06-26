@@ -42,12 +42,8 @@ export async function initializeMap(
     zoomControl: true,
     mapTypeId: googleLib.maps.MapTypeId.ROADMAP,
     mapId: '3GIS_MAP_ID', // ✅ ОБЯЗАТЕЛЬНО для AdvancedMarkerElement
-    styles: [
-      {
-        featureType: 'poi.business',
-        stylers: [{ visibility: 'off' }] // Скрываем конкурирующие POI
-      }
-    ],
+    // ✅ ИСПРАВЛЕНО: Убрали styles, так как при mapId стили управляются через Cloud Console
+    // styles: [...] - теперь управляется через Google Cloud Console
     ...options,
   };
   
