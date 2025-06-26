@@ -1,259 +1,221 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { X, Cookie, Settings } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { X, Settings, CheckCircle } from 'lucide-react';
 
 export function CookieBanner() {
   const [isVisible, setIsVisible] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [cookiePreferences, setCookiePreferences] = useState({
-    necessary: true, // Always true, can't be disabled
+  const [preferences, setPreferences] = useState({
+    necessary: true, // Всегда включены
     analytics: false,
     marketing: false,
-    preferences: false
   });
-
+  
+  const pathname = usePathname();
+  
+  // НЕ показываем cookie баннер в Telegram Mini App
+  const isTelegramApp = pathname.startsWith('/tg');
+  
   useEffect(() => {
-    // Check if user has already made a choice
-    const hasConsented = localStorage.getItem('3gis-cookie-consent');
-    if (!hasConsented) {
-      setIsVisible(true);
+    // Не показываем в Telegram Mini App
+    if (isTelegramApp) {
+      return;
     }
-  }, []);
+    
+    // Проверяем есть ли сохраненные настройки
+    const savedConsent = localStorage.getItem('3gis-cookie-consent');
+    if (!savedConsent) {
+      setIsVisible(true);
+    } else {
+      const consent = JSON.parse(savedConsent);
+      setPreferences(consent);
+    }
+  }, [isTelegramApp]);
 
   const handleAcceptAll = () => {
-    const allAccepted = {
+    const fullConsent = {
       necessary: true,
       analytics: true,
       marketing: true,
-      preferences: true
+      timestamp: new Date().toISOString()
     };
-    setCookiePreferences(allAccepted);
-    localStorage.setItem('3gis-cookie-consent', JSON.stringify(allAccepted));
+    
+    localStorage.setItem('3gis-cookie-consent', JSON.stringify(fullConsent));
+    setPreferences(fullConsent);
     setIsVisible(false);
     
-    // Initialize analytics/marketing scripts here
-    initializeScripts(allAccepted);
+    // Инициализируем все сервисы
+    initializeAnalytics();
   };
 
   const handleAcceptSelected = () => {
-    localStorage.setItem('3gis-cookie-consent', JSON.stringify(cookiePreferences));
+    const consent = {
+      ...preferences,
+      timestamp: new Date().toISOString()
+    };
+    
+    localStorage.setItem('3gis-cookie-consent', JSON.stringify(consent));
     setIsVisible(false);
     
-    // Initialize only selected scripts
-    initializeScripts(cookiePreferences);
+    // Инициализируем только выбранные сервисы
+    if (preferences.analytics) {
+      initializeAnalytics();
+    }
   };
 
   const handleRejectAll = () => {
-    const onlyNecessary = {
+    const minimalConsent = {
       necessary: true,
       analytics: false,
       marketing: false,
-      preferences: false
+      timestamp: new Date().toISOString()
     };
-    setCookiePreferences(onlyNecessary);
-    localStorage.setItem('3gis-cookie-consent', JSON.stringify(onlyNecessary));
+    
+    localStorage.setItem('3gis-cookie-consent', JSON.stringify(minimalConsent));
+    setPreferences(minimalConsent);
     setIsVisible(false);
   };
 
-  const initializeScripts = (preferences: typeof cookiePreferences) => {
-    // Initialize Google Analytics if analytics is enabled
-    if (preferences.analytics) {
-      // gtag('consent', 'update', { analytics_storage: 'granted' });
-    }
-    
-    // Initialize marketing scripts if marketing is enabled
-    if (preferences.marketing) {
-      // Initialize marketing pixels, ads tracking etc.
-    }
-    
-    // Initialize preferences scripts if enabled
-    if (preferences.preferences) {
-      // Initialize user preference tracking
+  const initializeAnalytics = () => {
+    // Инициализация Google Analytics
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('consent', 'update', {
+        analytics_storage: 'granted'
+      });
     }
   };
 
-  if (!isVisible) return null;
+  // Не рендерим в Telegram Mini App
+  if (isTelegramApp || !isVisible) {
+    return null;
+  }
 
   return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-40" />
-      
-      {/* Cookie Banner */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg">
-        <div className="container mx-auto px-4 py-6">
-          {!showSettings ? (
-            // Main banner
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-              <div className="flex items-start lg:items-center gap-3 flex-1">
-                <Cookie className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1 lg:mt-0" />
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    🍪 Использование файлов cookie
-                  </h3>
-                  <p className="text-gray-700 text-sm leading-relaxed">
-                    Мы используем файлы cookie для улучшения работы сайта, персонализации контента 
-                    и анализа трафика. Вы можете управлять настройками cookie или принять все.
-                    <Link href="/legal/cookies" className="text-blue-600 underline ml-1">
-                      Подробнее о cookie
-                    </Link>
+    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white border-t border-gray-200 shadow-lg">
+      <div className="max-w-6xl mx-auto">
+        {!showSettings ? (
+          // Основной баннер
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-2xl">🍪</span>
+              <h3 className="font-semibold text-gray-900">Использование файлов cookie</h3>
+            </div>
+            
+            <div className="flex-1 text-sm text-gray-600">
+              Мы используем файлы cookie для улучшения работы сайта, персонализации 
+              контента и анализа трафика. Вы можете управлять настройками cookie или принять все.
+            </div>
+            
+            <div className="flex flex-wrap gap-2 flex-shrink-0">
+              <button
+                onClick={() => setShowSettings(true)}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-1"
+              >
+                <Settings className="w-4 h-4" />
+                Настройки
+              </button>
+              
+              <button
+                onClick={handleRejectAll}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+              >
+                Только необходимые
+              </button>
+              
+              <button
+                onClick={handleAcceptAll}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Принять все
+              </button>
+            </div>
+          </div>
+        ) : (
+          // Детальные настройки
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Настройки cookie</h3>
+              <button
+                onClick={() => setShowSettings(false)}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              {/* Необходимые cookie */}
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span className="font-medium">Необходимые</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Обеспечивают работу основных функций сайта. Всегда включены.
                   </p>
                 </div>
+                <div className="w-8 h-4 bg-green-600 rounded-full flex items-center justify-end px-1">
+                  <div className="w-3 h-3 bg-white rounded-full"></div>
+                </div>
               </div>
               
-              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+              {/* Аналитические cookie */}
+              <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                <div className="flex-1">
+                  <span className="font-medium">Аналитические</span>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Google Analytics для анализа использования сайта.
+                  </p>
+                </div>
                 <button
-                  onClick={() => setShowSettings(true)}
-                  className="flex items-center justify-center px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  onClick={() => setPreferences(prev => ({ ...prev, analytics: !prev.analytics }))}
+                  className={`w-8 h-4 rounded-full flex items-center transition-colors ${
+                    preferences.analytics ? 'bg-blue-600 justify-end' : 'bg-gray-300 justify-start'
+                  } px-1`}
                 >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Настройки
-                </button>
-                <button
-                  onClick={handleRejectAll}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Только необходимые
-                </button>
-                <button
-                  onClick={handleAcceptAll}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                >
-                  Принять все
-                </button>
-              </div>
-            </div>
-          ) : (
-            // Settings panel
-            <div className="max-w-2xl mx-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Настройки конфиденциальности
-                </h3>
-                <button
-                  onClick={() => setShowSettings(false)}
-                  className="p-2 text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  <X className="w-5 h-5" />
+                  <div className="w-3 h-3 bg-white rounded-full"></div>
                 </button>
               </div>
               
-              <div className="space-y-4 mb-6">
-                {/* Necessary cookies */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <h4 className="font-medium text-gray-900">Необходимые cookie</h4>
-                    <p className="text-sm text-gray-600">
-                      Требуются для базовой работы сайта. Нельзя отключить.
-                    </p>
-                  </div>
-                  <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                    Всегда включены
-                  </div>
+              {/* Маркетинговые cookie */}
+              <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                <div className="flex-1">
+                  <span className="font-medium">Маркетинговые</span>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Для персонализации рекламы и контента.
+                  </p>
                 </div>
-
-                {/* Analytics cookies */}
-                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                  <div>
-                    <h4 className="font-medium text-gray-900">Аналитические cookie</h4>
-                    <p className="text-sm text-gray-600">
-                      Помогают понять, как посетители используют сайт.
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={cookiePreferences.analytics}
-                      onChange={(e) => setCookiePreferences(prev => ({
-                        ...prev,
-                        analytics: e.target.checked
-                      }))}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                {/* Marketing cookies */}
-                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                  <div>
-                    <h4 className="font-medium text-gray-900">Маркетинговые cookie</h4>
-                    <p className="text-sm text-gray-600">
-                      Используются для персонализации рекламы.
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={cookiePreferences.marketing}
-                      onChange={(e) => setCookiePreferences(prev => ({
-                        ...prev,
-                        marketing: e.target.checked
-                      }))}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                {/* Preference cookies */}
-                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                  <div>
-                    <h4 className="font-medium text-gray-900">Настройки cookie</h4>
-                    <p className="text-sm text-gray-600">
-                      Сохраняют ваши предпочтения для сайта.
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={cookiePreferences.preferences}
-                      onChange={(e) => setCookiePreferences(prev => ({
-                        ...prev,
-                        preferences: e.target.checked
-                      }))}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3">
                 <button
-                  onClick={handleRejectAll}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  onClick={() => setPreferences(prev => ({ ...prev, marketing: !prev.marketing }))}
+                  className={`w-8 h-4 rounded-full flex items-center transition-colors ${
+                    preferences.marketing ? 'bg-blue-600 justify-end' : 'bg-gray-300 justify-start'
+                  } px-1`}
                 >
-                  Отклонить все
+                  <div className="w-3 h-3 bg-white rounded-full"></div>
                 </button>
-                <button
-                  onClick={handleAcceptSelected}
-                  className="flex-1 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                >
-                  Сохранить настройки
-                </button>
-                <button
-                  onClick={handleAcceptAll}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Принять все
-                </button>
-              </div>
-
-              <div className="mt-4 text-center">
-                <p className="text-xs text-gray-500">
-                  Соответствие CCPA/GDPR: Ваши данные не будут проданы третьим лицам.{' '}
-                  <Link href="/legal/do-not-sell" className="text-blue-600 underline">
-                    Узнать больше
-                  </Link>
-                </p>
               </div>
             </div>
-          )}
-        </div>
+            
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={handleAcceptSelected}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+              >
+                Сохранить настройки
+              </button>
+            </div>
+            
+            <div className="text-xs text-gray-500">
+              <a href="/legal/privacy" className="hover:underline">Политика конфиденциальности</a>
+              {' • '}
+              <a href="/legal/cookies" className="hover:underline">Подробнее о cookie</a>
+            </div>
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 }

@@ -151,7 +151,7 @@ export default function RootLayout({
         {/* Глобальные уведомления */}
         <Toaster />
         
-        {/* Cookie Banner */}
+        {/* Cookie Banner - показывается только НЕ в Telegram Mini App */}
         <CookieBanner />
         
         {/* Analytics (если понадобится) */}
