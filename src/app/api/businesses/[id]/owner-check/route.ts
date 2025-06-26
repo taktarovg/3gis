@@ -1,111 +1,76 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import jwt from 'jsonwebtoken';
 
-interface Params {
-  id: string;
-}
+export const dynamic = 'force-dynamic';
 
+/**
+ * API endpoint для проверки прав владельца заведения
+ * GET /api/businesses/[id]/owner-check
+ */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<Params> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
-    const businessId = parseInt(id);
+    const businessId = parseInt(params.id);
     
     if (isNaN(businessId)) {
       return NextResponse.json(
-        { error: 'Неверный ID заведения' },
+        { error: 'Invalid business ID' },
         { status: 400 }
       );
     }
 
-    // Получаем данные авторизации из заголовков
-    const authHeader = request.headers.get('Authorization');
-    const telegramInitData = authHeader?.replace('tma ', '');
+    // Получаем токен авторизации
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { isOwner: false, error: 'No authorization token' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
     
-    if (!telegramInitData) {
-      return NextResponse.json(
-        { error: 'Требуется авторизация' },
-        { status: 401 }
-      );
-    }
-
-    // Парсим данные Telegram (упрощенная версия для демо)
-    let userData;
     try {
-      // В реальном проекте здесь должна быть полная верификация подписи
-      const initDataObj = JSON.parse(telegramInitData);
-      userData = {
-        telegramId: initDataObj.user?.id?.toString() || ''
-      };
-    } catch (error) {
+      // Проверяем JWT токен
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+      const userId = decoded.userId;
+
+      if (!userId) {
+        return NextResponse.json(
+          { isOwner: false, error: 'Invalid token' },
+          { status: 401 }
+        );
+      }
+
+      // Проверяем является ли пользователь владельцем заведения
+      const business = await prisma.business.findFirst({
+        where: {
+          id: businessId,
+          ownerId: userId
+        }
+      });
+
+      return NextResponse.json({
+        isOwner: !!business,
+        businessId,
+        userId
+      });
+
+    } catch (jwtError) {
+      console.error('JWT verification error:', jwtError);
       return NextResponse.json(
-        { error: 'Неверные данные авторизации' },
+        { isOwner: false, error: 'Invalid token' },
         { status: 401 }
       );
     }
-
-    if (!userData.telegramId) {
-      return NextResponse.json(
-        { error: 'Не удалось получить ID пользователя' },
-        { status: 401 }
-      );
-    }
-
-    // Находим пользователя в базе данных
-    const user = await prisma.user.findUnique({
-      where: {
-        telegramId: userData.telegramId
-      }
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Пользователь не найден' },
-        { status: 404 }
-      );
-    }
-
-    // Проверяем владельца заведения
-    const business = await prisma.business.findFirst({
-      where: {
-        id: businessId,
-        ownerId: user.id
-      }
-    });
-
-    // Получаем активную подписку
-    const currentSubscription = business ? await prisma.businessSubscription.findFirst({
-      where: {
-        businessId: businessId,
-        status: 'ACTIVE'
-      },
-      orderBy: {
-        endDate: 'desc'
-      }
-    }) : null;
-
-    const isOwner = !!business;
-
-    return NextResponse.json({
-      isOwner,
-      currentSubscription: currentSubscription ? {
-        tier: currentSubscription.tier,
-        endDate: currentSubscription.endDate.toISOString(),
-        status: currentSubscription.status
-      } : null,
-      user: {
-        id: user.id,
-        firstName: user.firstName,
-        role: user.role
-      }
-    });
 
   } catch (error) {
     console.error('Owner check error:', error);
     return NextResponse.json(
-      { error: 'Ошибка проверки владельца' },
+      { isOwner: false, error: 'Internal server error' },
       { status: 500 }
     );
   }

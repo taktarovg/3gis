@@ -1,7 +1,9 @@
 'use client';
 
 import Image from 'next/image';
+import { useState } from 'react';
 import { getStaticMapUrl } from '@/lib/maps/google-maps';
+import { MapPin } from 'lucide-react';
 
 interface StaticMapPreviewProps {
   latitude: number;
@@ -12,6 +14,7 @@ interface StaticMapPreviewProps {
   markers?: Array<{ lat: number; lng: number; color?: string }>;
   className?: string;
   alt?: string;
+  fallback?: React.ReactNode; // Новое поле для fallback
 }
 
 /**
@@ -25,8 +28,10 @@ export function StaticMapPreview({
   height = 200,
   markers = [],
   className = '',
-  alt = 'Карта местоположения'
+  alt = 'Карта местоположения',
+  fallback
 }: StaticMapPreviewProps) {
+  const [hasError, setHasError] = useState(false);
   
   const mapUrl = getStaticMapUrl(latitude, longitude, {
     zoom,
@@ -34,6 +39,10 @@ export function StaticMapPreview({
     height,
     markers
   });
+
+  if (hasError && fallback) {
+    return <>{fallback}</>;
+  }
 
   return (
     <Image
@@ -43,6 +52,7 @@ export function StaticMapPreview({
       height={height}
       className={`rounded-lg border border-gray-300 ${className}`}
       priority={false}
+      onError={() => setHasError(true)}
     />
   );
 }
