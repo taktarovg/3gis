@@ -1,1 +1,15 @@
-'use client';\n\nimport { useTrafficTracking } from '@/hooks/use-traffic-tracking';\n\n/**\n * Компонент для автоматического отслеживания источников трафика\n * Невидимый компонент, который анализирует UTM параметры и referrer\n */\nexport function TrafficTracker() {\n  // Автоматически отслеживаем источник трафика при загрузке страницы\n  useTrafficTracking();\n  \n  // Компонент невидимый, только для логики\n  return null;\n}\n
+'use client';
+
+import { useTrafficTracking } from '@/hooks/use-traffic-tracking';
+
+/**
+ * Компонент для автоматического отслеживания источников трафика
+ * Невидимый компонент, который анализирует UTM параметры и referrer
+ */
+export function TrafficTracker() {
+  // Автоматически отслеживаем источник трафика при загрузке страницы
+  useTrafficTracking();
+  
+  // Компонент невидимый, только для логики
+  return null;
+}

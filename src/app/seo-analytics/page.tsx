@@ -3,16 +3,16 @@
 import { useStoredTrafficSource, TARGET_KEYWORDS, isTargetKeyword } from '@/hooks/use-traffic-tracking';
 import { track3GISEvents } from '@/lib/analytics';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export default function SEOAnalyticsPage() {
-  const { getTrafficSource } = useStoredTrafficSource();
+  const trafficSource = useStoredTrafficSource();
   const [trafficData, setTrafficData] = useState<any>(null);
   const [testKeyword, setTestKeyword] = useState('');
 
   useEffect(() => {
-    const data = getTrafficSource();
-    setTrafficData(data);
-  }, [getTrafficSource]);
+    setTrafficData(trafficSource);
+  }, [trafficSource]);
 
   const handleTestEvent = (eventType: string) => {
     switch (eventType) {
@@ -20,7 +20,7 @@ export default function SEOAnalyticsPage() {
         track3GISEvents.landingView('google_organic', 'none', 'русские врачи нью йорк');
         break;
       case 'social_media':
-        track3GISEvents.socialClick('facebook', 'external_post');
+        track3GISEvents.landingView('facebook', 'social_post', 'none');
         break;
       case 'direct':
         track3GISEvents.landingView('direct', 'none', 'none');
@@ -189,12 +189,12 @@ export default function SEOAnalyticsPage() {
         </div>
         
         <div className="mt-8 text-center">
-          <a
+          <Link
             href="/"
             className="text-blue-600 hover:text-blue-700 font-medium"
           >
             ← Вернуться на главную
-          </a>
+          </Link>
         </div>
       </div>
     </div>

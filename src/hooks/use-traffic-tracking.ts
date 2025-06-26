@@ -4,6 +4,34 @@ import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { track3GISEvents } from '@/lib/analytics';
 
+// Целевые ключевые слова для SEO отслеживания
+export const TARGET_KEYWORDS = [
+  'русскоязычные заведения США',
+  'русские рестораны америка',
+  'русские врачи США',
+  'русские юристы америка',
+  'русскоязычные услуги США',
+  'русский справочник америка',
+  'найти русскоязычного врача',
+  'русские магазины США',
+  'русская община америка',
+  'иммиграция в США',
+  'русскоязычный бизнес США'
+];
+
+/**
+ * Проверяет является ли ключевое слово целевым для SEO
+ */
+export function isTargetKeyword(keyword: string): boolean {
+  if (!keyword) return false;
+  
+  const normalizedKeyword = keyword.toLowerCase();
+  return TARGET_KEYWORDS.some(target => 
+    normalizedKeyword.includes(target.toLowerCase()) ||
+    target.toLowerCase().includes(normalizedKeyword)
+  );
+}
+
 /**
  * Хук для автоматического отслеживания источников трафика на лендинге
  * Анализирует UTM параметры и referrer для определения источника
