@@ -68,7 +68,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
 
   // Безусловные вызовы хуков SDK v3.x согласно Rules of Hooks
   const initDataRaw = useRawInitData();
-  const launchParams = useLaunchParams(); // В v3 без параметров
+  const launchParams = useLaunchParams(true); // ✅ В v3.x требуется SSR флаг для Next.js
   
   // Извлекаем пользовательские данные из launchParams для SDK v3.x
   // В v3 tgWebAppData это объект, а не строка

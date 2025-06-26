@@ -33,7 +33,7 @@ export function GoogleMap({
 }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
+  const [markers, setMarkers] = useState<google.maps.marker.AdvancedMarkerElement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,10 +50,10 @@ export function GoogleMap({
     if (!map || businesses.length === 0) return;
 
     // Очищаем существующие маркеры
-    markers.forEach(marker => marker.setMap(null));
+    markers.forEach(marker => marker.map = null);
 
     // Создаем новые маркеры
-    const newMarkers: google.maps.Marker[] = [];
+    const newMarkers: google.maps.marker.AdvancedMarkerElement[] = [];
     
     for (const business of businesses) {
       if (business.latitude && business.longitude) {

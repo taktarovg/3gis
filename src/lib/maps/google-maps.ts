@@ -4,7 +4,7 @@ import { Loader, type LoaderOptions } from '@googlemaps/js-api-loader';
 const GOOGLE_MAPS_CONFIG: LoaderOptions = {
   apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
   version: 'weekly',
-  libraries: ['places', 'geometry'],
+  libraries: ['places', 'geometry', 'marker'], // ✅ ДОБАВИЛИ 'marker' для AdvancedMarkerElement
   language: 'ru',
   region: 'US',
 };
@@ -25,6 +25,7 @@ export async function getGoogleMapsApi(): Promise<typeof google> {
 
 /**
  * Инициализация карты на элементе
+ * ✅ ИСПРАВЛЕНО: Добавлен mapId для поддержки AdvancedMarkerElement
  */
 export async function initializeMap(
   element: HTMLElement,
@@ -40,6 +41,7 @@ export async function initializeMap(
     fullscreenControl: false,
     zoomControl: true,
     mapTypeId: googleLib.maps.MapTypeId.ROADMAP,
+    mapId: '3GIS_MAP_ID', // ✅ ОБЯЗАТЕЛЬНО для AdvancedMarkerElement
     styles: [
       {
         featureType: 'poi.business',
@@ -158,6 +160,7 @@ export async function reverseGeocode(lat: number, lng: number): Promise<{
 
 /**
  * Создание маркера заведения на карте
+ * ✅ ОБНОВЛЕНО: Использует AdvancedMarkerElement вместо устаревшего Marker
  */
 export async function createBusinessMarker(
   map: google.maps.Map,
@@ -170,29 +173,29 @@ export async function createBusinessMarker(
     premiumTier?: string;
   },
   onClick?: (business: any) => void
-): Promise<google.maps.Marker> {
+): Promise<google.maps.marker.AdvancedMarkerElement> {
   const googleLib = await getGoogleMapsApi();
+  
+  // Импортируем новую библиотеку маркеров
+  const { AdvancedMarkerElement, PinElement } = await googleLib.maps.importLibrary('marker') as google.maps.MarkerLibrary;
   
   // Цвет маркера в зависимости от статуса
   const markerColor = business.premiumTier && business.premiumTier !== 'FREE' ? '#FFD700' : '#3B82F6';
   
-  const marker = new googleLib.maps.Marker({
-    position: { lat: business.latitude, lng: business.longitude },
+  // Создаем кастомный пин для AdvancedMarkerElement
+  const pin = new PinElement({
+    background: markerColor,
+    borderColor: '#FFFFFF',
+    glyph: business.category.icon,
+    glyphColor: '#FFFFFF',
+    scale: 1.2
+  });
+  
+  const marker = new AdvancedMarkerElement({
     map: map,
+    position: { lat: business.latitude, lng: business.longitude },
     title: business.name,
-    icon: {
-      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-        <svg width="32" height="40" viewBox="0 0 32 40" xmlns="http://www.w3.org/2000/svg">
-          <path d="M16 0C7.163 0 0 7.163 0 16c0 11 16 24 16 24s16-13 16-24C32 7.163 24.837 0 16 0z" fill="${markerColor}" stroke="white" stroke-width="2"/>
-          <circle cx="16" cy="16" r="8" fill="white"/>
-          <text x="16" y="20" font-family="Arial" font-size="12" fill="${markerColor}" text-anchor="middle">
-            ${business.category.icon}
-          </text>
-        </svg>
-      `)}`,
-      scaledSize: new googleLib.maps.Size(32, 40),
-      anchor: new googleLib.maps.Point(16, 40),
-    },
+    content: pin.element,
   });
   
   if (onClick) {

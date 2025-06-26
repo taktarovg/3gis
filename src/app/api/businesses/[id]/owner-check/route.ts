@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 /**
  * API endpoint для проверки прав владельца заведения
  * GET /api/businesses/[id]/owner-check
+ * ✅ ИСПРАВЛЕНО: Добавлен fallback для случаев без авторизации
  */
 export async function GET(
   request: NextRequest,
@@ -25,11 +26,16 @@ export async function GET(
 
     // Получаем токен авторизации
     const authHeader = request.headers.get('authorization');
+    
+    // ✅ ИСПРАВЛЕНО: Если нет токена, возвращаем isOwner: false без ошибки 401
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { isOwner: false, error: 'No authorization token' },
-        { status: 401 }
-      );
+      console.log('No authorization token provided for business', businessId);
+      return NextResponse.json({
+        isOwner: false,
+        businessId,
+        userId: null,
+        message: 'No authorization provided'
+      });
     }
 
     const token = authHeader.substring(7);
@@ -40,10 +46,13 @@ export async function GET(
       const userId = decoded.userId;
 
       if (!userId) {
-        return NextResponse.json(
-          { isOwner: false, error: 'Invalid token' },
-          { status: 401 }
-        );
+        console.log('Invalid token - no userId');
+        return NextResponse.json({
+          isOwner: false,
+          businessId,
+          userId: null,
+          message: 'Invalid token'
+        });
       }
 
       // Проверяем является ли пользователь владельцем заведения
@@ -57,21 +66,30 @@ export async function GET(
       return NextResponse.json({
         isOwner: !!business,
         businessId,
-        userId
+        userId,
+        message: business ? 'User is owner' : 'User is not owner'
       });
 
     } catch (jwtError) {
       console.error('JWT verification error:', jwtError);
-      return NextResponse.json(
-        { isOwner: false, error: 'Invalid token' },
-        { status: 401 }
-      );
+      // ✅ ИСПРАВЛЕНО: Возвращаем 200 вместо 401 для лучшего UX
+      return NextResponse.json({
+        isOwner: false,
+        businessId,
+        userId: null,
+        message: 'Token verification failed'
+      });
     }
 
   } catch (error) {
     console.error('Owner check error:', error);
     return NextResponse.json(
-      { isOwner: false, error: 'Internal server error' },
+      { 
+        isOwner: false, 
+        businessId: parseInt((await params).id),
+        userId: null,
+        error: 'Internal server error' 
+      },
       { status: 500 }
     );
   }
