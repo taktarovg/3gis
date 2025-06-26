@@ -86,8 +86,14 @@ export async function GET(request: NextRequest) {
 
     console.log(`✅ Found ${businesses.length} businesses`);
 
+    // ✅ Добавляем fallback для _count на случай проблем с БД
+    const businessesWithSafeCounts = businesses.map(business => ({
+      ...business,
+      _count: business._count || { reviews: 0, favorites: 0 }
+    }));
+
     return NextResponse.json({
-      businesses,
+      businesses: businessesWithSafeCounts,
       pagination: {
         total,
         limit,

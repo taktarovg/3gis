@@ -103,8 +103,8 @@ function TelegramInitializer() {
               text_color: '#f5f5f5' as `#${string}`,
             };
 
-            // В v3 tgWebAppData должен быть объектом, содержащим parsed данные
-            const parsedWebAppData = {
+            // В v3 tgWebAppData должен быть строкой JSON для mockTelegramEnv
+            const mockWebAppData = JSON.stringify({
               user: {
                 id: randomId,
                 first_name: 'Георгий',
@@ -116,18 +116,17 @@ function TelegramInitializer() {
                 photo_url: 'https://t.me/i/userpic/320/4FPEE4tmP3ATHa57u6MqTDih13LTOiMoKoLDRG4PnSA.svg'
               },
               auth_date: Math.floor(Date.now() / 1000),
-              authDate: new Date(),
               hash: '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31',
               start_param: 'debug',
               chat_type: 'sender',
               chat_instance: '8428209589180549439'
-            };
+            });
 
             // Используем правильную структуру v3.x
             mockTelegramEnv({
               launchParams: {
                 tgWebAppThemeParams: themeParams,
-                tgWebAppData: parsedWebAppData, // Объект, а не URLSearchParams
+                tgWebAppData: mockWebAppData, // JSON строка для корректной работы
                 tgWebAppVersion: '8.0',
                 tgWebAppPlatform: 'tdesktop',
                 tgWebAppStartParam: 'debug',
