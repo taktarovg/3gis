@@ -1,1 +1,114 @@
-'use client';\n\nimport { useEffect } from 'react';\nimport { useSearchParams } from 'next/navigation';\nimport { track3GISEvents } from '@/lib/analytics';\n\n/**\n * Хук для автоматического отслеживания источников трафика на лендинге\n * Анализирует UTM параметры и referrer для определения источника\n */\nexport function useTrafficTracking() {\n  const searchParams = useSearchParams();\n\n  useEffect(() => {\n    // Анализируем UTM параметры\n    const utmSource = searchParams.get('utm_source');\n    const utmMedium = searchParams.get('utm_medium');\n    const utmCampaign = searchParams.get('utm_campaign');\n    const utmKeyword = searchParams.get('utm_term') || searchParams.get('q');\n    \n    // Анализируем referrer\n    const referrer = typeof window !== 'undefined' ? document.referrer : '';\n    let trafficSource = 'direct';\n    let searchKeyword = utmKeyword || '';\n    \n    // Определяем источник трафика\n    if (utmSource) {\n      trafficSource = utmSource;\n    } else if (referrer) {\n      // Google поиск\n      if (referrer.includes('google.')) {\n        trafficSource = 'google_organic';\n        // Пытаемся извлечь ключевое слово из URL (в новых версиях Google это сложно)\n        const url = new URL(referrer);\n        searchKeyword = url.searchParams.get('q') || 'unknown';\n      }\n      // Yandex поиск\n      else if (referrer.includes('yandex.')) {\n        trafficSource = 'yandex_organic';\n        const url = new URL(referrer);\n        searchKeyword = url.searchParams.get('text') || 'unknown';\n      }\n      // Bing поиск\n      else if (referrer.includes('bing.')) {\n        trafficSource = 'bing_organic';\n        const url = new URL(referrer);\n        searchKeyword = url.searchParams.get('q') || 'unknown';\n      }\n      // Facebook\n      else if (referrer.includes('facebook.')) {\n        trafficSource = 'facebook';\n      }\n      // Telegram\n      else if (referrer.includes('t.me') || referrer.includes('telegram')) {\n        trafficSource = 'telegram';\n      }\n      // VKontakte\n      else if (referrer.includes('vk.com')) {\n        trafficSource = 'vkontakte';\n      }\n      // Другие соцсети\n      else if (referrer.includes('instagram.') || referrer.includes('twitter.') || referrer.includes('linkedin.')) {\n        trafficSource = 'social_media';\n      }\n      // Другие сайты\n      else {\n        try {\n          const referrerDomain = new URL(referrer).hostname;\n          trafficSource = `referral_${referrerDomain.replace('www.', '')}`;\n        } catch {\n          trafficSource = 'referral_unknown';\n        }\n      }\n    }\n    \n    // Отправляем событие с информацией об источнике трафика\n    track3GISEvents.landingView(\n      trafficSource,\n      utmCampaign || 'none',\n      searchKeyword || 'none'\n    );\n    \n    // Сохраняем в localStorage для дальнейшего использования\n    if (typeof window !== 'undefined') {\n      const trafficData = {\n        source: trafficSource,\n        campaign: utmCampaign || 'none',\n        keyword: searchKeyword || 'none',\n        medium: utmMedium || 'none',\n        timestamp: new Date().toISOString(),\n        referrer: referrer\n      };\n      localStorage.setItem('3gis_traffic_source', JSON.stringify(trafficData));\n    }\n    \n  }, [searchParams]);\n}\n\n/**\n * Хук для получения сохраненной информации об источнике трафика\n */\nexport function useStoredTrafficSource() {\n  const getTrafficSource = () => {\n    if (typeof window === 'undefined') return null;\n    \n    try {\n      const stored = localStorage.getItem('3gis_traffic_source');\n      return stored ? JSON.parse(stored) : null;\n    } catch {\n      return null;\n    }\n  };\n  \n  return { getTrafficSource };\n}\n\n/**\n * Список ключевых слов для 3GIS (для отслеживания органического трафика)\n */\nexport const TARGET_KEYWORDS = [\n  // Основные\n  '3gis',\n  'русский справочник сша',\n  'русскоязычные услуги америка',\n  'русские врачи америка',\n  'русские рестораны сша',\n  'русские юристы америка',\n  \n  // По городам\n  'русские врачи нью йорк',\n  'русские рестораны бруклин',\n  'русские юристы лос анджелес',\n  'русские салоны красоты майами',\n  \n  // По услугам\n  'иммиграционные адвокаты',\n  'русскоговорящие врачи',\n  'русская еда америка',\n  'русские автосервисы',\n  'русские парикмахерские',\n  \n  // Справочники\n  'справочник русских америка',\n  'русский телефонный справочник',\n  'где найти русского врача',\n  'русские магазины америка',\n  \n  // Telegram\n  'telegram справочник',\n  'telegram mini app русские',\n  'телеграм бот услуги',\n];\n\n/**\n * Проверяет, является ли ключевое слово целевым для 3GIS\n */\nexport function isTargetKeyword(keyword: string): boolean {\n  if (!keyword) return false;\n  \n  const lowerKeyword = keyword.toLowerCase();\n  return TARGET_KEYWORDS.some(targetKeyword => \n    lowerKeyword.includes(targetKeyword.toLowerCase()) ||\n    targetKeyword.toLowerCase().includes(lowerKeyword)\n  );\n}\n
+'use client';
+
+import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { track3GISEvents } from '@/lib/analytics';
+
+/**
+ * Хук для автоматического отслеживания источников трафика на лендинге
+ * Анализирует UTM параметры и referrer для определения источника
+ */
+export function useTrafficTracking() {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    // Анализируем UTM параметры
+    const utmSource = searchParams.get('utm_source');
+    const utmMedium = searchParams.get('utm_medium');
+    const utmCampaign = searchParams.get('utm_campaign');
+    const utmKeyword = searchParams.get('utm_term') || searchParams.get('q');
+    
+    // Анализируем referrer
+    const referrer = typeof window !== 'undefined' ? document.referrer : '';
+    let trafficSource = 'direct';
+    let searchKeyword = utmKeyword || '';
+    
+    // Определяем источник трафика
+    if (utmSource) {
+      trafficSource = utmSource;
+    } else if (referrer) {
+      // Google поиск
+      if (referrer.includes('google.')) {
+        trafficSource = 'google_organic';
+        const url = new URL(referrer);
+        searchKeyword = url.searchParams.get('q') || 'unknown';
+      }
+      // Yandex поиск
+      else if (referrer.includes('yandex.')) {
+        trafficSource = 'yandex_organic';
+        const url = new URL(referrer);
+        searchKeyword = url.searchParams.get('text') || 'unknown';
+      }
+      // Bing поиск
+      else if (referrer.includes('bing.')) {
+        trafficSource = 'bing_organic';
+        const url = new URL(referrer);
+        searchKeyword = url.searchParams.get('q') || 'unknown';
+      }
+      // Facebook
+      else if (referrer.includes('facebook.')) {
+        trafficSource = 'facebook';
+      }
+      // Telegram
+      else if (referrer.includes('t.me') || referrer.includes('telegram')) {
+        trafficSource = 'telegram';
+      }
+      // VKontakte
+      else if (referrer.includes('vk.com')) {
+        trafficSource = 'vkontakte';
+      }
+      // Другие соцсети
+      else if (referrer.includes('instagram.') || referrer.includes('twitter.') || referrer.includes('linkedin.')) {
+        trafficSource = 'social_media';
+      }
+      // Другие сайты
+      else {
+        try {
+          const referrerDomain = new URL(referrer).hostname;
+          trafficSource = `referral_${referrerDomain.replace('www.', '')}`;
+        } catch {
+          trafficSource = 'referral_unknown';
+        }
+      }
+    }
+    
+    // Отправляем событие с информацией об источнике трафика
+    track3GISEvents.landingView(
+      trafficSource,
+      utmCampaign || 'none',
+      searchKeyword || 'none'
+    );
+    
+    // Сохраняем в localStorage для дальнейшего использования
+    if (typeof window !== 'undefined') {
+      const trafficData = {
+        source: trafficSource,
+        campaign: utmCampaign || 'none',
+        keyword: searchKeyword || 'none',
+        medium: utmMedium || 'none',
+        timestamp: new Date().toISOString(),
+        referrer: referrer
+      };
+      localStorage.setItem('3gis_traffic_source', JSON.stringify(trafficData));
+    }
+    
+  }, [searchParams]);
+}
+
+/**
+ * Хук для получения сохраненной информации об источнике трафика
+ */
+export function useStoredTrafficSource() {
+  const getTrafficSource = () => {
+    if (typeof window === 'undefined') return null;
+    
+    try {
+      const stored = localStorage.getItem('3gis_traffic_source');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  return getTrafficSource();
+}
