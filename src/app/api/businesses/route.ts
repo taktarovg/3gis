@@ -21,6 +21,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     const city = searchParams.get('city');
+    const stateId = searchParams.get('stateId');
+    const cityId = searchParams.get('cityId');
     const search = searchParams.get('search');
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50);
     const offset = parseInt(searchParams.get('offset') || '0');
@@ -30,9 +32,16 @@ export async function GET(request: NextRequest) {
     if (category) {
       whereClause.category = { slug: category };
     }
-    if (city) {
+    
+    // ✅ Приоритет у stateId и cityId параметров (новые фильтры)
+    if (cityId) {
+      whereClause.cityId = parseInt(cityId);
+    } else if (stateId) {
+      whereClause.city = { stateId: parseInt(stateId) };
+    } else if (city) {
       whereClause.city = { name: city };
     }
+    
     if (search) {
       whereClause.OR = [
         { name: { contains: search, mode: 'insensitive' } },
