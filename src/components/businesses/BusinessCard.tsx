@@ -2,13 +2,13 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { MapPin, Phone, Star, Globe, ExternalLink, Clock } from 'lucide-react';
-import { formatRating, formatPhoneNumber, formatDate } from '@/lib/utils';
-import { usePlatformActions } from '@/hooks/use-platform-detection';
-import { CompactInlineMap } from '@/components/maps/InlineMap';
+import { MapPin, Star, Clock } from 'lucide-react';
+import { formatRating, formatDate } from '@/lib/utils';
 import { FavoriteButton } from '@/components/favorites/FavoriteButton';
+// ✅ Telegram SDK v3.x - haptic feedback
+import { hapticFeedbackImpactOccurred } from '@telegram-apps/sdk';
 
 interface Business {
   id: number;
@@ -53,6 +53,13 @@ interface BusinessCardProps {
   variant?: 'default' | 'compact';
 }
 
+/**
+ * ✅ ОПТИМИЗИРОВАННАЯ КАРТОЧКА ЗАВЕДЕНИЯ
+ * - Вся карточка кликабельна для перехода в профиль
+ * - Сохранена кнопка "Избранное" с остановкой всплытия события
+ * - Убраны кнопки "Позвонить", "Маршрут" и "Подробнее"
+ * - Добавлен haptic feedback при клике
+ */
 export function BusinessCard({ 
   business,
   showFavoriteButton = false,
@@ -61,55 +68,68 @@ export function BusinessCard({
   addedDate,
   variant = 'default'
 }: BusinessCardProps) {
-  const { platform, makeCall, openMaps } = usePlatformActions();
-
-  const handleCall = () => {
-    if (business.phone) {
-      makeCall(business.phone);
-    }
-  };
-
-  const handleRoute = () => {
-    const fullAddress = `${business.address}, ${business.city.name}, ${business.city.state}`;
-    openMaps(fullAddress);
-  };
-
-  const handleWebsite = () => {
-    if (business.website) {
-      if (platform.isTelegram) {
-        // В Telegram всегда открываем в новой вкладке
-        window.open(business.website, '_blank');
-      } else {
-        window.open(business.website, '_blank');
-      }
-    }
-  };
-
+  const router = useRouter();
   const compactMode = variant === 'compact';
 
+  // ✅ Оптимизированный обработчик клика по карточке
+  const handleCardClick = async () => {
+    try {
+      // ✅ Haptic feedback при клике (SDK v3.x)
+      if (hapticFeedbackImpactOccurred.isAvailable()) {
+        hapticFeedbackImpactOccurred('light');
+      }
+      
+      // Переход в профиль заведения
+      router.push(`/tg/business/${business.id}`);
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Fallback navigation без haptic feedback
+      router.push(`/tg/business/${business.id}`);
+    }
+  };
+
+  // ✅ Обработчик для кнопки избранного (останавливаем всплытие)
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Предотвращаем переход по клику на карточку
+  };
+
   return (
-    <div className="relative bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+    <div 
+      className="relative bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer active:scale-[0.98]"
+      onClick={handleCardClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleCardClick();
+        }
+      }}
+      aria-label={`Открыть профиль заведения ${business.name}`}
+    >
       {/* Header with Premium badge and Favorite button */}
       <div className="absolute top-3 left-3 right-3 flex items-start justify-between z-10">
         {/* Premium badge */}
         {business.premiumTier !== 'FREE' && (
-          <div className="bg-yellow-500 text-black px-2 py-1 rounded-md text-xs font-bold">
-            PREMIUM
+          <div className="bg-yellow-500 text-black px-2 py-1 rounded-md text-xs font-bold shadow-sm">
+            ⭐ PREMIUM
           </div>
         )}
         
         <div className="flex-1" />
         
-        {/* Favorite button */}
+        {/* ✅ Кнопка избранного с остановкой всплытия */}
         {showFavoriteButton && (
-          <FavoriteButton
-            businessId={business.id}
-            initialIsFavorite={isFavorite || business.isFavorite}
-            favoritesCount={business._count?.favorites || 0}
-            size="md"
-            variant="default"
-            showCount={true}
-          />
+          <div onClick={handleFavoriteClick}>
+            <FavoriteButton
+              businessId={business.id}
+              initialIsFavorite={isFavorite || business.isFavorite}
+              favoritesCount={business._count?.favorites || 0}
+              size="md"
+              variant="default"
+              showCount={true}
+            />
+          </div>
         )}
       </div>
 
@@ -123,6 +143,8 @@ export function BusinessCard({
             className="object-cover"
             priority={false}
           />
+          {/* Градиент для лучшей читаемости текста */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
         </div>
       )}
 
@@ -151,12 +173,12 @@ export function BusinessCard({
           )}
 
           <div className="flex-1 min-w-0">
-            <h3 className={`font-bold text-gray-900 mb-1 ${compactMode ? 'text-base' : 'text-lg'}`}>
+            <h3 className={`font-bold text-gray-900 mb-1 ${compactMode ? 'text-base' : 'text-lg'} line-clamp-2`}>
               {business.name}
             </h3>
             
             <p className="flex items-center text-gray-600 mb-2">
-              <span className="mr-2">{business.category.icon}</span>
+              <span className="mr-2 text-lg">{business.category.icon}</span>
               <span className={compactMode ? 'text-sm' : ''}>{business.category.name}</span>
             </p>
 
@@ -164,7 +186,8 @@ export function BusinessCard({
             {business.rating > 0 && (
               <div className="flex items-center mb-2">
                 <div className="flex items-center text-yellow-500 mr-2">
-                  ★ {formatRating(business.rating)}
+                  <Star className="w-4 h-4 mr-1 fill-current" />
+                  {formatRating(business.rating)}
                 </div>
                 <span className="text-sm text-gray-500">
                   ({business._count?.reviews || 0} отзывов)
@@ -176,7 +199,7 @@ export function BusinessCard({
             <div className="flex items-start mb-3">
               <MapPin className="h-4 w-4 mr-2 flex-shrink-0 text-gray-400 mt-0.5" />
               <div className="flex-1 min-w-0">
-                <div className={`text-gray-700 ${compactMode ? 'text-sm' : ''}`}>
+                <div className={`text-gray-700 ${compactMode ? 'text-sm' : ''} line-clamp-2`}>
                   {business.address}, {business.city.name}
                 </div>
                 {business.distance !== undefined && (
@@ -192,24 +215,6 @@ export function BusinessCard({
           </div>
         </div>
 
-        {/* Компактная карта (только для full mode) */}
-        {business.latitude && business.longitude && !compactMode && (
-          <div className="mb-3">
-            <CompactInlineMap 
-              business={{
-                id: business.id,
-                name: business.name,
-                address: business.address,
-                latitude: business.latitude,
-                longitude: business.longitude,
-                category: business.category,
-                city: business.city,
-                premiumTier: business.premiumTier
-              }}
-            />
-          </div>
-        )}
-
         {/* Description (только для full mode) */}
         {business.description && !compactMode && (
           <p className="text-sm text-gray-600 mb-3 line-clamp-2">
@@ -218,7 +223,7 @@ export function BusinessCard({
         )}
 
         {/* Features */}
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-2">
           {business.languages.includes('ru') && (
             <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
               🇷🇺 Русский язык
@@ -229,40 +234,14 @@ export function BusinessCard({
               🅿️ Парковка
             </span>
           )}
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex flex-wrap gap-2 mb-3">
-          {business.phone && (
-            <button
-              onClick={handleCall}
-              className="flex-1 min-w-0 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center transition-colors"
-              title={platform.canMakeCall ? 'Позвонить' : 'Откроется в новой вкладке'}
-            >
-              <Phone className="h-4 w-4 mr-1" />
-              Позвонить
-              {!platform.canMakeCall && <ExternalLink className="h-3 w-3 ml-1" />}
-            </button>
+          {business.premiumTier !== 'FREE' && (
+            <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
+              ⭐ Премиум
+            </span>
           )}
-          
-          <button
-            onClick={handleRoute}
-            className="flex-1 min-w-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center transition-colors"
-            title={platform.canOpenMaps ? 'Открыть карты' : 'Откроется в новой вкладке'}
-          >
-            <MapPin className="h-4 w-4 mr-1" />
-            Маршрут
-            {!platform.canOpenMaps && <ExternalLink className="h-3 w-3 ml-1" />}
-          </button>
         </div>
 
-        {/* Link to detail page */}
-        <Link
-          href={`/tg/business/${business.id}`}
-          className="block text-center text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors"
-        >
-          Подробнее →
-        </Link>
+        {/* ✅ Убрали кнопки действий - вся карточка теперь кликабельна */}
       </div>
     </div>
   );
