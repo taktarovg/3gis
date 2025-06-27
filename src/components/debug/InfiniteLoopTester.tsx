@@ -1,1 +1,182 @@
-'use client';\n\nimport { useState, useEffect, useRef } from 'react';\nimport { Button } from '@/components/ui/button';\nimport { Badge } from '@/components/ui/badge';\nimport { RefreshCw, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';\n\n/**\n * ✅ Компонент для тестирования устранения бесконечного цикла рендеров\n * Показывает статистику рендеров useChats хука и ClientProvider\n */\nexport function InfiniteLoopTester() {\n  const [isActive, setIsActive] = useState(false);\n  const [testResults, setTestResults] = useState<{\n    status: 'idle' | 'testing' | 'passed' | 'failed';\n    renderCount: number;\n    duration: number;\n    message: string;\n  }>({ status: 'idle', renderCount: 0, duration: 0, message: '' });\n  \n  const testStartTime = useRef<number>(0);\n  const renderCounter = useRef(0);\n  const intervalRef = useRef<NodeJS.Timeout | null>(null);\n\n  const startTest = () => {\n    console.log('🧪 [TEST] Starting infinite loop prevention test...');\n    \n    setIsActive(true);\n    setTestResults({ status: 'testing', renderCount: 0, duration: 0, message: 'Тестирование...' });\n    testStartTime.current = Date.now();\n    renderCounter.current = 0;\n    \n    // Считаем рендеры в консоли\n    const originalLog = console.log;\n    let renderCount = 0;\n    \n    // Перехватываем логи для подсчета рендеров\n    console.log = (...args) => {\n      const message = args.join(' ');\n      if (message.includes('[HOOK-') && message.includes('useChats: Effect triggered')) {\n        renderCount++;\n        console.log(`🎯 [TEST] Detected hook render #${renderCount}`);\n      }\n      originalLog.apply(console, args);\n    };\n    \n    // Тест длится 10 секунд\n    intervalRef.current = setInterval(() => {\n      const duration = Date.now() - testStartTime.current;\n      \n      setTestResults(prev => ({\n        ...prev,\n        renderCount,\n        duration: Math.round(duration / 1000),\n      }));\n      \n      // Завершаем тест через 10 секунд\n      if (duration >= 10000) {\n        clearInterval(intervalRef.current!);\n        console.log = originalLog; // Восстанавливаем console.log\n        \n        // Оцениваем результаты\n        const finalStatus = renderCount > 20 ? 'failed' : 'passed';\n        const message = finalStatus === 'passed' \n          ? `✅ Тест пройден! ${renderCount} рендеров за 10 сек` \n          : `❌ Тест провален! ${renderCount} рендеров за 10 сек (норма ≤20)`;\n        \n        setTestResults({\n          status: finalStatus,\n          renderCount,\n          duration: 10,\n          message\n        });\n        \n        setIsActive(false);\n        console.log(`🧪 [TEST] Test completed: ${message}`);\n      }\n    }, 100);\n  };\n  \n  const stopTest = () => {\n    if (intervalRef.current) {\n      clearInterval(intervalRef.current);\n    }\n    setIsActive(false);\n    setTestResults({ status: 'idle', renderCount: 0, duration: 0, message: '' });\n  };\n  \n  useEffect(() => {\n    return () => {\n      if (intervalRef.current) {\n        clearInterval(intervalRef.current);\n      }\n    };\n  }, []);\n  \n  const getStatusIcon = () => {\n    switch (testResults.status) {\n      case 'testing': return <RefreshCw className=\"w-4 h-4 animate-spin\" />;\n      case 'passed': return <CheckCircle className=\"w-4 h-4 text-green-500\" />;\n      case 'failed': return <XCircle className=\"w-4 h-4 text-red-500\" />;\n      default: return <AlertTriangle className=\"w-4 h-4 text-yellow-500\" />;\n    }\n  };\n  \n  const getStatusBadge = () => {\n    switch (testResults.status) {\n      case 'testing': return <Badge variant=\"secondary\">Тестирование...</Badge>;\n      case 'passed': return <Badge variant=\"default\" className=\"bg-green-500\">Пройден</Badge>;\n      case 'failed': return <Badge variant=\"destructive\">Провален</Badge>;\n      default: return <Badge variant=\"outline\">Готов к тесту</Badge>;\n    }\n  };\n  \n  return (\n    <div className=\"fixed bottom-4 left-4 bg-white border border-gray-200 rounded-lg p-4 shadow-lg z-50 min-w-[300px]\">\n      <div className=\"flex items-center justify-between mb-3\">\n        <div className=\"flex items-center gap-2\">\n          {getStatusIcon()}\n          <span className=\"font-semibold text-gray-800\">Тест производительности</span>\n        </div>\n        {getStatusBadge()}\n      </div>\n      \n      <div className=\"space-y-2 text-sm text-gray-600 mb-4\">\n        <div className=\"flex justify-between\">\n          <span>Рендеры хука:</span>\n          <span className=\"font-mono font-semibold\">{testResults.renderCount}</span>\n        </div>\n        <div className=\"flex justify-between\">\n          <span>Длительность:</span>\n          <span className=\"font-mono\">{testResults.duration} сек</span>\n        </div>\n        {testResults.renderCount > 0 && (\n          <div className=\"flex justify-between\">\n            <span>Частота:</span>\n            <span className=\"font-mono\">\n              {testResults.duration > 0 ? (testResults.renderCount / testResults.duration).toFixed(1) : '0'} рендеров/сек\n            </span>\n          </div>\n        )}\n      </div>\n      \n      {testResults.message && (\n        <div className={`p-2 rounded text-xs mb-3 ${\n          testResults.status === 'passed' ? 'bg-green-50 text-green-700 border border-green-200' :\n          testResults.status === 'failed' ? 'bg-red-50 text-red-700 border border-red-200' :\n          'bg-blue-50 text-blue-700 border border-blue-200'\n        }`}>\n          {testResults.message}\n        </div>\n      )}\n      \n      <div className=\"flex gap-2\">\n        <Button \n          onClick={startTest} \n          disabled={isActive}\n          size=\"sm\"\n          className=\"flex-1\"\n        >\n          {isActive ? 'Тестирование...' : 'Запустить тест'}\n        </Button>\n        \n        {isActive && (\n          <Button \n            onClick={stopTest} \n            variant=\"outline\"\n            size=\"sm\"\n          >\n            Остановить\n          </Button>\n        )}\n      </div>\n      \n      <div className=\"mt-3 text-xs text-gray-500\">\n        <div className=\"font-semibold mb-1\">Критерии теста:</div>\n        <div>• ≤20 рендеров за 10 сек = ✅ Норма</div>\n        <div>• >20 рендеров за 10 сек = ❌ Бесконечный цикл</div>\n      </div>\n    </div>\n  );\n}
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { RefreshCw, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+
+/**
+ * ✅ Компонент для тестирования устранения бесконечного цикла рендеров
+ * Показывает статистику рендеров useChats хука и ClientProvider
+ */
+export function InfiniteLoopTester() {
+  const [isActive, setIsActive] = useState(false);
+  const [testResults, setTestResults] = useState<{
+    status: 'idle' | 'testing' | 'passed' | 'failed';
+    renderCount: number;
+    duration: number;
+    message: string;
+  }>({ status: 'idle', renderCount: 0, duration: 0, message: '' });
+  
+  const testStartTime = useRef<number>(0);
+  const renderCounter = useRef(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startTest = () => {
+    console.log('🧪 [TEST] Starting infinite loop prevention test...');
+    
+    setIsActive(true);
+    setTestResults({ status: 'testing', renderCount: 0, duration: 0, message: 'Тестирование...' });
+    testStartTime.current = Date.now();
+    renderCounter.current = 0;
+    
+    // Считаем рендеры в консоли
+    const originalLog = console.log;
+    let renderCount = 0;
+    
+    // Перехватываем логи для подсчета рендеров
+    console.log = (...args) => {
+      const message = args.join(' ');
+      if (message.includes('[HOOK-') && message.includes('useChats: Effect triggered')) {
+        renderCount++;
+        console.log(`🎯 [TEST] Detected hook render #${renderCount}`);
+      }
+      originalLog.apply(console, args);
+    };
+    
+    // Тест длится 10 секунд
+    intervalRef.current = setInterval(() => {
+      const duration = Date.now() - testStartTime.current;
+      
+      setTestResults(prev => ({
+        ...prev,
+        renderCount,
+        duration: Math.round(duration / 1000),
+      }));
+      
+      // Завершаем тест через 10 секунд
+      if (duration >= 10000) {
+        clearInterval(intervalRef.current!);
+        console.log = originalLog; // Восстанавливаем console.log
+        
+        // Оцениваем результаты
+        const finalStatus = renderCount > 20 ? 'failed' : 'passed';
+        const message = finalStatus === 'passed' 
+          ? `✅ Тест пройден! ${renderCount} рендеров за 10 сек` 
+          : `❌ Тест провален! ${renderCount} рендеров за 10 сек (норма ≤20)`;
+        
+        setTestResults({
+          status: finalStatus,
+          renderCount,
+          duration: 10,
+          message
+        });
+        
+        setIsActive(false);
+        console.log(`🧪 [TEST] Test completed: ${message}`);
+      }
+    }, 100);
+  };
+  
+  const stopTest = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    setIsActive(false);
+    setTestResults({ status: 'idle', renderCount: 0, duration: 0, message: '' });
+  };
+  
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+  
+  const getStatusIcon = () => {
+    switch (testResults.status) {
+      case 'testing': return <RefreshCw className="w-4 h-4 animate-spin" />;
+      case 'passed': return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'failed': return <XCircle className="w-4 h-4 text-red-500" />;
+      default: return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
+    }
+  };
+  
+  const getStatusBadge = () => {
+    switch (testResults.status) {
+      case 'testing': return <Badge variant="secondary">Тестирование...</Badge>;
+      case 'passed': return <Badge variant="default" className="bg-green-500">Пройден</Badge>;
+      case 'failed': return <Badge variant="destructive">Провален</Badge>;
+      default: return <Badge variant="outline">Готов к тесту</Badge>;
+    }
+  };
+  
+  return (
+    <div className="fixed bottom-4 left-4 bg-white border border-gray-200 rounded-lg p-4 shadow-lg z-50 min-w-[300px]">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          {getStatusIcon()}
+          <span className="font-semibold text-gray-800">Тест производительности</span>
+        </div>
+        {getStatusBadge()}
+      </div>
+      
+      <div className="space-y-2 text-sm text-gray-600 mb-4">
+        <div className="flex justify-between">
+          <span>Рендеры хука:</span>
+          <span className="font-mono font-semibold">{testResults.renderCount}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Длительность:</span>
+          <span className="font-mono">{testResults.duration} сек</span>
+        </div>
+        {testResults.renderCount > 0 && (
+          <div className="flex justify-between">
+            <span>Частота:</span>
+            <span className="font-mono">
+              {testResults.duration > 0 ? (testResults.renderCount / testResults.duration).toFixed(1) : '0'} рендеров/сек
+            </span>
+          </div>
+        )}
+      </div>
+      
+      {testResults.message && (
+        <div className={`p-2 rounded text-xs mb-3 ${
+          testResults.status === 'passed' ? 'bg-green-50 text-green-700 border border-green-200' :
+          testResults.status === 'failed' ? 'bg-red-50 text-red-700 border border-red-200' :
+          'bg-blue-50 text-blue-700 border border-blue-200'
+        }`}>
+          {testResults.message}
+        </div>
+      )}
+      
+      <div className="flex gap-2">
+        <Button 
+          onClick={startTest} 
+          disabled={isActive}
+          size="sm"
+          className="flex-1"
+        >
+          {isActive ? 'Тестирование...' : 'Запустить тест'}
+        </Button>
+        
+        {isActive && (
+          <Button 
+            onClick={stopTest} 
+            variant="outline"
+            size="sm"
+          >
+            Остановить
+          </Button>
+        )}
+      </div>
+      
+      <div className="mt-3 text-xs text-gray-500">
+        <div className="font-semibold mb-1">Критерии теста:</div>
+        <div>• ≤20 рендеров за 10 сек = ✅ Норма</div>
+        <div>• >20 рендеров за 10 сек = ❌ Бесконечный цикл</div>
+      </div>
+    </div>
+  );
+}

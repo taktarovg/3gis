@@ -9,6 +9,9 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { useChats } from '@/hooks/use-chats';
 import { PerformanceDebugger } from '@/components/debug/PerformanceDebugger';
 
+// ✅ Проверяем что компонент загружается только в development
+const shouldShowDebugger = process.env.NODE_ENV === 'development';
+
 export function ChatsList() {
   // Счетчик рендеров для отладки
   const renderCount = useRef(0);
@@ -197,8 +200,8 @@ export function ChatsList() {
 
   return (
     <>
-      {/* ✅ Отладчик производительности для мониторинга рендеров */}
-      <PerformanceDebugger componentName="ChatsList" />
+      {/* ✅ Отладчик производительности только в development */}
+      {shouldShowDebugger && <PerformanceDebugger componentName="ChatsList" />}
       
     <div className="space-y-4">
       {/* Debug info в dev режиме */}

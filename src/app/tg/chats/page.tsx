@@ -1,6 +1,15 @@
 import { ChatsList } from '@/components/chats/ChatsList';
-import { InfiniteLoopTester } from '@/components/debug/InfiniteLoopTester';
+import dynamic from 'next/dynamic';
 import { Metadata } from 'next';
+
+// ✅ Динамический импорт только для development режима
+const InfiniteLoopTester = dynamic(
+  () => import('@/components/debug/InfiniteLoopTester').then(mod => ({ default: mod.InfiniteLoopTester })),
+  { 
+    ssr: false,
+    loading: () => null
+  }
+);
 
 export default function ChatsPage() {
   return (
@@ -19,7 +28,9 @@ export default function ChatsPage() {
       </div>
       
       {/* ✅ Тестер бесконечного цикла (только в dev режиме) */}
-      {process.env.NODE_ENV === 'development' && <InfiniteLoopTester />}
+      {process.env.NODE_ENV === 'development' && (
+        <InfiniteLoopTester />
+      )}
     </div>
   );
 }
