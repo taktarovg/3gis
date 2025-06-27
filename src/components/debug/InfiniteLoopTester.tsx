@@ -175,7 +175,7 @@ export function InfiniteLoopTester() {
       <div className="mt-3 text-xs text-gray-500">
         <div className="font-semibold mb-1">Test criteria:</div>
         <div>• ≤20 renders in 10 sec = ✅ Normal</div>
-        <div>• >20 renders in 10 sec = ❌ Infinite loop</div>
+        <div>• {'>'}20 renders in 10 sec = ❌ Infinite loop</div>
       </div>
     </div>
   );
