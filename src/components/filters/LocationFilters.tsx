@@ -74,7 +74,7 @@ export function LocationFilters() {
     if (currentCityId && currentCityId !== selectedCity) {
       setSelectedCity(currentCityId);
     }
-  }, [currentStateId, currentCityId]);
+  }, [currentStateId, currentCityId, selectedState, selectedCity]);
 
   /**
    * Загрузка списка штатов
