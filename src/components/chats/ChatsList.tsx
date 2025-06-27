@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import { ChatCard } from './ChatCard';
 import { ChatTypeSelector } from './ChatTypeSelector';
 import { LocationSelectors } from './LocationSelectors';
 import { Search, AlertCircle } from 'lucide-react';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useChats } from '@/hooks/use-chats';
+import { PerformanceDebugger } from '@/components/debug/PerformanceDebugger';
 
 export function ChatsList() {
   // Счетчик рендеров для отладки
@@ -18,7 +19,17 @@ export function ChatsList() {
   const [selectedStateId, setSelectedStateId] = useState<string>();
   const [selectedCityId, setSelectedCityId] = useState<number>();
 
-  const debouncedSearch = useDebounce(searchQuery, 300);
+  // ✅ Увеличиваем debounce до 500ms для уменьшения количества запросов
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
+  // ✅ Мемоизируем фильтры для предотвращения лишних пересозданий объекта
+  const filters = useMemo(() => ({
+    type: selectedType,
+    stateId: selectedStateId,
+    cityId: selectedCityId,
+    search: debouncedSearch,
+    limit: 20
+  }), [selectedType, selectedStateId, selectedCityId, debouncedSearch]);
 
   // Логируем каждый рендер компонента
   console.log(`🎨 [RENDER-${renderCount.current}] ChatsList: Component render`);
@@ -30,7 +41,7 @@ export function ChatsList() {
     selectedCityId
   });
 
-  // Используем хук для получения чатов
+  // ✅ Используем исправленный хук для получения чатов
   const {
     chats,
     loading,
@@ -41,13 +52,7 @@ export function ChatsList() {
     loadMore,
     hasNextPage,
     lastRequestId
-  } = useChats({
-    type: selectedType,
-    stateId: selectedStateId,
-    cityId: selectedCityId,
-    search: debouncedSearch,
-    limit: 20
-  });
+  } = useChats(filters);
 
   console.log(`🔍 [RENDER-${renderCount.current}] Hook result:`, {
     chatsCount: chats.length,
@@ -57,7 +62,8 @@ export function ChatsList() {
     lastRequestId
   });
 
-  const handleJoinChat = async (chatId: number) => {
+  // ✅ Мемоизируем обработчик присоединения к чату
+  const handleJoinChat = useCallback(async (chatId: number) => {
     const joinId = Math.random().toString(36).substring(7);
     console.log(`🚀 [JOIN-${joinId}] ChatsList: Joining chat ${chatId}`);
     
@@ -85,9 +91,10 @@ export function ChatsList() {
       console.error(`❌ [JOIN-${joinId}] Error tracking join for chat ${chatId}:`, error);
       // Не показываем ошибку пользователю, так как статистика не критична
     }
-  };
+  }, [chats]);
 
-  const getResultText = () => {
+  // ✅ Мемоизируем текст результатов
+  const resultText = useMemo(() => {
     if (!pagination || pagination.totalCount === 0) return '';
     
     const typeText = selectedType === 'GROUP' ? 'групп' :
@@ -105,10 +112,10 @@ export function ChatsList() {
     const searchText = debouncedSearch ? ` по запросу "${debouncedSearch}"` : '';
     
     return `Найдено: ${pagination.totalCount} ${typeText}${locationText}${searchText}`;
-  };
+  }, [pagination, selectedType, selectedCityId, selectedStateId, debouncedSearch]);
 
-  // Подсчет чатов по типам для селектора
-  const getCounts = (): Record<string, number> => {
+  // ✅ Мемоизируем подсчет чатов по типам для селектора
+  const counts = useMemo((): Record<string, number> => {
     if (!stats) return { GROUP: 0, CHAT: 0, CHANNEL: 0 };
     
     // Простая логика - показываем общее количество для всех типов
@@ -118,7 +125,51 @@ export function ChatsList() {
       CHAT: 0,
       CHANNEL: 0
     };
-  };
+  }, [stats]);
+
+  // ✅ Мемоизируем обработчики изменения фильтров
+  const handleStateChange = useCallback((newStateId: string | undefined) => {
+    console.log(`🗺️ [LOCATION] ChatsList: State changed to: ${newStateId}`);
+    setSelectedStateId(newStateId);
+    // Сбрасываем город при смене штата
+    if (selectedCityId) {
+      console.log(`🗺️ [LOCATION] ChatsList: Resetting city due to state change`);
+      setSelectedCityId(undefined);
+    }
+  }, [selectedCityId]);
+
+  const handleCityChange = useCallback((newCityId: number | undefined) => {
+    console.log(`🏙️ [LOCATION] ChatsList: City changed to: ${newCityId}`);
+    setSelectedCityId(newCityId);
+  }, []);
+
+  const handleTypeChange = useCallback((newType: 'GROUP' | 'CHAT' | 'CHANNEL' | undefined) => {
+    console.log(`📋 [TYPE] ChatsList: Type changed to: ${newType}`);
+    setSelectedType(newType);
+  }, []);
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log(`🔍 [SEARCH] ChatsList: Search query changed to: "${e.target.value}"`);
+    setSearchQuery(e.target.value);
+  }, []);
+
+  const handleResetFilters = useCallback(() => {
+    console.log(`🔄 [RESET] ChatsList: Reset all filters button clicked`);
+    setSelectedType(undefined);
+    setSelectedStateId(undefined);
+    setSelectedCityId(undefined);
+    setSearchQuery('');
+  }, []);
+
+  const handleRetry = useCallback(() => {
+    console.log(`🔄 [RETRY] ChatsList: Manual retry button clicked`);
+    refetch();
+  }, [refetch]);
+
+  const handleLoadMore = useCallback(() => {
+    console.log(`📄 [LOAD-MORE] ChatsList: Load more button clicked`);
+    loadMore();
+  }, [loadMore]);
 
   // Компонент ошибки
   if (error) {
@@ -133,10 +184,7 @@ export function ChatsList() {
           {error}
         </p>
         <button
-          onClick={() => {
-            console.log(`🔄 [RETRY] ChatsList: Manual retry button clicked`);
-            refetch();
-          }}
+          onClick={handleRetry}
           className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
         >
           Попробовать снова
@@ -148,6 +196,10 @@ export function ChatsList() {
   console.log(`✅ [RENDER-${renderCount.current}] ChatsList: Rendering main content`);
 
   return (
+    <>
+      {/* ✅ Отладчик производительности для мониторинга рендеров */}
+      <PerformanceDebugger componentName="ChatsList" />
+      
     <div className="space-y-4">
       {/* Debug info в dev режиме */}
       {process.env.NODE_ENV === 'development' && (
@@ -159,6 +211,7 @@ export function ChatsList() {
             <div>Loading: {loading ? 'Yes' : 'No'}</div>
             <div>Last Request ID: {lastRequestId || 'None'}</div>
             <div>Has Next Page: {hasNextPage ? 'Yes' : 'No'}</div>
+            <div>Debounced Search: "{debouncedSearch}"</div>
           </div>
         </div>
       )}
@@ -170,10 +223,7 @@ export function ChatsList() {
           type="text"
           placeholder="Поиск групп, чатов, каналов..."
           value={searchQuery}
-          onChange={(e) => {
-            console.log(`🔍 [SEARCH] ChatsList: Search query changed to: "${e.target.value}"`);
-            setSearchQuery(e.target.value);
-          }}
+          onChange={handleSearchChange}
           className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-base"
         />
       </div>
@@ -182,35 +232,21 @@ export function ChatsList() {
       <LocationSelectors
         selectedStateId={selectedStateId}
         selectedCityId={selectedCityId}
-        onStateChange={(newStateId) => {
-          console.log(`🗺️ [LOCATION] ChatsList: State changed to: ${newStateId}`);
-          setSelectedStateId(newStateId);
-          // Сбрасываем город при смене штата
-          if (selectedCityId) {
-            console.log(`🗺️ [LOCATION] ChatsList: Resetting city due to state change`);
-            setSelectedCityId(undefined);
-          }
-        }}
-        onCityChange={(newCityId) => {
-          console.log(`🏙️ [LOCATION] ChatsList: City changed to: ${newCityId}`);
-          setSelectedCityId(newCityId);
-        }}
+        onStateChange={handleStateChange}
+        onCityChange={handleCityChange}
       />
 
       {/* Селектор типов */}
       <ChatTypeSelector
         selectedType={selectedType}
-        onTypeChange={(newType) => {
-          console.log(`📋 [TYPE] ChatsList: Type changed to: ${newType}`);
-          setSelectedType(newType);
-        }}
-        counts={getCounts()}
+        onTypeChange={handleTypeChange}
+        counts={counts}
       />
 
       {/* Статистика результатов */}
       {!loading && (
         <div className="flex items-center justify-between text-sm text-gray-600 py-2">
-          <span>{getResultText()}</span>
+          <span>{resultText}</span>
           {pagination && pagination.totalCount > 0 && (
             <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
               Стр. {pagination.page} из {pagination.totalPages}
@@ -240,10 +276,7 @@ export function ChatsList() {
           {hasNextPage && (
             <div className="text-center py-4">
               <button
-                onClick={() => {
-                  console.log(`📄 [LOAD-MORE] ChatsList: Load more button clicked`);
-                  loadMore();
-                }}
+                onClick={handleLoadMore}
                 disabled={loading}
                 className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors"
               >
@@ -266,13 +299,7 @@ export function ChatsList() {
           </p>
           {(selectedType || selectedStateId || selectedCityId || debouncedSearch) && (
             <button
-              onClick={() => {
-                console.log(`🔄 [RESET] ChatsList: Reset all filters button clicked`);
-                setSelectedType(undefined);
-                setSelectedStateId(undefined);
-                setSelectedCityId(undefined);
-                setSearchQuery('');
-              }}
+              onClick={handleResetFilters}
               className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
             >
               Сбросить все фильтры
@@ -281,5 +308,6 @@ export function ChatsList() {
         </div>
       )}
     </div>
+    </>
   );
 }

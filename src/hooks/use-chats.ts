@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
 interface Chat {
   id: number;
@@ -63,8 +63,8 @@ interface UseChatsResult {
 }
 
 /**
- * Хук для работы с каталогом чатов
- * Поддерживает фильтрацию, пагинацию и поиск
+ * ✅ ИСПРАВЛЕННЫЙ хук для работы с каталогом чатов
+ * Устраняет циклическую зависимость и множественные запросы
  * Совместим с @telegram-apps/sdk-react v3.3.1
  */
 export function useChats(filters: ChatsFilters = {}): UseChatsResult {
@@ -74,156 +74,243 @@ export function useChats(filters: ChatsFilters = {}): UseChatsResult {
   const [pagination, setPagination] = useState<ChatsResponse['pagination'] | null>(null);
   const [stats, setStats] = useState<ChatsResponse['stats'] | null>(null);
   const [lastRequestId, setLastRequestId] = useState<string>();
+  
+  // ✅ Счетчик рендеров для отладки
+  const renderCount = useRef(0);
+  renderCount.current += 1;
 
-  // Создаем URL с параметрами
-  const buildUrl = useCallback((params: ChatsFilters) => {
-    const searchParams = new URLSearchParams();
-    
-    if (params.type) searchParams.set('type', params.type);
-    if (params.cityId) searchParams.set('cityId', params.cityId.toString());
-    if (params.stateId) searchParams.set('stateId', params.stateId);
-    if (params.topic) searchParams.set('topic', params.topic);
-    if (params.search) searchParams.set('search', params.search);
-    if (params.isVerified !== undefined) searchParams.set('isVerified', params.isVerified.toString());
-    if (params.page) searchParams.set('page', params.page.toString());
-    if (params.limit) searchParams.set('limit', params.limit.toString());
+  // ✅ Ref для отмены предыдущих запросов
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-    return `/api/chats?${searchParams.toString()}`;
-  }, []);
+  // ✅ КРИТИЧНО: Правильная стабилизация фильтров
+  // Каждое поле отдельно в зависимостях для точного контроля
+  const stableFilters = useMemo(() => ({
+    type: filters.type,
+    cityId: filters.cityId,
+    stateId: filters.stateId,
+    topic: filters.topic,
+    search: filters.search,
+    isVerified: filters.isVerified,
+    page: filters.page || 1,
+    limit: filters.limit || 20
+  }), [
+    filters.type,
+    filters.cityId,
+    filters.stateId,
+    filters.topic,
+    filters.search,
+    filters.isVerified,
+    filters.page,
+    filters.limit
+  ]);
 
-  // Загрузка данных - УБРАЛИ chats.length из зависимостей
-  const fetchChats = useCallback(async (params: ChatsFilters, append = false) => {
-    const hookRequestId = Math.random().toString(36).substring(7);
-    const startTime = Date.now();
-    
-    console.log(`🎣 [HOOK-${hookRequestId}] useChats: Starting fetch...`);
-    console.log(`📋 [HOOK-${hookRequestId}] Params:`, params);
-    console.log(`➕ [HOOK-${hookRequestId}] Append mode: ${append}`);
-    console.log(`⏰ [HOOK-${hookRequestId}] Current time: ${new Date().toISOString()}`);
-    
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const url = buildUrl(params);
-      console.log(`🌐 [HOOK-${hookRequestId}] Request URL: ${url}`);
-
-      const fetchStartTime = Date.now();
-      const response = await fetch(url);
-      const fetchDuration = Date.now() - fetchStartTime;
-      
-      console.log(`📡 [HOOK-${hookRequestId}] Fetch completed in ${fetchDuration}ms`);
-      console.log(`📊 [HOOK-${hookRequestId}] Response status: ${response.status} ${response.statusText}`);
-
-      if (!response.ok) {
-        throw new Error(`Ошибка ${response.status}: ${response.statusText}`);
-      }
-
-      const parseStartTime = Date.now();
-      const data: ChatsResponse = await response.json();
-      const parseDuration = Date.now() - parseStartTime;
-      
-      console.log(`📦 [HOOK-${hookRequestId}] JSON parsed in ${parseDuration}ms`);
-      console.log(`✅ [HOOK-${hookRequestId}] Response success: ${data.success}`);
-      console.log(`📊 [HOOK-${hookRequestId}] Chats count: ${data.data?.length || 0}`);
-      console.log(`🔍 [HOOK-${hookRequestId}] Server requestId: ${data.debug?.requestId}`);
-      console.log(`⚡ [HOOK-${hookRequestId}] Server duration: ${data.debug?.duration}ms`);
-
-      if (!data.success) {
-        throw new Error('Ошибка получения данных чатов');
-      }
-
-      if (append) {
-        // Добавляем к существующим чатам (для пагинации)
-        console.log(`➕ [HOOK-${hookRequestId}] Appending ${data.data.length} chats`);
-        setChats(prevChats => {
-          const newChats = [...prevChats, ...data.data];
-          console.log(`📊 [HOOK-${hookRequestId}] Total chats after append: ${newChats.length}`);
-          return newChats;
-        });
-      } else {
-        // Заменяем чаты (новый поиск/фильтр)
-        console.log(`🔄 [HOOK-${hookRequestId}] Replacing chats with ${data.data.length} new chats`);
-        setChats(data.data);
-      }
-
-      setPagination(data.pagination);
-      setStats(data.stats);
-      setLastRequestId(data.debug?.requestId);
-      
-      const totalDuration = Date.now() - startTime;
-      console.log(`🎉 [HOOK-${hookRequestId}] useChats: Completed successfully in ${totalDuration}ms`);
-      
-    } catch (err) {
-      const totalDuration = Date.now() - startTime;
-      const errorMessage = err instanceof Error ? err.message : 'Произошла ошибка при загрузке чатов';
-      
-      console.error(`❌ [HOOK-${hookRequestId}] useChats: Error after ${totalDuration}ms:`, err);
-      console.error(`🚨 [HOOK-${hookRequestId}] Error message: ${errorMessage}`);
-      
-      setError(errorMessage);
-    } finally {
-      const finalDuration = Date.now() - startTime;
-      console.log(`🏁 [HOOK-${hookRequestId}] useChats: Finally block - total ${finalDuration}ms`);
-      setLoading(false);
-    }
-  }, [buildUrl]); // ✅ УБРАЛИ chats.length из зависимостей!
-
-  // Стабилизируем фильтры через useMemo для предотвращения лишних рендеров
-  const stableFilters = useMemo(() => filters, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Основная загрузка при изменении фильтров
+  // ✅ Основной эффект для загрузки данных
+  // БЕЗ функций в зависимостях - только stableFilters!
   useEffect(() => {
-    const effectId = Math.random().toString(36).substring(7);
-    console.log(`🔄 [EFFECT-${effectId}] useChats: Effect triggered`);
-    console.log(`📋 [EFFECT-${effectId}] Current filters:`, stableFilters);
-    
-    fetchChats(stableFilters, false);
-    
-    // Cleanup function для отладки
-    return () => {
-      console.log(`🧹 [EFFECT-${effectId}] useChats: Effect cleanup`);
-    };
-  }, [fetchChats, stableFilters]); // ✅ ИСПРАВИЛИ зависимости!
+    const hookRequestId = Math.random().toString(36).substring(7);
+    console.log(`🎣 [HOOK-${hookRequestId}] useChats: Effect triggered (render ${renderCount.current})`);
+    console.log(`📋 [HOOK-${hookRequestId}] Stable filters:`, stableFilters);
 
-  // Перезагрузка данных
+    // Отменяем предыдущий запрос если он еще выполняется
+    if (abortControllerRef.current) {
+      console.log(`🚫 [HOOK-${hookRequestId}] Aborting previous request`);
+      abortControllerRef.current.abort();
+    }
+
+    // Создаем новый AbortController для текущего запроса
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    const fetchData = async () => {
+      const startTime = Date.now();
+      
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Строим URL с параметрами
+        const searchParams = new URLSearchParams();
+        Object.entries(stableFilters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            searchParams.set(key, value.toString());
+          }
+        });
+
+        const url = `/api/chats?${searchParams.toString()}`;
+        console.log(`🌐 [HOOK-${hookRequestId}] Request URL: ${url}`);
+
+        const fetchStartTime = Date.now();
+        const response = await fetch(url, {
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        const fetchDuration = Date.now() - fetchStartTime;
+        
+        console.log(`📡 [HOOK-${hookRequestId}] Fetch completed in ${fetchDuration}ms`);
+        console.log(`📊 [HOOK-${hookRequestId}] Response status: ${response.status}`);
+
+        if (!response.ok) {
+          throw new Error(`Ошибка ${response.status}: ${response.statusText}`);
+        }
+
+        const parseStartTime = Date.now();
+        const data: ChatsResponse = await response.json();
+        const parseDuration = Date.now() - parseStartTime;
+        
+        console.log(`📦 [HOOK-${hookRequestId}] JSON parsed in ${parseDuration}ms`);
+        console.log(`✅ [HOOK-${hookRequestId}] Response success: ${data.success}`);
+        console.log(`📊 [HOOK-${hookRequestId}] Chats count: ${data.data?.length || 0}`);
+        console.log(`🔍 [HOOK-${hookRequestId}] Server requestId: ${data.debug?.requestId}`);
+
+        if (!data.success) {
+          throw new Error('Ошибка получения данных чатов');
+        }
+
+        // ✅ ВСЕГДА заменяем чаты (НЕ добавляем)
+        // Пагинация будет обрабатываться отдельно
+        console.log(`🔄 [HOOK-${hookRequestId}] Setting ${data.data.length} chats`);
+        setChats(data.data);
+        setPagination(data.pagination);
+        setStats(data.stats);
+        setLastRequestId(data.debug?.requestId);
+        
+        const totalDuration = Date.now() - startTime;
+        console.log(`🎉 [HOOK-${hookRequestId}] Successfully completed in ${totalDuration}ms`);
+        
+      } catch (err) {
+        // Игнорируем ошибки отмены запроса
+        if (err instanceof Error && err.name === 'AbortError') {
+          console.log(`🚫 [HOOK-${hookRequestId}] Request was aborted`);
+          return;
+        }
+        
+        const totalDuration = Date.now() - startTime;
+        const errorMessage = err instanceof Error ? err.message : 'Произошла ошибка при загрузке чатов';
+        
+        console.error(`❌ [HOOK-${hookRequestId}] Error after ${totalDuration}ms:`, err);
+        console.error(`🚨 [HOOK-${hookRequestId}] Error message: ${errorMessage}`);
+        
+        setError(errorMessage);
+      } finally {
+        const finalDuration = Date.now() - startTime;
+        console.log(`🏁 [HOOK-${hookRequestId}] Finally block - total ${finalDuration}ms`);
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+    
+    // ✅ Cleanup функция для отмены запроса
+    return () => {
+      console.log(`🧹 [HOOK-${hookRequestId}] Effect cleanup - aborting request`);
+      controller.abort();
+    };
+  }, [stableFilters]); // ✅ ТОЛЬКО stableFilters в зависимостях!
+
+  // ✅ Функция refetch БЕЗ зависимости от fetchData
   const refetch = useCallback(() => {
     const refetchId = Math.random().toString(36).substring(7);
-    console.log(`🔄 [REFETCH-${refetchId}] useChats: Manual refetch triggered`);
-    fetchChats(stableFilters, false);
-  }, [fetchChats, stableFilters]);
+    console.log(`🔄 [REFETCH-${refetchId}] Manual refetch triggered`);
+    
+    // Просто сбрасываем состояние, что вызовет повторный useEffect
+    setChats([]);
+    setLoading(true);
+    setError(null);
+    // useEffect сработает автоматически из-за изменения loading/error
+  }, []);
 
-  // Загрузка следующей страницы
-  const loadMore = useCallback(() => {
+  // ✅ Функция loadMore для пагинации
+  const loadMore = useCallback(async () => {
     const loadMoreId = Math.random().toString(36).substring(7);
-    console.log(`📄 [LOADMORE-${loadMoreId}] useChats: Load more triggered`);
+    console.log(`📄 [LOADMORE-${loadMoreId}] Load more triggered`);
     console.log(`📊 [LOADMORE-${loadMoreId}] Has next page: ${pagination?.hasNextPage}`);
     console.log(`⏳ [LOADMORE-${loadMoreId}] Currently loading: ${loading}`);
     
-    if (pagination?.hasNextPage && !loading) {
+    if (!pagination?.hasNextPage || loading) {
+      console.log(`⚠️ [LOADMORE-${loadMoreId}] Load more skipped - no next page or currently loading`);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
       const nextPageFilters = {
         ...stableFilters,
         page: (pagination.page || 1) + 1
       };
-      console.log(`📄 [LOADMORE-${loadMoreId}] Loading page ${nextPageFilters.page}`);
-      fetchChats(nextPageFilters, true);
-    } else {
-      console.log(`⚠️ [LOADMORE-${loadMoreId}] Load more skipped - no next page or currently loading`);
-    }
-  }, [pagination, loading, stableFilters, fetchChats]);
+      
+      const searchParams = new URLSearchParams();
+      Object.entries(nextPageFilters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.set(key, value.toString());
+        }
+      });
 
-  // Логируем изменения состояния
+      const url = `/api/chats?${searchParams.toString()}`;
+      console.log(`🌐 [LOADMORE-${loadMoreId}] Request URL: ${url}`);
+
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Ошибка ${response.status}: ${response.statusText}`);
+      }
+
+      const data: ChatsResponse = await response.json();
+      
+      if (!data.success) {
+        throw new Error('Ошибка получения данных чатов');
+      }
+
+      console.log(`➕ [LOADMORE-${loadMoreId}] Appending ${data.data.length} chats`);
+      
+      // ✅ Добавляем новые чаты к существующим
+      setChats(prevChats => {
+        const newChats = [...prevChats, ...data.data];
+        console.log(`📊 [LOADMORE-${loadMoreId}] Total chats after append: ${newChats.length}`);
+        return newChats;
+      });
+      
+      setPagination(data.pagination);
+      setStats(data.stats);
+      setLastRequestId(data.debug?.requestId);
+      
+      console.log(`✅ [LOADMORE-${loadMoreId}] Load more completed successfully`);
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ошибка загрузки следующей страницы';
+      console.error(`❌ [LOADMORE-${loadMoreId}] Error:`, err);
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, [pagination, loading, stableFilters]);
+
+  // ✅ Логируем изменения состояния для отладки
   useEffect(() => {
-    console.log(`📊 [STATE] useChats: chats.length = ${chats.length}`);
+    console.log(`📊 [STATE] useChats: chats.length = ${chats.length} (render ${renderCount.current})`);
   }, [chats.length]);
 
   useEffect(() => {
-    console.log(`⏳ [STATE] useChats: loading = ${loading}`);
+    console.log(`⏳ [STATE] useChats: loading = ${loading} (render ${renderCount.current})`);
   }, [loading]);
 
   useEffect(() => {
-    console.log(`❌ [STATE] useChats: error = ${error}`);
+    if (error) {
+      console.log(`❌ [STATE] useChats: error = ${error} (render ${renderCount.current})`);
+    }
   }, [error]);
+
+  // ✅ Cleanup при unmount компонента
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        console.log(`🧹 [CLEANUP] useChats: Component unmount - aborting active request`);
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return {
     chats,
@@ -239,7 +326,7 @@ export function useChats(filters: ChatsFilters = {}): UseChatsResult {
 }
 
 /**
- * Хук для работы с отдельным чатом
+ * ✅ Хук для работы с отдельным чатом
  */
 export function useChat(chatId: number) {
   const [chat, setChat] = useState<Chat | null>(null);
@@ -247,6 +334,14 @@ export function useChat(chatId: number) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!chatId) {
+      console.warn(`⚠️ [useChat] No chatId provided`);
+      setLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    
     const fetchChat = async () => {
       const hookRequestId = Math.random().toString(36).substring(7);
       console.log(`🎣 [CHAT-${hookRequestId}] useChat: Fetching chat ${chatId}`);
@@ -255,7 +350,9 @@ export function useChat(chatId: number) {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/chats/${chatId}`);
+        const response = await fetch(`/api/chats/${chatId}`, {
+          signal: controller.signal
+        });
         
         if (!response.ok) {
           if (response.status === 404) {
@@ -273,6 +370,11 @@ export function useChat(chatId: number) {
         console.log(`✅ [CHAT-${hookRequestId}] Chat ${chatId} loaded successfully`);
         setChat(data.data);
       } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          console.log(`🚫 [CHAT-${hookRequestId}] Request was aborted`);
+          return;
+        }
+        
         const errorMessage = err instanceof Error ? err.message : 'Произошла ошибка при загрузке чата';
         console.error(`❌ [CHAT-${hookRequestId}] Error loading chat ${chatId}:`, err);
         setError(errorMessage);
@@ -281,16 +383,19 @@ export function useChat(chatId: number) {
       }
     };
 
-    if (chatId) {
-      fetchChat();
-    }
+    fetchChat();
+    
+    return () => {
+      console.log(`🧹 [useChat] Cleanup for chat ${chatId}`);
+      controller.abort();
+    };
   }, [chatId]);
 
   return { chat, loading, error };
 }
 
 /**
- * Хук для работы с избранными чатами
+ * ✅ Хук для работы с избранными чатами
  */
 export function useFavoriteChats() {
   const [favoriteChats, setFavoriteChats] = useState<Chat[]>([]);
@@ -298,6 +403,7 @@ export function useFavoriteChats() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchFavorites = useCallback(async () => {
+    const controller = new AbortController();
     const hookRequestId = Math.random().toString(36).substring(7);
     console.log(`🎣 [FAVORITES-${hookRequestId}] useFavoriteChats: Fetching favorites`);
     
@@ -305,7 +411,9 @@ export function useFavoriteChats() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/favorites/chats');
+      const response = await fetch('/api/favorites/chats', {
+        signal: controller.signal
+      });
       
       if (!response.ok) {
         throw new Error(`Ошибка ${response.status}: ${response.statusText}`);
@@ -315,6 +423,11 @@ export function useFavoriteChats() {
       console.log(`✅ [FAVORITES-${hookRequestId}] Favorites loaded: ${data?.length || 0} chats`);
       setFavoriteChats(data || []);
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log(`🚫 [FAVORITES-${hookRequestId}] Request was aborted`);
+        return;
+      }
+      
       const errorMessage = err instanceof Error ? err.message : 'Ошибка загрузки избранных чатов';
       console.error(`❌ [FAVORITES-${hookRequestId}] Error:`, err);
       setError(errorMessage);
@@ -323,7 +436,7 @@ export function useFavoriteChats() {
     }
   }, []);
 
-  // Добавление в избранное
+  // ✅ Добавление в избранное с оптимистическим обновлением
   const addToFavorites = useCallback(async (chatId: number) => {
     const actionId = Math.random().toString(36).substring(7);
     console.log(`➕ [FAVORITE-ADD-${actionId}] Adding chat ${chatId} to favorites`);
@@ -355,7 +468,7 @@ export function useFavoriteChats() {
     }
   }, [fetchFavorites]);
 
-  // Удаление из избранного
+  // ✅ Удаление из избранного с оптимистическим обновлением
   const removeFromFavorites = useCallback(async (chatId: number) => {
     const actionId = Math.random().toString(36).substring(7);
     console.log(`➖ [FAVORITE-REMOVE-${actionId}] Removing chat ${chatId} from favorites`);

@@ -33,6 +33,7 @@ const createQueryClient = (context: 'website' | 'telegram' | 'admin') => new Que
     },
   },
 });
+WebsiteProvider.displayName = 'WebsiteProvider';
 
 // Определяем контекст приложения
 function determineContext(pathname: string): 'website' | 'telegram' | 'admin' {
@@ -45,8 +46,18 @@ function determineContext(pathname: string): 'website' | 'telegram' | 'admin' {
 function TelegramInitializer() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
+  
+  // ✅ Используем ref для предотвращения множественных инициализаций
+  const initAttempted = React.useRef(false);
 
   useEffect(() => {
+    // ✅ КРИТИЧНО: Предотвращаем множественные инициализации
+    if (initAttempted.current) {
+      console.log('🔄 TelegramInitializer: уже инициализирован, пропускаем');
+      return;
+    }
+    
+    initAttempted.current = true;
     let mounted = true;
 
     const initializeTelegramSDK = async () => {
@@ -213,57 +224,79 @@ function TelegramInitializer() {
   return null;
 }
 
+// ✅ Мемоизированные провайдеры для предотвращения пересоздания QueryClient
+
 // Провайдер для сайта
-function WebsiteProvider({ children }: { children: React.ReactNode }) {
-  const queryClient = React.useRef(createQueryClient('website'));
+const WebsiteProvider = React.memo(({ children }: { children: React.ReactNode }) => {
+  const queryClient = React.useMemo(() => createQueryClient('website'), []);
+  
+  console.log('🌐 WebsiteProvider: создан QueryClient');
   
   return (
-    <QueryClientProvider client={queryClient.current}>
+    <QueryClientProvider client={queryClient}>
       {children}
     </QueryClientProvider>
   );
-}
+});
+WebsiteProvider.displayName = 'WebsiteProvider';
 
 // Провайдер для Telegram приложения
-function TelegramProvider({ children }: { children: React.ReactNode }) {
-  const queryClient = React.useRef(createQueryClient('telegram'));
+const TelegramProvider = React.memo(({ children }: { children: React.ReactNode }) => {
+  const queryClient = React.useMemo(() => createQueryClient('telegram'), []);
+  
+  console.log('📱 TelegramProvider: создан QueryClient');
   
   return (
-    <QueryClientProvider client={queryClient.current}>
+    <QueryClientProvider client={queryClient}>
       <TelegramInitializer />
       {children}
     </QueryClientProvider>
   );
-}
+});
+TelegramProvider.displayName = 'TelegramProvider';
 
 // Провайдер для админки
-function AdminProvider({ children }: { children: React.ReactNode }) {
-  const queryClient = React.useRef(createQueryClient('admin'));
+const AdminProvider = React.memo(({ children }: { children: React.ReactNode }) => {
+  const queryClient = React.useMemo(() => createQueryClient('admin'), []);
+  
+  console.log('🔧 AdminProvider: создан QueryClient');
   
   return (
-    <QueryClientProvider client={queryClient.current}>
+    <QueryClientProvider client={queryClient}>
       {children}
     </QueryClientProvider>
   );
-}
+});
+AdminProvider.displayName = 'AdminProvider';
 
 // Главный провайдер
 export function ClientProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
   
-  // Определяем контекст приложения
-  const context = determineContext(pathname);
+  // ✅ СТАБИЛИЗИРУЕМ контекст - мемоизируем результат
+  const context = React.useMemo(() => determineContext(pathname), [pathname]);
   
+  // ✅ КРИТИЧНО: Разделяем инициализацию на два эффекта
+  // 1. Устанавливаем isMounted только один раз
   useEffect(() => {
     setIsMounted(true);
-    console.log(`3GIS ClientProvider initialized for context: ${context}, path: ${pathname}`);
-    
-    // Инициализируем auth store после монтирования
-    if (context === 'telegram') {
+  }, []); // ✅ ПУСТЫЕ зависимости - выполняется только при mount
+  
+  // 2. Инициализируем auth store только для telegram контекста
+  useEffect(() => {
+    if (isMounted && context === 'telegram') {
+      console.log(`🔧 Initializing auth store for telegram context: ${pathname}`);
       initAuthStore();
     }
-  }, [context, pathname]);
+  }, [isMounted, context, pathname]); // ✅ Зависит от isMounted
+
+  // ✅ Логируем изменения контекста отдельно для отладки
+  useEffect(() => {
+    if (isMounted) {
+      console.log(`📍 3GIS ClientProvider: context=${context}, path=${pathname}`);
+    }
+  }, [isMounted, context, pathname]);
 
   if (!isMounted) {
     return null;

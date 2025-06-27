@@ -1,4 +1,5 @@
 import { ChatsList } from '@/components/chats/ChatsList';
+import { InfiniteLoopTester } from '@/components/debug/InfiniteLoopTester';
 import { Metadata } from 'next';
 
 export default function ChatsPage() {
@@ -16,6 +17,9 @@ export default function ChatsPage() {
       <div className="p-4">
         <ChatsList />
       </div>
+      
+      {/* ✅ Тестер бесконечного цикла (только в dev режиме) */}
+      {process.env.NODE_ENV === 'development' && <InfiniteLoopTester />}
     </div>
   );
 }

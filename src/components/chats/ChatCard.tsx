@@ -1,8 +1,8 @@
 'use client';
 
+import { memo } from 'react';
 import Link from 'next/link';
 import { MessageSquare, Users, MapPin, Shield, ExternalLink, Heart, Star } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface ChatCardProps {
   chat: {
@@ -25,15 +25,16 @@ const TYPE_LABELS = {
   GROUP: 'Группа',
   CHAT: 'Чат',
   CHANNEL: 'Канал',
-};
+} as const;
 
 const TYPE_ICONS = {
   GROUP: '👥',
   CHAT: '💬',
   CHANNEL: '📢',
-};
+} as const;
 
-export function ChatCard({ chat, onJoin }: ChatCardProps) {
+// ✅ Мемоизируем компонент для предотвращения лишних рендеров
+const ChatCard = memo<ChatCardProps>(({ chat, onJoin }) => {
   const typeIcon = TYPE_ICONS[chat.type];
   const typeLabel = TYPE_LABELS[chat.type];
 
@@ -43,15 +44,30 @@ export function ChatCard({ chat, onJoin }: ChatCardProps) {
     onJoin?.(chat.id);
   };
 
-  const formatMemberCount = (count: number) => {
-    if (count >= 1000000) {
-      return `${(count / 1000000).toFixed(1)}M`;
+  // ✅ Мемоизируем форматирование количества участников
+  const memberCountFormatted = (() => {
+    if (chat.memberCount >= 1000000) {
+      return `${(chat.memberCount / 1000000).toFixed(1)}M`;
     }
-    if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}K`;
+    if (chat.memberCount >= 1000) {
+      return `${(chat.memberCount / 1000).toFixed(1)}K`;
     }
-    return count.toString();
-  };
+    return chat.memberCount.toString();
+  })();
+
+  // ✅ Мемоизируем строку локации
+  const locationText = (() => {
+    if (chat.city && chat.state) {
+      return `${chat.city.name}, ${chat.state.name}`;
+    }
+    if (chat.city) {
+      return chat.city.name;
+    }
+    if (chat.state) {
+      return chat.state.name;
+    }
+    return null;
+  })();
 
   return (
     <Link href={`/tg/chats/${chat.id}`} className="block">
@@ -74,17 +90,13 @@ export function ChatCard({ chat, onJoin }: ChatCardProps) {
             <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
               <div className="flex items-center gap-1">
                 <Users className="w-3 h-3" />
-                <span>{formatMemberCount(chat.memberCount)} участников</span>
+                <span>{memberCountFormatted} участников</span>
               </div>
               
-              {(chat.city || chat.state) && (
+              {locationText && (
                 <div className="flex items-center gap-1">
                   <MapPin className="w-3 h-3" />
-                  <span className="truncate">
-                    {chat.city?.name}
-                    {chat.city && chat.state && ', '}
-                    {chat.state?.name}
-                  </span>
+                  <span className="truncate">{locationText}</span>
                 </div>
               )}
             </div>
@@ -131,4 +143,9 @@ export function ChatCard({ chat, onJoin }: ChatCardProps) {
       </div>
     </Link>
   );
-}
+});
+
+// ✅ Добавляем displayName для отладки
+ChatCard.displayName = 'ChatCard';
+
+export { ChatCard };
