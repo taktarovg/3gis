@@ -4,7 +4,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { MapPin, Star, Clock } from 'lucide-react';
+import { MapPin, Star, Clock, Trophy } from 'lucide-react';
 import { formatRating, formatDate } from '@/lib/utils';
 import { FavoriteButton } from '@/components/favorites/FavoriteButton';
 // ✅ Telegram SDK v3.x - haptic feedback
@@ -95,7 +95,11 @@ export function BusinessCard({
 
   return (
     <div 
-      className="relative bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer active:scale-[0.98]"
+      className={`relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer active:scale-[0.98] ${
+        business.premiumTier !== 'FREE' 
+          ? 'border-2 border-yellow-400 shadow-yellow-100' 
+          : 'border border-gray-200'
+      }`}
       onClick={handleCardClick}
       role="button"
       tabIndex={0}
@@ -107,19 +111,9 @@ export function BusinessCard({
       }}
       aria-label={`Открыть профиль заведения ${business.name}`}
     >
-      {/* Header with Premium badge and Favorite button */}
-      <div className="absolute top-3 left-3 right-3 flex items-start justify-between z-10">
-        {/* Premium badge */}
-        {business.premiumTier !== 'FREE' && (
-          <div className="bg-yellow-500 text-black px-2 py-1 rounded-md text-xs font-bold shadow-sm">
-            ⭐ PREMIUM
-          </div>
-        )}
-        
-        <div className="flex-1" />
-        
-        {/* ✅ Кнопка избранного с остановкой всплытия */}
-        {showFavoriteButton && (
+      {/* Header with Favorite button only */}
+      {showFavoriteButton && (
+        <div className="absolute top-3 right-3 z-10">
           <div onClick={handleFavoriteClick}>
             <FavoriteButton
               businessId={business.id}
@@ -130,8 +124,8 @@ export function BusinessCard({
               showCount={true}
             />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Photo */}
       {business.photos.length > 0 && !compactMode && (
@@ -173,9 +167,15 @@ export function BusinessCard({
           )}
 
           <div className="flex-1 min-w-0">
-            <h3 className={`font-bold text-gray-900 mb-1 ${compactMode ? 'text-base' : 'text-lg'} line-clamp-2`}>
-              {business.name}
-            </h3>
+            <div className="flex items-center gap-2 mb-1">
+              {/* ✅ Золотая иконка кубка для премиум заведений */}
+              {business.premiumTier !== 'FREE' && (
+                <Trophy className="w-5 h-5 text-yellow-500 flex-shrink-0" />
+              )}
+              <h3 className={`font-bold text-gray-900 ${compactMode ? 'text-base' : 'text-lg'} line-clamp-2 flex-1`}>
+                {business.name}
+              </h3>
+            </div>
             
             <p className="flex items-center text-gray-600 mb-2">
               <span className="mr-2 text-lg">{business.category.icon}</span>
@@ -234,11 +234,7 @@ export function BusinessCard({
               🅿️ Парковка
             </span>
           )}
-          {business.premiumTier !== 'FREE' && (
-            <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
-              ⭐ Премиум
-            </span>
-          )}
+
         </div>
 
         {/* ✅ Убрали кнопки действий - вся карточка теперь кликабельна */}
