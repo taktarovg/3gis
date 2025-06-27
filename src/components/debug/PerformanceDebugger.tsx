@@ -12,8 +12,8 @@ interface PerformanceMetrics {
 }
 
 /**
- * ✅ Компонент для отладки производительности
- * Показывает количество рендеров, частоту и стабильность компонента
+ * Component for performance debugging
+ * Shows render count, frequency and component stability
  */
 export function PerformanceDebugger({ 
   componentName = 'Component',
@@ -33,7 +33,7 @@ export function PerformanceDebugger({
     isStable: true
   });
 
-  // Увеличиваем счетчик рендеров при каждом рендере
+  // Increment render counter on each render
   renderCount.current += 1;
   const currentTime = Date.now();
   renderTimes.current.push(currentTime);
@@ -41,12 +41,12 @@ export function PerformanceDebugger({
   useEffect(() => {
     const renderTime = Date.now() - currentTime;
     
-    // Вычисляем метрики
-    const recentRenders = renderTimes.current.slice(-10); // Последние 10 рендеров
+    // Calculate metrics
+    const recentRenders = renderTimes.current.slice(-10); // Last 10 renders
     const totalTime = currentTime - startTime.current;
-    const frequency = renderCount.current / (totalTime / 1000); // рендеров в секунду
+    const frequency = renderCount.current / (totalTime / 1000); // renders per second
     
-    // Определяем стабильность (если больше 5 рендеров в секунду - нестабильно)
+    // Determine stability (more than 5 renders per second is unstable)
     const isStable = frequency < 5;
     
     setMetrics({
@@ -59,30 +59,30 @@ export function PerformanceDebugger({
       isStable
     });
 
-    // Логируем в консоль для анализа
+    // Log to console for analysis
     console.log(`🎯 [PERF] ${componentName}: render #${renderCount.current}, freq: ${frequency.toFixed(1)}/sec, stable: ${isStable}`);
 
-    // Предупреждение о нестабильности
+    // Warning about instability
     if (!isStable && renderCount.current > 10) {
       console.warn(`⚠️ [PERF] ${componentName}: High render frequency detected! ${frequency.toFixed(1)} renders/sec`);
     }
   }, [componentName, currentTime]);
 
-  // Показывать только в dev режиме или если явно разрешено
+  // Show only in dev mode or if explicitly allowed
   if (!showInProduction && process.env.NODE_ENV === 'production') {
     return null;
   }
 
   const getStatusColor = () => {
     if (!metrics.isStable) return 'destructive';
-    if (metrics.renderFrequency > 2) return 'secondary'; // warning нет в Badge
-    return 'default'; // success нет в Badge
+    if (metrics.renderFrequency > 2) return 'secondary';
+    return 'default';
   };
 
   const getStatusText = () => {
-    if (!metrics.isStable) return 'Нестабильно';
-    if (metrics.renderFrequency > 2) return 'Частые рендеры';
-    return 'Стабильно';
+    if (!metrics.isStable) return 'Unstable';
+    if (metrics.renderFrequency > 2) return 'Frequent';
+    return 'Stable';
   };
 
   return (
@@ -96,23 +96,23 @@ export function PerformanceDebugger({
       
       <div className="space-y-1 text-gray-600">
         <div className="flex justify-between">
-          <span>Рендеры:</span>
+          <span>Renders:</span>
           <span className="font-mono">{metrics.renderCount}</span>
         </div>
         <div className="flex justify-between">
-          <span>Частота:</span>
-          <span className="font-mono">{metrics.renderFrequency.toFixed(1)}/сек</span>
+          <span>Frequency:</span>
+          <span className="font-mono">{metrics.renderFrequency.toFixed(1)}/sec</span>
         </div>
         <div className="flex justify-between">
-          <span>Последний:</span>
-          <span className="font-mono">{metrics.lastRenderTime}мс</span>
+          <span>Last:</span>
+          <span className="font-mono">{metrics.lastRenderTime}ms</span>
         </div>
       </div>
 
       {!metrics.isStable && (
         <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-700">
-          <div className="text-xs font-semibold">🚨 Проблема производительности!</div>
-          <div className="text-xs">Слишком частые перерендеры</div>
+          <div className="text-xs font-semibold">🚨 Performance Issue!</div>
+          <div className="text-xs">Too frequent re-renders</div>
         </div>
       )}
     </div>
@@ -120,7 +120,7 @@ export function PerformanceDebugger({
 }
 
 /**
- * ✅ HOC для быстрого добавления отладки производительности
+ * HOC for quick performance debugging addition
  */
 export function withPerformanceDebug<P extends object>(
   Component: React.ComponentType<P>,

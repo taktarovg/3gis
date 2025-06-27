@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { RefreshCw, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 
 /**
- * ✅ Компонент для тестирования устранения бесконечного цикла рендеров
- * Показывает статистику рендеров useChats хука и ClientProvider
+ * Component for testing infinite render loop prevention
+ * Shows render statistics for useChats hook and ClientProvider
  */
 export function InfiniteLoopTester() {
   const [isActive, setIsActive] = useState(false);
@@ -26,15 +26,15 @@ export function InfiniteLoopTester() {
     console.log('🧪 [TEST] Starting infinite loop prevention test...');
     
     setIsActive(true);
-    setTestResults({ status: 'testing', renderCount: 0, duration: 0, message: 'Тестирование...' });
+    setTestResults({ status: 'testing', renderCount: 0, duration: 0, message: 'Testing...' });
     testStartTime.current = Date.now();
     renderCounter.current = 0;
     
-    // Считаем рендеры в консоли
+    // Count renders in console
     const originalLog = console.log;
     let renderCount = 0;
     
-    // Перехватываем логи для подсчета рендеров
+    // Intercept logs to count renders
     console.log = (...args) => {
       const message = args.join(' ');
       if (message.includes('[HOOK-') && message.includes('useChats: Effect triggered')) {
@@ -44,7 +44,7 @@ export function InfiniteLoopTester() {
       originalLog.apply(console, args);
     };
     
-    // Тест длится 10 секунд
+    // Test runs for 10 seconds
     intervalRef.current = setInterval(() => {
       const duration = Date.now() - testStartTime.current;
       
@@ -54,16 +54,16 @@ export function InfiniteLoopTester() {
         duration: Math.round(duration / 1000),
       }));
       
-      // Завершаем тест через 10 секунд
+      // Complete test after 10 seconds
       if (duration >= 10000) {
         clearInterval(intervalRef.current!);
-        console.log = originalLog; // Восстанавливаем console.log
+        console.log = originalLog; // Restore console.log
         
-        // Оцениваем результаты
+        // Evaluate results
         const finalStatus = renderCount > 20 ? 'failed' : 'passed';
         const message = finalStatus === 'passed' 
-          ? `✅ Тест пройден! ${renderCount} рендеров за 10 сек` 
-          : `❌ Тест провален! ${renderCount} рендеров за 10 сек (норма ≤20)`;
+          ? `✅ Test passed! ${renderCount} renders in 10 sec` 
+          : `❌ Test failed! ${renderCount} renders in 10 sec (norm ≤20)`;
         
         setTestResults({
           status: finalStatus,
@@ -105,10 +105,10 @@ export function InfiniteLoopTester() {
   
   const getStatusBadge = () => {
     switch (testResults.status) {
-      case 'testing': return <Badge variant="secondary">Тестирование...</Badge>;
-      case 'passed': return <Badge variant="default" className="bg-green-500">Пройден</Badge>;
-      case 'failed': return <Badge variant="destructive">Провален</Badge>;
-      default: return <Badge variant="outline">Готов к тесту</Badge>;
+      case 'testing': return <Badge variant="secondary">Testing...</Badge>;
+      case 'passed': return <Badge variant="default" className="bg-green-500">Passed</Badge>;
+      case 'failed': return <Badge variant="destructive">Failed</Badge>;
+      default: return <Badge variant="outline">Ready</Badge>;
     }
   };
   
@@ -117,25 +117,25 @@ export function InfiniteLoopTester() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           {getStatusIcon()}
-          <span className="font-semibold text-gray-800">Тест производительности</span>
+          <span className="font-semibold text-gray-800">Performance Test</span>
         </div>
         {getStatusBadge()}
       </div>
       
       <div className="space-y-2 text-sm text-gray-600 mb-4">
         <div className="flex justify-between">
-          <span>Рендеры хука:</span>
+          <span>Hook renders:</span>
           <span className="font-mono font-semibold">{testResults.renderCount}</span>
         </div>
         <div className="flex justify-between">
-          <span>Длительность:</span>
-          <span className="font-mono">{testResults.duration} сек</span>
+          <span>Duration:</span>
+          <span className="font-mono">{testResults.duration} sec</span>
         </div>
         {testResults.renderCount > 0 && (
           <div className="flex justify-between">
-            <span>Частота:</span>
+            <span>Frequency:</span>
             <span className="font-mono">
-              {testResults.duration > 0 ? (testResults.renderCount / testResults.duration).toFixed(1) : '0'} рендеров/сек
+              {testResults.duration > 0 ? (testResults.renderCount / testResults.duration).toFixed(1) : '0'} renders/sec
             </span>
           </div>
         )}
@@ -158,7 +158,7 @@ export function InfiniteLoopTester() {
           size="sm"
           className="flex-1"
         >
-          {isActive ? 'Тестирование...' : 'Запустить тест'}
+          {isActive ? 'Testing...' : 'Start Test'}
         </Button>
         
         {isActive && (
@@ -167,15 +167,15 @@ export function InfiniteLoopTester() {
             variant="outline"
             size="sm"
           >
-            Остановить
+            Stop
           </Button>
         )}
       </div>
       
       <div className="mt-3 text-xs text-gray-500">
-        <div className="font-semibold mb-1">Критерии теста:</div>
-        <div>• ≤20 рендеров за 10 сек = ✅ Норма</div>
-        <div>• >20 рендеров за 10 сек = ❌ Бесконечный цикл</div>
+        <div className="font-semibold mb-1">Test criteria:</div>
+        <div>• ≤20 renders in 10 sec = ✅ Normal</div>
+        <div>• >20 renders in 10 sec = ❌ Infinite loop</div>
       </div>
     </div>
   );
