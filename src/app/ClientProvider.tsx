@@ -33,7 +33,6 @@ const createQueryClient = (context: 'website' | 'telegram' | 'admin') => new Que
     },
   },
 });
-WebsiteProvider.displayName = 'WebsiteProvider';
 
 // Определяем контекст приложения
 function determineContext(pathname: string): 'website' | 'telegram' | 'admin' {
