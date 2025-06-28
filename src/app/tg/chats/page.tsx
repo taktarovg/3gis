@@ -4,7 +4,7 @@ import { InfiniteLoopTesterWrapper } from '@/components/debug/InfiniteLoopTester
 
 export default function ChatsPage() {
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 pb-20" data-scrollable>
       <div className="bg-white border-b border-gray-200 px-4 py-4">
         <h1 className="text-xl font-bold text-gray-900">
           💬 Русские чаты в США

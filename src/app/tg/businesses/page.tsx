@@ -121,7 +121,7 @@ export default async function BusinessesPage({ searchParams }: BusinessesPagePro
         </div>
         
         {/* Business list */}
-        <div className="px-4 py-4">
+        <div className="px-4 py-4" data-scrollable>
           {businesses.length > 0 ? (
             <BusinessList businesses={businesses} />
           ) : (

@@ -6,6 +6,7 @@ import { TelegramAuth } from '@/components/auth/TelegramAuth';
 import { NavigationLayout } from '@/components/navigation/BottomNavigation';
 import { TelegramDebug } from '@/components/debug/TelegramDebug';
 import { initAuthStore } from '@/store/auth-store';
+import { usePreventCollapse } from '@/hooks/use-prevent-collapse';
 import { useEffect } from 'react';
 
 /**
@@ -23,6 +24,9 @@ export default function TelegramLayout({
   useEffect(() => {
     initAuthStore();
   }, []);
+
+  // Предотвращаем сворачивание приложения при скролле
+  usePreventCollapse();
 
   return (
     <>

@@ -45,7 +45,7 @@ export default async function ThreeGISHomePage() {
   const categories = await getCategories();
   
   return (
-    <div className="threegis-app-container">
+    <div className="threegis-app-container" data-scrollable>
       <div className="threegis-app-main">
         {/* Поиск */}
         <div className="px-4 mb-6 mt-6">

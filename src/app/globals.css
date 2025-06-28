@@ -181,6 +181,20 @@
   }
 }
 
+/* ✅ Базовые стили для предотвращения коллапса */
+html {
+  /* Убеждаемся что документ всегда немного прокручиваем */
+  min-height: calc(100% + 1px);
+}
+
+body {
+  /* Предотвращаем bounce эффект на iOS Safari */
+  overscroll-behavior: none;
+  -webkit-overscroll-behavior: none;
+  /* Обеспечиваем минимальную высоту */
+  min-height: 100vh;
+}
+
 /* Мобильная оптимизация скролла */
 @media (max-width: 768px) {
   html, body {
@@ -204,6 +218,36 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     height: calc(100vh - 80px); /* Вычитаем высоту навигации */
+  }
+}
+
+/* ✅ Стили для предотвращения коллапса Telegram Mini App */
+@media (max-width: 768px) {
+  /* Обеспечиваем минимальную прокручиваемость для предотвращения коллапса */
+  [data-scrollable] {
+    min-height: calc(100vh + 1px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+  
+  /* Дополнительная защита для основных контейнеров */
+  .threegis-app-container[data-scrollable] {
+    min-height: calc(100vh + 1px);
+  }
+  
+  /* Предотвращение bounce эффекта который может вызвать коллапс */
+  .no-bounce {
+    overscroll-behavior: none;
+    -webkit-overscroll-behavior: none;
+  }
+  
+  /* Стили для скроллящихся списков */
+  .scrollable-list {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    scroll-behavior: smooth;
   }
 }
 
