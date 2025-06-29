@@ -42,6 +42,7 @@ model User {
   // Связи с чатами
   chatFavorites     ChatFavorite[]
   moderatedChats    TelegramChat[]     @relation("ChatModerator")
+  submittedChats    TelegramChat[]     @relation("ChatSubmitter")
 
   @@map("users")
 }
@@ -303,6 +304,11 @@ model TelegramChat {
   moderatedBy   User?          @relation("ChatModerator", fields: [moderatedById], references: [id])
   moderatedById Int?
   moderationNote String?       // Заметки модератора
+  
+  // Предложения от пользователей
+  submittedBy   User?          @relation("ChatSubmitter", fields: [submittedById], references: [id])
+  submittedById Int?           // ID пользователя, который предложил чат
+  submissionNote String?       // Комментарий при предложении чата
   
   // Связи
   favorites     ChatFavorite[]
