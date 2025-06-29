@@ -71,7 +71,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
   const launchParams = useLaunchParams(true); // ✅ В v3.x требуется SSR флаг для Next.js
   
   // Извлекаем пользовательские данные из launchParams для SDK v3.x
-  // В v3 tgWebAppData это объект, а не строка
+  // В v3 данные находятся в tgWebAppData
   const webAppData = launchParams?.tgWebAppData;
   const telegramUser = webAppData?.user || null;
   

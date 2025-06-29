@@ -18,7 +18,7 @@ export function SuggestChatModal({ isOpen, onClose, onSuccess }: SuggestChatModa
   const [error, setError] = useState('');
   
   const launchParams = useLaunchParams();
-  const user = launchParams.initData?.user;
+  const user = launchParams.tgWebAppData?.user;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
