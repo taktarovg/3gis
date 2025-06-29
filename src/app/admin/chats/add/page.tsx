@@ -30,10 +30,6 @@ export default function AddChatPage() {
   const [loadingCities, setLoadingCities] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -49,20 +45,15 @@ export default function AddChatPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Не рендерим компонент до серверной синхронизации
-  if (!mounted) {
-    return (
-      <div className="p-6 max-w-2xl mx-auto">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded mb-4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
+  // Хук для отслеживания монтирования компонента
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Загрузка штатов
   useEffect(() => {
+    if (!mounted) return;
+    
     fetch('/api/states')
       .then(res => res.json())
       .then(data => {
@@ -73,10 +64,12 @@ export default function AddChatPage() {
         console.error('States fetch error:', err);
         setStates([]);
       });
-  }, []);
+  }, [mounted]);
 
   // Загрузка городов при выборе штата
   useEffect(() => {
+    if (!mounted) return;
+    
     if (formData.stateId && formData.stateId !== '__none__') {
       setLoadingCities(true);
       fetch(`/api/cities?stateId=${formData.stateId}`)
@@ -93,7 +86,19 @@ export default function AddChatPage() {
       setCities([]);
       setFormData(prev => ({ ...prev, cityId: '__none__' }));
     }
-  }, [formData.stateId]);
+  }, [mounted, formData.stateId]);
+
+  // Не рендерим компонент до серверной синхронизации
+  if (!mounted) {
+    return (
+      <div className="p-6 max-w-2xl mx-auto">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded mb-4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
