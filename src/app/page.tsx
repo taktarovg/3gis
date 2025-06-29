@@ -13,11 +13,11 @@ export const metadata = {
   openGraph: {
     title: '3GIS - Твой проводник в Америке',
     description: 'Справочник русскоязычных организаций в США. Рестораны, врачи, юристы и другие услуги.',
-    url: 'https://3gis.vercel.app',
+    url: 'https://3gis.biz',
     siteName: '3GIS',
     images: [
       {
-        url: 'https://3gis.vercel.app/og-image.png',
+        url: 'https://3gis.biz/og-image.png',
         width: 1200,
         height: 630,
         alt: '3GIS - Русскоязычный справочник США',
@@ -30,7 +30,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: '3GIS - Русскоязычный справочник США',
     description: 'Находите русскоговорящие услуги по всей Америке',
-    images: ['https://3gis.vercel.app/og-image.png'],
+    images: ['https://3gis.biz/og-image.png'],
   },
 };
 
