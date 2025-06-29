@@ -30,16 +30,21 @@ export function usePreventCollapse() {
     try {
       if (typeof window !== 'undefined' && 
           window.Telegram && 
-          window.Telegram.WebApp && 
-          typeof window.Telegram.WebApp.disableVerticalSwipes === 'function') {
-        window.Telegram.WebApp.disableVerticalSwipes();
-        console.log('✅ Fallback: window.Telegram.WebApp.disableVerticalSwipes() applied');
+          window.Telegram.WebApp) {
         
-        // Проверяем статус если свойство доступно
-        if (typeof window.Telegram.WebApp.isVerticalSwipesEnabled === 'boolean' && 
-            window.Telegram.WebApp.isVerticalSwipesEnabled === false) {
-          console.log('✅ Vertical swipes successfully disabled via window.Telegram');
-          return;
+        // Используем безопасное обращение к свойству через индексацию
+        const webApp = window.Telegram.WebApp as any;
+        
+        if (typeof webApp['disableVerticalSwipes'] === 'function') {
+          webApp['disableVerticalSwipes']();
+          console.log('✅ Fallback: window.Telegram.WebApp.disableVerticalSwipes() applied');
+          
+          // Проверяем статус если свойство доступно
+          if (typeof webApp['isVerticalSwipesEnabled'] === 'boolean' && 
+              webApp['isVerticalSwipesEnabled'] === false) {
+            console.log('✅ Vertical swipes successfully disabled via window.Telegram');
+            return;
+          }
         }
       }
     } catch (error) {
