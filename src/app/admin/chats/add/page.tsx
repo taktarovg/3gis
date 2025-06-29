@@ -35,8 +35,8 @@ export default function AddChatPage() {
     username: '',
     inviteLink: '',
     type: 'GROUP' as 'GROUP' | 'CHAT' | 'CHANNEL',
-    stateId: '',
-    cityId: '',
+    stateId: '__none__',
+    cityId: '__none__',
     topic: '',
     memberCount: 0,
     isVerified: false,
@@ -54,7 +54,7 @@ export default function AddChatPage() {
 
   // Загрузка городов при выборе штата
   useEffect(() => {
-    if (formData.stateId) {
+    if (formData.stateId && formData.stateId !== '__none__') {
       setLoadingCities(true);
       fetch(`/api/cities?stateId=${formData.stateId}`)
         .then(res => res.json())
@@ -68,7 +68,7 @@ export default function AddChatPage() {
         });
     } else {
       setCities([]);
-      setFormData(prev => ({ ...prev, cityId: '' }));
+      setFormData(prev => ({ ...prev, cityId: '__none__' }));
     }
   }, [formData.stateId]);
 
@@ -80,8 +80,8 @@ export default function AddChatPage() {
     try {
       const submitData = {
         ...formData,
-        cityId: formData.cityId ? parseInt(formData.cityId) : undefined,
-        stateId: formData.stateId || undefined,
+        cityId: formData.cityId && formData.cityId !== '__none__' ? parseInt(formData.cityId) : undefined,
+        stateId: formData.stateId && formData.stateId !== '__none__' ? formData.stateId : undefined,
       };
 
       const response = await fetch('/api/admin/chats', {
@@ -269,7 +269,7 @@ export default function AddChatPage() {
                     <SelectValue placeholder="Выберите штат" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Не указан</SelectItem>
+                    <SelectItem value="__none__">Не указан</SelectItem>
                     {states.map((state) => (
                       <SelectItem key={state.id} value={state.id}>
                         {state.name}
@@ -290,7 +290,7 @@ export default function AddChatPage() {
                     <SelectValue placeholder={loadingCities ? "Загрузка..." : "Выберите город"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Не указан</SelectItem>
+                    <SelectItem value="__none__">Не указан</SelectItem>
                     {cities.map((city) => (
                       <SelectItem key={city.id} value={city.id.toString()}>
                         {city.name}
@@ -341,8 +341,8 @@ export default function AddChatPage() {
                   username: '',
                   inviteLink: '',
                   type: 'GROUP',
-                  stateId: '',
-                  cityId: '',
+                  stateId: '__none__',
+                  cityId: '__none__',
                   topic: '',
                   memberCount: 0,
                   isVerified: false,
