@@ -75,14 +75,10 @@ declare global {
           notificationOccurred: (type: 'error' | 'success' | 'warning') => void;
           selectionChanged: () => void;
         };
-        version: string;
-        platform: string;
-        colorScheme: 'light' | 'dark';
-        isExpanded: boolean;
-        viewportHeight: number;
-        viewportStableHeight: number;
-        headerColor: string;
-        backgroundColor: string;
+        // ✅ Методы для предотвращения сворачивания (Bot API 7.7+)
+        disableVerticalSwipes?: () => void;
+        enableVerticalSwipes?: () => void;
+        isVerticalSwipesEnabled?: boolean;
       };
     };
   }

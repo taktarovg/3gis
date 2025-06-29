@@ -1,34 +1,53 @@
 'use client';
 
 import { useEffect } from 'react';
+import { disableVerticalSwipes, enableVerticalSwipes, isVerticalSwipesEnabled } from '@telegram-apps/sdk';
 
 export function usePreventCollapse() {
   useEffect(() => {
-    // Проверяем доступность современного Telegram API
-    const isTelegramWebApp = typeof window !== 'undefined' && window.Telegram?.WebApp;
+    console.log('🔍 Initializing collapse prevention for Telegram Mini App...');
     
-    if (isTelegramWebApp) {
-      console.log('🔍 Telegram WebApp detected, applying collapse prevention...');
-      
-      // Способ 1: Современный API (Bot API 7.7+)
-      try {
-        if (window.Telegram.WebApp.disableVerticalSwipes) {
-          window.Telegram.WebApp.disableVerticalSwipes();
-          console.log('✅ Modern solution: disableVerticalSwipes() applied');
-          
-          // Проверяем статус
-          if (window.Telegram.WebApp.isVerticalSwipesEnabled === false) {
-            console.log('✅ Vertical swipes successfully disabled');
-            return; // Если современное решение работает, больше ничего не нужно
-          }
+    // Способ 1: Современный API через @telegram-apps/sdk v3.x
+    try {
+      // Проверяем доступность современного API для вертикальных свайпов
+      if (disableVerticalSwipes.isAvailable()) {
+        disableVerticalSwipes();
+        console.log('✅ Modern solution: disableVerticalSwipes() from @telegram-apps/sdk applied');
+        
+        // Проверяем статус
+        if (!isVerticalSwipesEnabled()) {
+          console.log('✅ Vertical swipes successfully disabled via SDK');
+          return; // Если современное решение работает, больше ничего не нужно
         }
-      } catch (error) {
-        console.warn('⚠️ Modern disableVerticalSwipes() not available:', error);
+      } else {
+        console.log('⚠️ disableVerticalSwipes() not available in current environment');
       }
+    } catch (error) {
+      console.warn('⚠️ Error with @telegram-apps/sdk disableVerticalSwipes():', error);
     }
 
-    // Способ 2: Fallback решение для старых версий или если современное API не сработало
-    console.log('🔧 Applying fallback solution for collapse prevention...');
+    // Способ 2: Fallback через window.Telegram (если SDK не сработал)
+    try {
+      if (typeof window !== 'undefined' && 
+          window.Telegram && 
+          window.Telegram.WebApp && 
+          typeof window.Telegram.WebApp.disableVerticalSwipes === 'function') {
+        window.Telegram.WebApp.disableVerticalSwipes();
+        console.log('✅ Fallback: window.Telegram.WebApp.disableVerticalSwipes() applied');
+        
+        // Проверяем статус если свойство доступно
+        if (typeof window.Telegram.WebApp.isVerticalSwipesEnabled === 'boolean' && 
+            window.Telegram.WebApp.isVerticalSwipesEnabled === false) {
+          console.log('✅ Vertical swipes successfully disabled via window.Telegram');
+          return;
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ window.Telegram fallback not available:', error);
+    }
+
+    // Способ 3: CSS/JS хаки для старых версий или если API не сработали
+    console.log('🔧 Applying CSS/JS fallback solution for collapse prevention...');
     
     function ensureDocumentIsScrollable() {
       const isScrollable = document.documentElement.scrollHeight > window.innerHeight;
@@ -136,6 +155,16 @@ export function usePreventCollapse() {
       // Восстанавливаем стили
       document.documentElement.style.removeProperty('height');
       document.body.style.removeProperty('min-height');
+      
+      // Восстанавливаем вертикальные свайпы при размонтировании (опционально)
+      try {
+        if (enableVerticalSwipes.isAvailable()) {
+          enableVerticalSwipes();
+          console.log('🔄 Vertical swipes re-enabled on cleanup');
+        }
+      } catch (error) {
+        // Игнорируем ошибки при cleanup
+      }
     };
   }, []);
 }
