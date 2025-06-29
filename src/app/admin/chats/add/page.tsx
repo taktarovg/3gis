@@ -28,6 +28,11 @@ export default function AddChatPage() {
   const [states, setStates] = useState<State[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [loadingCities, setLoadingCities] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -44,12 +49,30 @@ export default function AddChatPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Не рендерим компонент до серверной синхронизации
+  if (!mounted) {
+    return (
+      <div className="p-6 max-w-2xl mx-auto">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded mb-4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
   // Загрузка штатов
   useEffect(() => {
     fetch('/api/states')
       .then(res => res.json())
-      .then(setStates)
-      .catch(console.error);
+      .then(data => {
+        console.log('States response:', data);
+        setStates(data.states || []);
+      })
+      .catch(err => {
+        console.error('States fetch error:', err);
+        setStates([]);
+      });
   }, []);
 
   // Загрузка городов при выборе штата
@@ -270,7 +293,7 @@ export default function AddChatPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Не указан</SelectItem>
-                    {states.map((state) => (
+                    {Array.isArray(states) && states.map((state) => (
                       <SelectItem key={state.id} value={state.id}>
                         {state.name}
                       </SelectItem>
@@ -291,7 +314,7 @@ export default function AddChatPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Не указан</SelectItem>
-                    {cities.map((city) => (
+                    {Array.isArray(cities) && cities.map((city) => (
                       <SelectItem key={city.id} value={city.id.toString()}>
                         {city.name}
                       </SelectItem>
