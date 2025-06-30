@@ -26,10 +26,9 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
   
   // ✅ SDK v3.x: Правильное использование хуков согласно актуальной документации
   const launchParams = useLaunchParams(true); // SSR flag для Next.js
-  const initDataRaw = useRawInitData();
+  const initDataRaw = useRawInitData(true); // SSR flag
   
-  // ✅ Правильное извлечение пользователя из v3.x
-  // В v3.x структура: { tgWebAppData: { user, auth_date, query_id, hash } }
+  // ✅ SDK v3.x: В parsed формате поля в camelCase: authDate, queryId
   const user = launchParams?.tgWebAppData?.user;
   
   useEffect(() => {
@@ -60,10 +59,9 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
   }, [type, entity.id, user?.id]);
   
   const handleShare = async () => {
-    await trackShare('SHARE_BUTTON_CLICKED');
+    await trackShare('LINK_CREATED');
     
     // ✅ SDK v3.x: Проверка доступности и вызов shareURL
-    // Согласно документации: shareURL(url, text) где text опциональный
     if (shareURL.isAvailable()) {
       try {
         await shareURL(shareUrl, `${entity.name || entity.title} | 3GIS`);
@@ -76,7 +74,7 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
     }
     
     // Fallback к Web Share API
-    if (navigator.share) {
+    if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
           title: entity.name || entity.title,
@@ -96,20 +94,26 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
   
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      await trackShare('LINK_COPIED');
-      setTimeout(() => setCopied(false), 2000);
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        await trackShare('LINK_COPIED');
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        // Fallback для старых браузеров (только в браузере)
+        if (typeof document !== 'undefined') {
+          const textArea = document.createElement('textarea');
+          textArea.value = shareUrl;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }
+      }
     } catch (err) {
-      // Fallback для старых браузеров
-      const textArea = document.createElement('textarea');
-      textArea.value = shareUrl;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      console.error('Copy failed:', err);
     }
   };
   
@@ -126,10 +130,12 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
     
     await trackShare('SOCIAL_SHARED', platform);
     
-    if (platform === 'web') {
-      window.open(shareUrl, '_blank');
-    } else {
-      window.open(urls[platform as keyof typeof urls], '_blank', 'width=600,height=400');
+    if (typeof window !== 'undefined') {
+      if (platform === 'web') {
+        window.open(shareUrl, '_blank');
+      } else {
+        window.open(urls[platform as keyof typeof urls], '_blank', 'width=600,height=400');
+      }
     }
   };
   
@@ -137,9 +143,10 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
     const tmaUrl = `https://t.me/ThreeGIS_bot/app?startapp=${type}_${entity.id}`;
     
     // ✅ SDK v3.x: Использование openTelegramLink
-    // Согласно актуальной документации: openTelegramLink.ifAvailable(url)
-    openTelegramLink.ifAvailable(tmaUrl);
-    await trackShare('APP_OPENED', 'telegram');
+    if (openTelegramLink.isAvailable()) {
+      openTelegramLink(tmaUrl);
+      await trackShare('APP_OPENED', 'telegram');
+    }
   };
   
   return (
@@ -149,7 +156,7 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
         className={cn(
           "inline-flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
           variant === 'button' && "px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium",
-          variant === 'icon' && "w-10 h-10 hover:bg-gray-100 rounded-full",
+          variant === 'icon' && "w-8 h-8 text-current flex items-center justify-center",
           variant === 'text' && "text-blue-600 hover:text-blue-700 underline text-sm",
           className
         )}
@@ -160,7 +167,7 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
         {variant === 'text' && <span className="ml-1">Поделиться</span>}
       </button>
       
-      {/* ✅ Обновленный модал шеринга */}
+      {/* ✅ Модал шеринга */}
       {isShareModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-sm w-full p-6">
@@ -277,7 +284,7 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
   );
 }
 
-// Вспомогательный компонент для кнопок соц. сетей
+// ✅ Вспомогательный компонент для кнопок соц. сетей (Client Component)
 function ShareSocialButton({ 
   icon, 
   bgColor, 
@@ -302,4 +309,3 @@ function ShareSocialButton({
     </button>
   );
 }
-              

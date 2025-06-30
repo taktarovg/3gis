@@ -50,17 +50,18 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Сохраняем в базу
+    // ✅ Исправлено: Используем правильные поля camelCase как в Prisma schema
     const analyticsData = {
-      entityType,
+      entityType: entityType as 'BUSINESS' | 'CHAT',
       entityId: parseInt(entityId),
+      // ✅ Правильные связи согласно схеме
       ...(entityType === 'BUSINESS' && { businessId: parseInt(entityId) }),
       ...(entityType === 'CHAT' && { chatId: parseInt(entityId) }),
       action,
       referrer: requestReferrer,
-      userAgent,
+      userAgent: userAgent,
       ipAddress: ip,
-      userId,
+      userId: userId,
       // UTM параметры
       utmSource: utmParams?.utmSource || null,
       utmMedium: utmParams?.utmMedium || null,
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
       data: analyticsData,
     });
     
-    // Увеличиваем счетчик шеринга если это действие клика или соц. сетей
+    // ✅ Исправлено: Увеличиваем shareCount согласно Prisma schema
     if (['LINK_CLICKED', 'SOCIAL_SHARED', 'APP_OPENED'].includes(action)) {
       try {
         if (entityType === 'BUSINESS') {
@@ -124,7 +125,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET endpoint для получения статистики (опционально)
+// ✅ GET endpoint для получения статистики (исправлен)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -138,7 +139,7 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Получаем статистику по сущности
+    // ✅ Получаем статистику по сущности с правильными полями
     const analytics = await prisma.shareAnalytics.findMany({
       where: {
         entityType: entityType as 'BUSINESS' | 'CHAT',

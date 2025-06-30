@@ -44,3 +44,5 @@ docs/
 # Cache
 .cache
 .parcel-cache
+
+.docs
