@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: ChatSharePageProps): Promise<
   return generateShareMetadata({
     title,
     description,
-    image: chat.ogImage,
+    image: chat.ogImage || undefined,
     url,
     type: 'chat'
   });
