@@ -22,21 +22,32 @@ interface ShareButtonProps {
 export function ShareButton({ type, entity, variant = 'button', className }: ShareButtonProps) {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
+  const [webShareUrl, setWebShareUrl] = useState('');
   const [copied, setCopied] = useState(false);
   
   // ✅ SDK v3.x: Правильное использование хуков согласно актуальной документации
   const launchParams = useLaunchParams(true); // SSR flag для Next.js
-  const initDataRaw = useRawInitData(); // ✅ Исправлено: НЕ принимает параметров
+  const initDataRaw = useRawInitData(); // ✅ НЕ принимает параметров
   
   // ✅ SDK v3.x: В parsed формате поля в camelCase: authDate, queryId
   const user = launchParams?.tgWebAppData?.user;
   
   useEffect(() => {
+    // ✅ ИСПРАВЛЕНО: Генерируем правильные TMA ссылки
+    const botUsername = 'ThreeGIS_bot';
+    const startParam = `${type}_${entity.id}`;
+    
+    // ✅ Основная ссылка для шеринга - ВСЕГДА ведет в TMA
+    const tmaUrl = `https://t.me/${botUsername}/app?startapp=${startParam}`;
+    setShareUrl(tmaUrl);
+    
+    // ✅ Веб-ссылка для fallback (статичная страница)
     const baseUrl = process.env.NODE_ENV === 'development' 
       ? 'http://localhost:3000'
       : 'https://3gis.biz';
     const slug = entity.slug || entity.id;
-    setShareUrl(`${baseUrl}/${type === 'business' ? 'b' : 'c'}/${slug}`);
+    const fallbackUrl = `${baseUrl}/${type === 'business' ? 'b' : 'c'}/${slug}`;
+    setWebShareUrl(fallbackUrl);
   }, [type, entity]);
   
   const trackShare = useCallback(async (action: string, platform?: string) => {
@@ -61,25 +72,25 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
   const handleShare = async () => {
     await trackShare('LINK_CREATED');
     
-    // ✅ SDK v3.x: Проверка доступности и вызов shareURL
+    // ✅ SDK v3.x: Проверка доступности и вызов shareURL с TMA ссылкой
     if (shareURL.isAvailable()) {
       try {
         await shareURL(shareUrl, `${entity.name || entity.title} | 3GIS`);
         await trackShare('SOCIAL_SHARED', 'telegram');
         return;
       } catch (error) {
-        console.error('Native share failed:', error);
+        console.error('Native Telegram share failed:', error);
         // Fallback к модалу
       }
     }
     
-    // Fallback к Web Share API
+    // Fallback к Web Share API (используем TMA ссылку)
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
           title: entity.name || entity.title,
           text: entity.description || `Посмотрите ${entity.name || entity.title} в 3GIS`,
-          url: shareUrl,
+          url: shareUrl, // ✅ TMA ссылка
         });
         await trackShare('SOCIAL_SHARED', 'native');
         return;
@@ -95,7 +106,7 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
   const copyToClipboard = async () => {
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(shareUrl);
+        await navigator.clipboard.writeText(shareUrl); // ✅ TMA ссылка
         setCopied(true);
         await trackShare('LINK_COPIED');
         setTimeout(() => setCopied(false), 2000);
@@ -118,21 +129,29 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
   };
   
   const shareToSocial = async (platform: string) => {
-    const encodedUrl = encodeURIComponent(shareUrl);
+    // ✅ ИСПРАВЛЕНО: Используем правильные ссылки для каждой платформы
+    let urlToShare = shareUrl; // По умолчанию TMA ссылка
+    let encodedUrl = encodeURIComponent(urlToShare);
     const encodedTitle = encodeURIComponent(entity.name || entity.title || '');
     
+    // ✅ Для внешних платформ используем веб-ссылку для лучшей совместимости
+    if (['whatsapp', 'twitter'].includes(platform)) {
+      urlToShare = webShareUrl;
+      encodedUrl = encodeURIComponent(urlToShare);
+    }
+    
     const urls = {
-      telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`,
+      telegram: `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodedTitle}`,
       whatsapp: `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`,
       twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`,
-      web: shareUrl
+      web: webShareUrl // Веб-версия для браузера
     };
     
     await trackShare('SOCIAL_SHARED', platform);
     
     if (typeof window !== 'undefined') {
       if (platform === 'web') {
-        window.open(shareUrl, '_blank');
+        window.open(urls.web, '_blank');
       } else {
         window.open(urls[platform as keyof typeof urls], '_blank', 'width=600,height=400');
       }
@@ -140,11 +159,13 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
   };
   
   const openInTelegramApp = async () => {
-    const tmaUrl = `https://t.me/ThreeGIS_bot/app?startapp=${type}_${entity.id}`;
-    
-    // ✅ SDK v3.x: Использование openTelegramLink
+    // ✅ SDK v3.x: Использование openTelegramLink с TMA ссылкой
     if (openTelegramLink.isAvailable()) {
-      openTelegramLink(tmaUrl);
+      openTelegramLink(shareUrl); // ✅ Уже правильная TMA ссылка
+      await trackShare('APP_OPENED', 'telegram');
+    } else {
+      // Fallback для браузеров без Telegram SDK
+      window.open(shareUrl, '_blank');
       await trackShare('APP_OPENED', 'telegram');
     }
   };
@@ -156,7 +177,7 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
         className={cn(
           "inline-flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
           variant === 'button' && "px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium",
-          variant === 'icon' && "w-8 h-8 text-current flex items-center justify-center",
+          variant === 'icon' && "w-8 h-8 text-current flex items-center justify-center hover:bg-gray-100 rounded-lg",
           variant === 'text' && "text-blue-600 hover:text-blue-700 underline text-sm",
           className
         )}
@@ -190,7 +211,7 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
               )}
             </div>
             
-            {/* Кнопка открытия в TMA */}
+            {/* ✅ Кнопка открытия в TMA - теперь работает правильно */}
             <div className="mb-4">
               <button
                 onClick={openInTelegramApp}
@@ -232,7 +253,7 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
               />
             </div>
             
-            {/* Копирование ссылки */}
+            {/* ✅ Копирование ссылки - показываем TMA ссылку */}
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
                 <input
@@ -240,6 +261,7 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
                   value={shareUrl}
                   readOnly
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                  title="Ссылка для открытия в Telegram"
                 />
                 <button
                   onClick={copyToClipboard}
@@ -260,6 +282,11 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
                     </>
                   )}
                 </button>
+              </div>
+              
+              {/* ✅ Дополнительная информация о типе ссылки */}
+              <div className="text-xs text-gray-500 text-center">
+                📱 Ссылка откроет 3GIS в Telegram приложении
               </div>
               
               {/* QR код */}

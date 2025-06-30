@@ -1,23 +1,17 @@
 import { notFound, redirect } from 'next/navigation';
 import { Metadata } from 'next';
-import { Suspense } from 'react';
 import Image from 'next/image';
 import { 
   MapPin, 
   Phone, 
   Globe, 
-  Clock, 
   Star,
-  Share2,
-  MessageCircle,
-  Navigation 
+  MessageCircle
 } from 'lucide-react';
 
 import { getBusinessBySlug } from '@/lib/slug-generator';
 import { generateShareMetadata } from '@/components/share/ShareMetaTags';
-import { ShareButton } from '@/components/share/ShareButton';
-import { TelegramRedirect } from '@/components/share/TelegramRedirect';
-import { MapButton } from '@/components/share/MapButton';
+import { ClientShareActions } from '@/components/share/ClientShareActions';
 
 interface BusinessSharePageProps {
   params: Promise<{ slug: string }>;
@@ -27,7 +21,11 @@ interface BusinessSharePageProps {
 // Функция для записи аналитики просмотра
 async function incrementViewCount(businessId: number, referrer?: string) {
   try {
-    await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/analytics/share`, {
+    const baseUrl = process.env.NODE_ENV === 'development' 
+      ? 'http://localhost:3000'
+      : 'https://3gis.biz';
+    
+    await fetch(`${baseUrl}/api/analytics/share`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -88,10 +86,8 @@ export default async function BusinessSharePage({
   // Если открыто в Telegram Web App, перенаправляем в TMA
   const userAgent = search.tgWebAppPlatform as string;
   if (userAgent || search.tgWebAppVersion) {
-    redirect(`/tg/businesses/${business.id}`);
+    redirect(`/tg/business/${business.id}`);
   }
-  
-  const shareUrl = `https://3gis.biz/b/${business.slug}`;
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -106,29 +102,15 @@ export default async function BusinessSharePage({
               <span className="font-semibold text-gray-900">3GIS</span>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <Suspense fallback={
-                <div className="p-2 text-gray-600 rounded-lg w-10 h-10 bg-gray-100 animate-pulse" />
-              }>
-                <ShareButton 
-                  type="business"
-                  entity={{
-                    id: business.id,
-                    name: business.name,
-                    slug: business.slug || undefined,
-                    description: business.description || undefined
-                  }}
-                  variant="icon"
-                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
-                />
-              </Suspense>
-              <TelegramRedirect 
-                url={`/tg/businesses/${business.id}`}
-                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                Открыть в Telegram
-              </TelegramRedirect>
-            </div>
+            {/* ✅ ИСПРАВЛЕНО: Вынесли client components в отдельный компонент */}
+            <ClientShareActions 
+              business={{
+                id: business.id,
+                name: business.name,
+                slug: business.slug || undefined,
+                description: business.description || undefined
+              }}
+            />
           </div>
         </div>
       </header>
@@ -182,7 +164,7 @@ export default async function BusinessSharePage({
               <p className="text-gray-700 mb-4">{business.description}</p>
             )}
             
-            {/* Действия */}
+            {/* ✅ ИСПРАВЛЕНО: Действия без client components в server component */}
             <div className="flex flex-wrap gap-3">
               {business.phone && (
                 <a
@@ -194,11 +176,15 @@ export default async function BusinessSharePage({
                 </a>
               )}
               
-              <MapButton
-                address={business.address}
-                cityName={business.city.name}
+              <a
+                href={`https://maps.google.com/maps?q=${encodeURIComponent(`${business.address}, ${business.city.name}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-              />
+              >
+                <MapPin className="w-4 h-4 mr-2" />
+                Маршрут
+              </a>
               
               {business.website && (
                 <a
@@ -329,7 +315,7 @@ export default async function BusinessSharePage({
           </div>
         </div>
         
-        {/* Call to Action */}
+        {/* ✅ ИСПРАВЛЕНО: Call to Action без client component */}
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mt-6 text-center">
           <h3 className="text-lg font-semibold text-blue-900 mb-2">
             Откройте 3GIS в Telegram для полного функционала
@@ -337,13 +323,15 @@ export default async function BusinessSharePage({
           <p className="text-blue-700 mb-4">
             Добавляйте в избранное, оставляйте отзывы и находите еще больше русскоязычных заведений
           </p>
-          <TelegramRedirect 
-            url={`/tg/businesses/${business.id}`}
+          <a 
+            href={`https://t.me/ThreeGIS_bot/app?startapp=business_${business.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors inline-flex items-center"
           >
             <MessageCircle className="w-5 h-5 mr-2" />
             Открыть в Telegram
-          </TelegramRedirect>
+          </a>
         </div>
       </main>
       
@@ -363,12 +351,14 @@ export default async function BusinessSharePage({
             
             <div className="text-sm text-gray-600 text-center md:text-right">
               <p>Найдите больше заведений в нашем</p>
-              <TelegramRedirect 
-                url="/tg"
+              <a 
+                href="https://t.me/ThreeGIS_bot/app"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-blue-600 hover:text-blue-800 font-medium"
               >
                 Telegram приложении
-              </TelegramRedirect>
+              </a>
             </div>
           </div>
         </div>
