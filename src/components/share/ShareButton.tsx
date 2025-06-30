@@ -26,7 +26,7 @@ export function ShareButton({ type, entity, variant = 'button', className }: Sha
   
   // ✅ SDK v3.x: Правильное использование хуков согласно актуальной документации
   const launchParams = useLaunchParams(true); // SSR flag для Next.js
-  const initDataRaw = useRawInitData(true); // SSR flag
+  const initDataRaw = useRawInitData(); // ✅ Исправлено: НЕ принимает параметров
   
   // ✅ SDK v3.x: В parsed формате поля в camelCase: authDate, queryId
   const user = launchParams?.tgWebAppData?.user;
