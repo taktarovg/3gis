@@ -6,11 +6,67 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MessageSquare } from 'lucide-react';
 import { useLaunchParams } from '@telegram-apps/sdk-react';
-import { CategoryGrid } from '@/components/categories/CategoryGrid';
-import { SearchBox } from '@/components/search/SearchBox';
-import { NearbyButton } from '@/components/location/NearbyButton';
-import { DonationWidget } from '@/components/donations/DonationWidget';
-import { PlatformDebug } from '@/components/debug/PlatformDebug';
+// import { CategoryGrid } from '@/components/categories/CategoryGrid'; // Перенесен в dynamic import
+// import { SearchBox } from '@/components/search/SearchBox'; // Перенесен в dynamic import
+// import { NearbyButton } from '@/components/location/NearbyButton'; // Перенесен в dynamic import
+// import { DonationWidget } from '@/components/donations/DonationWidget'; // Перенесен в dynamic import
+// import { PlatformDebug } from '@/components/debug/PlatformDebug'; // Перенесен в dynamic import
+import dynamic from 'next/dynamic';
+
+// ✅ Динамические импорты компонентов с event handlers для исправления SSR ошибки
+const DonationWidget = dynamic(
+  () => import('@/components/donations/DonationWidget').then(mod => ({ default: mod.DonationWidget })),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="bg-gray-100 rounded-xl p-4 animate-pulse">
+        <div className="h-20 bg-gray-200 rounded"></div>
+      </div>
+    )
+  }
+);
+
+const SearchBox = dynamic(
+  () => import('@/components/search/SearchBox').then(mod => ({ default: mod.SearchBox })),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="bg-gray-200 animate-pulse rounded-lg h-12"></div>
+    )
+  }
+);
+
+const NearbyButton = dynamic(
+  () => import('@/components/location/NearbyButton').then(mod => ({ default: mod.NearbyButton })),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="bg-gray-200 animate-pulse rounded-lg h-12"></div>
+    )
+  }
+);
+
+const CategoryGrid = dynamic(
+  () => import('@/components/categories/CategoryGrid').then(mod => ({ default: mod.CategoryGrid })),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="grid grid-cols-2 gap-4">
+        {[...Array(8)].map((_, i) => (
+          <div key={i} className="bg-gray-200 animate-pulse rounded-lg h-20"></div>
+        ))}
+      </div>
+    )
+  }
+);
+
+const PlatformDebug = dynamic(
+  () => import('@/components/debug/PlatformDebug').then(mod => ({ default: mod.PlatformDebug })),
+  { 
+    ssr: false,
+    loading: () => null
+  }
+);
 
 // ✅ Типизация для категорий
 interface Category {
