@@ -12,9 +12,19 @@ import { NearbyButton } from '@/components/location/NearbyButton';
 import { DonationWidget } from '@/components/donations/DonationWidget';
 import { PlatformDebug } from '@/components/debug/PlatformDebug';
 
-// ✅ Добавляем хук для получения категорий на клиенте
+// ✅ Типизация для категорий
+interface Category {
+  id: number;
+  name: string;
+  nameEn: string;
+  slug: string;
+  icon: string;
+  order: number;
+}
+
+// ✅ Добавляем хук для получения категорий на клиенте с правильной типизацией
 function useCategories() {
-  const [categories, setCategories] = React.useState([]);
+  const [categories, setCategories] = React.useState<Category[]>([]); // ✅ Явная типизация
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -22,7 +32,7 @@ function useCategories() {
       try {
         const response = await fetch('/api/categories');
         if (response.ok) {
-          const data = await response.json();
+          const data: Category[] = await response.json();
           setCategories(data);
         } else {
           // Fallback данные если API недоступен
@@ -42,7 +52,7 @@ function useCategories() {
   return { categories, loading };
 }
 
-function getFallbackCategories() {
+function getFallbackCategories(): Category[] {
   return [
     { id: 1, name: "Рестораны и кафе", nameEn: "Restaurants", slug: "restaurants", icon: "🍽️", order: 1 },
     { id: 2, name: "Медицина", nameEn: "Healthcare", slug: "healthcare", icon: "⚕️", order: 2 },
