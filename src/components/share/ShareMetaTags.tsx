@@ -55,8 +55,8 @@ export function generateShareMetadata({
     
     // Дополнительные мета-теги
     other: {
-      // Telegram specific
-      'telegram:channel': type === 'chat' ? url : undefined,
+      // Telegram specific - добавляем только если это чат
+      ...(type === 'chat' && { 'telegram:channel': url }),
       
       // Schema.org structured data
       'application/ld+json': JSON.stringify({
