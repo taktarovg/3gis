@@ -42,17 +42,16 @@ export function sanitizePropsForClient<T extends Record<string, any>>(props: T):
 }
 
 /**
- * Компонент-обертка для безопасной передачи props
+ * Создает безопасные props для передачи в Client Components
+ * Убирает функции и undefined значения
  */
-export function withClientSafeProps<T extends Record<string, any>>(
-  Component: React.ComponentType<T>
-): React.ComponentType<T> {
-  const WrappedComponent = (props: T) => {
-    const safeProps = sanitizePropsForClient(props);
-    return <Component {...(safeProps as T)} />;
-  };
-  
-  WrappedComponent.displayName = `withClientSafeProps(${Component.displayName || Component.name})`;
-  
-  return WrappedComponent;
+export function createSafeProps<T extends Record<string, any>>(props: T): Partial<T> {
+  return sanitizePropsForClient(props);
+}
+
+/**
+ * Проверяет, безопасен ли prop для передачи в Client Component
+ */
+export function isSafeProp(value: any): boolean {
+  return typeof value !== 'function' && value !== undefined;
 }
