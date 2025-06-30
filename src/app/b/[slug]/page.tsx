@@ -229,7 +229,7 @@ export default async function BusinessSharePage({
                 <div>
                   <p className="text-gray-900">{business.address}</p>
                   <p className="text-gray-600 text-sm">
-                    {business.city.name}, {business.state}
+                    {business.city.name}, {business.stateId}
                     {business.zipCode && ` ${business.zipCode}`}
                   </p>
                 </div>
