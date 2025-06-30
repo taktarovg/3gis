@@ -1,0 +1,99 @@
+// Добавить в существующую prisma/schema.prisma
+
+// Обновления для существующих моделей
+model Business {
+  // ... существующие поля остаются без изменений
+  
+  // SEO и шеринг
+  slug            String?   @unique  // URL-friendly slug
+  shareCount      Int       @default(0)  // Количество шерингов
+  
+  // Мета-данные для социальных сетей  
+  ogTitle         String?   // Заголовок для OpenGraph
+  ogDescription   String?   // Описание для OpenGraph
+  ogImage         String?   // Изображение для соц. сетей
+  
+  // Связи (добавить к существующим)
+  shareAnalytics  ShareAnalytics[]
+  
+  @@map("businesses")
+}
+
+model TelegramChat {
+  // ... существующие поля остаются без изменений
+  
+  // SEO и шеринг
+  slug            String?   @unique  // URL-friendly slug
+  shareCount      Int       @default(0)
+  
+  // Мета-данные
+  ogTitle         String?
+  ogDescription   String?
+  ogImage         String?
+  
+  // Связи (добавить к существующим)
+  shareAnalytics  ShareAnalytics[]
+  
+  @@map("telegram_chats")
+}
+
+// Новая таблица для аналитики шеринга
+model ShareAnalytics {
+  id          Int      @id @default(autoincrement())
+  
+  // Что шерили
+  entityType  ShareEntityType  // BUSINESS, CHAT
+  entityId    Int
+  
+  // Связи с сущностями
+  business    Business?        @relation(fields: [businessId], references: [id])
+  businessId  Int?
+  chat        TelegramChat?    @relation(fields: [chatId], references: [id])
+  chatId      Int?
+  
+  // Откуда пришли
+  referrer    String?   // Источник перехода
+  userAgent   String?   // Браузер/устройство
+  ipAddress   String?   // IP для географии (анонимно)
+  
+  // UTM метки
+  utmSource   String?   // utm_source
+  utmMedium   String?   // utm_medium  
+  utmCampaign String?   // utm_campaign
+  
+  // Пользователь (если авторизован)
+  user        User?     @relation(fields: [userId], references: [id])
+  userId      Int?
+  
+  // Действие
+  action      ShareAction @default(LINK_CREATED)
+  
+  // Временные метки
+  createdAt   DateTime  @default(now())
+  
+  @@map("share_analytics")
+}
+
+// Обновить модель User (добавить связь)
+model User {
+  // ... существующие поля остаются без изменений
+  
+  // Связи (добавить к существующим)
+  shareAnalytics ShareAnalytics[]
+  
+  @@map("users")
+}
+
+// Новые enum'ы
+enum ShareEntityType {
+  BUSINESS
+  CHAT
+}
+
+enum ShareAction {
+  LINK_CREATED     // Ссылка создана
+  LINK_CLICKED     // По ссылке кликнули
+  SOCIAL_SHARED    // Поделились в соц. сети
+  APP_OPENED       // Открыли TMA из share-ссылки
+  QR_SCANNED       // QR-код отсканирован
+}

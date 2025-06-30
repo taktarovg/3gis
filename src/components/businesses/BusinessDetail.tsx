@@ -14,6 +14,7 @@ import { PremiumPlansModal } from '@/components/premium/PremiumPlansModal';
 import { SubscriptionStatus } from '@/components/premium/SubscriptionStatus';
 import { useTelegramStars } from '@/hooks/use-telegram-stars';
 import { useBusinessOwner } from '@/hooks/use-business-owner';
+import { ShareButton } from '@/components/share/ShareButton';
 
 interface BusinessDetailProps {
   business: {
@@ -143,12 +144,17 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
                 showCount={true}
                 layout="horizontal"
               />
-              <button
-                onClick={handleShare}
-                className="bg-black bg-opacity-50 text-white p-2 rounded-full"
-              >
-                <Share className="h-5 w-5" />
-              </button>
+              <ShareButton
+                type="business"
+                entity={{
+                  id: business.id,
+                  name: business.name,
+                  slug: business.id.toString(), // fallback to ID
+                  description: business.description || undefined
+                }}
+                variant="icon"
+                className="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70"
+              />
             </div>
 
             {/* Premium badge */}
@@ -179,12 +185,17 @@ export function BusinessDetail({ business }: BusinessDetailProps) {
                 showCount={true}
                 layout="horizontal"
               />
-              <button
-                onClick={handleShare}
-                className="bg-black bg-opacity-50 text-white p-2 rounded-full"
-              >
-                <Share className="h-5 w-5" />
-              </button>
+              <ShareButton
+                type="business"
+                entity={{
+                  id: business.id,
+                  name: business.name,
+                  slug: business.id.toString(), // fallback to ID
+                  description: business.description || undefined
+                }}
+                variant="icon"
+                className="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70"
+              />
             </div>
 
             {/* Business info in header */}

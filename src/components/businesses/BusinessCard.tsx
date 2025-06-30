@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { MapPin, Star, Clock, Trophy } from 'lucide-react';
 import { formatRating, formatDate } from '@/lib/utils';
 import { FavoriteButton } from '@/components/favorites/FavoriteButton';
+import { ShareButton } from '@/components/share/ShareButton';
 // ✅ Telegram SDK v3.x - haptic feedback
 import { hapticFeedbackImpactOccurred } from '@telegram-apps/sdk';
 
@@ -111,9 +112,9 @@ export function BusinessCard({
       }}
       aria-label={`Открыть профиль заведения ${business.name}`}
     >
-      {/* Header with Favorite button only */}
-      {showFavoriteButton && (
-        <div className="absolute top-3 right-3 z-10">
+      {/* Header with action buttons */}
+      <div className="absolute top-3 right-3 z-10 flex gap-2">
+        {showFavoriteButton && (
           <div onClick={handleFavoriteClick}>
             <FavoriteButton
               businessId={business.id}
@@ -124,8 +125,22 @@ export function BusinessCard({
               showCount={true}
             />
           </div>
+        )}
+        
+        <div onClick={handleFavoriteClick}>
+          <ShareButton
+            type="business"
+            entity={{
+              id: business.id,
+              name: business.name,
+              slug: business.id.toString(), // fallback to ID
+              description: business.description || undefined
+            }}
+            variant="icon"
+            className="bg-white bg-opacity-90 text-gray-700 p-2 rounded-full hover:bg-opacity-100 shadow-sm"
+          />
         </div>
-      )}
+      </div>
 
       {/* Photo */}
       {business.photos.length > 0 && !compactMode && (

@@ -43,6 +43,9 @@ model User {
   chatFavorites     ChatFavorite[]
   moderatedChats    TelegramChat[]     @relation("ChatModerator")
   submittedChats    TelegramChat[]     @relation("ChatSubmitter")
+  
+  // Связи с системой шеринга
+  shareAnalytics    ShareAnalytics[]
 
   @@map("users")
 }
@@ -79,12 +82,23 @@ model Business {
   rating        Float              @default(0)
   reviewCount   Int                @default(0)
   ownerId       Int
+  
+  // SEO и система шеринга
+  slug          String?            @unique // URL-friendly slug
+  shareCount    Int                @default(0) // Количество шерингов
+  
+  // Мета-данные для социальных сетей
+  ogTitle       String?            // Заголовок для OpenGraph
+  ogDescription String?            // Описание для OpenGraph
+  ogImage       String?            // Изображение для соц. сетей
+  
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
   favorites     BusinessFavorite[]
   photos        BusinessPhoto[]
   reviews       BusinessReview[]
   subscriptions BusinessSubscription[]
+  shareAnalytics ShareAnalytics[]  // Аналитика шеринга
   category      BusinessCategory   @relation(fields: [categoryId], references: [id])
   city          City               @relation(fields: [cityId], references: [id])
   state         State              @relation(fields: [stateId], references: [id])
@@ -299,6 +313,15 @@ model TelegramChat {
   viewCount     Int            @default(0)
   joinCount     Int            @default(0)
   
+  // SEO и система шеринга
+  slug          String?        @unique // URL-friendly slug
+  shareCount    Int            @default(0) // Количество шерингов
+  
+  // Мета-данные для социальных сетей
+  ogTitle       String?        // Заголовок для OpenGraph
+  ogDescription String?        // Описание для OpenGraph
+  ogImage       String?        // Изображение для соц. сетей
+  
   // Модерация
   status        ChatStatus     @default(PENDING)
   moderatedBy   User?          @relation("ChatModerator", fields: [moderatedById], references: [id])
@@ -312,6 +335,7 @@ model TelegramChat {
   
   // Связи
   favorites     ChatFavorite[]
+  shareAnalytics ShareAnalytics[] // Аналитика шеринга
   
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -377,4 +401,55 @@ enum ChatStatus {
   PENDING   // На модерации
   ACTIVE    // Одобрен
   REJECTED  // Отклонен
+}
+
+// Новая модель для аналитики шеринга
+model ShareAnalytics {
+  id          Int      @id @default(autoincrement())
+  
+  // Что шерили
+  entityType  ShareEntityType  // BUSINESS, CHAT
+  entityId    Int
+  
+  // Связи с сущностями
+  business    Business?        @relation(fields: [businessId], references: [id])
+  businessId  Int?
+  chat        TelegramChat?    @relation(fields: [chatId], references: [id])
+  chatId      Int?
+  
+  // Откуда пришли
+  referrer    String?   // Источник перехода
+  userAgent   String?   // Браузер/устройство
+  ipAddress   String?   // IP для географии (анонимно)
+  
+  // UTM метки
+  utmSource   String?   // utm_source
+  utmMedium   String?   // utm_medium
+  utmCampaign String?   // utm_campaign
+  
+  // Пользователь (если авторизован)
+  user        User?     @relation(fields: [userId], references: [id])
+  userId      Int?
+  
+  // Действие
+  action      ShareAction @default(LINK_CREATED)
+  
+  // Временные метки
+  createdAt   DateTime  @default(now())
+  
+  @@map("share_analytics")
+}
+
+// Новые enum'ы для системы шеринга
+enum ShareEntityType {
+  BUSINESS
+  CHAT
+}
+
+enum ShareAction {
+  LINK_CREATED     // Ссылка создана
+  LINK_CLICKED     // По ссылке кликнули
+  SOCIAL_SHARED    // Поделились в соц. сети
+  APP_OPENED       // Открыли TMA из share-ссылки
+  QR_SCANNED       // QR-код отсканирован
 }

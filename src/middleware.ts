@@ -11,9 +11,37 @@ const API_PATHS_TO_OPTIMIZE = [
   '/api/favorites'
 ];
 
-// Middleware для оптимизации API запросов
+// Middleware для оптимизации API запросов и обработки коротких ссылок
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
+  
+  // ✅ Обработка коротких ссылок /b/slug и /c/slug
+  if (pathname.startsWith('/b/') || pathname.startsWith('/c/')) {
+    const [, type, slug] = pathname.split('/');
+    const shareType = type === 'b' ? 'business' : 'chat';
+    
+    // Сохраняем все query параметры (UTM метки и т.д.)
+    const queryString = searchParams.toString();
+    const newUrl = new URL(`/share/${shareType}/${slug}`, request.url);
+    
+    if (queryString) {
+      newUrl.search = queryString;
+    }
+    
+    return NextResponse.rewrite(newUrl);
+  }
+  
+  // ✅ Обработка legacy редиректов
+  if (pathname === '/redirect') {
+    const id = searchParams.get('id');
+    const type = searchParams.get('type');
+    
+    if (id && type && ['business', 'chat'].includes(type)) {
+      return NextResponse.redirect(
+        new URL(`/share/${type}/${id}`, request.url)
+      );
+    }
+  }
   
   // Применяем оптимизации только к API маршрутам
   if (pathname.startsWith('/api/')) {
@@ -49,11 +77,18 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Применяем middleware ко всем маршрутам кроме:
+     * Применяем middleware к:
+     * - Коротким ссылкам /b/ и /c/
+     * - Legacy редиректам /redirect
+     * - API маршрутам /api/
+     * Исключаем:
      * - _next/static (статические файлы)
      * - _next/image (оптимизация изображений)
      * - favicon.ico (иконка)
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/b/:path*',
+    '/c/:path*', 
+    '/redirect',
+    '/api/:path*'
   ],
 }

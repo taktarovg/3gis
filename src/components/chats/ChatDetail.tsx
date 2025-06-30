@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ArrowLeft, Users, MapPin, Shield, ExternalLink, Heart, Share, Flag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { ShareButton } from '@/components/share/ShareButton';
 
 interface ChatDetailProps {
   chat: {
@@ -39,7 +40,7 @@ export function ChatDetail({ chat }: ChatDetailProps) {
   const router = useRouter();
   const [isJoining, setIsJoining] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
+
 
   const handleJoin = async () => {
     setIsJoining(true);
@@ -61,27 +62,7 @@ export function ChatDetail({ chat }: ChatDetailProps) {
     }
   };
 
-  const handleShare = async () => {
-    setIsSharing(true);
-    
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: chat.title,
-          text: chat.description || `${chat.title} - русскоязычное сообщество`,
-          url: window.location.href,
-        });
-      } else {
-        // Fallback - копируем в буфер обмена
-        await navigator.clipboard.writeText(window.location.href);
-        alert('Ссылка скопирована в буфер обмена');
-      }
-    } catch (error) {
-      console.log('Sharing cancelled or failed');
-    } finally {
-      setIsSharing(false);
-    }
-  };
+
 
   const handleFavorite = async () => {
     try {
@@ -276,13 +257,17 @@ export function ChatDetail({ chat }: ChatDetailProps) {
             {isJoining ? 'Переход...' : 'Присоединиться'}
           </button>
           
-          <button
-            onClick={handleShare}
-            disabled={isSharing}
-            className="px-3 py-3 border border-gray-300 hover:bg-gray-50 disabled:opacity-50 rounded-lg transition-colors"
-          >
-            <Share className="w-4 h-4" />
-          </button>
+          <ShareButton
+            type="chat"
+            entity={{
+              id: chat.id,
+              title: chat.title,
+              slug: chat.id.toString(), // fallback to ID
+              description: chat.description
+            }}
+            variant="icon"
+            className="px-3 py-3 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
+          />
           
           <button
             onClick={handleFavorite}
