@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { Metadata } from 'next';
 import { Suspense } from 'react';
+import Image from 'next/image';
 import { 
   MapPin, 
   Phone, 
@@ -107,7 +108,12 @@ export default async function BusinessSharePage({
             <div className="flex items-center space-x-2">
               <ShareButton 
                 type="business"
-                entity={business}
+                entity={{
+                  id: business.id,
+                  name: business.name,
+                  slug: business.slug || undefined,
+                  description: business.description || undefined
+                }}
                 variant="icon"
                 className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
               />
@@ -127,10 +133,13 @@ export default async function BusinessSharePage({
         <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
           {business.photos.length > 0 && (
             <div className="aspect-video w-full bg-gray-200 relative">
-              <img
+              <Image
                 src={business.photos[0].url}
                 alt={business.name}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                priority
               />
               {business.premiumTier !== 'FREE' && (
                 <div className="absolute top-4 right-4 bg-yellow-500 text-yellow-900 px-2 py-1 rounded-md text-xs font-medium">

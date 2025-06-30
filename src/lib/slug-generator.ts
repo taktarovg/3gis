@@ -230,7 +230,7 @@ export const SlugUtils = {
 };
 
 // Экспорт для использования в других модулях
-export default {
+const SlugGenerator = {
   generateSlug,
   transliterate,
   generateUniqueSlug,
@@ -239,3 +239,5 @@ export default {
   updateExistingSlugs,
   SlugUtils
 };
+
+export default SlugGenerator;

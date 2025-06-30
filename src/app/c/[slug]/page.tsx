@@ -112,7 +112,12 @@ export default async function ChatSharePage({
             <div className="flex items-center space-x-2">
               <ShareButton 
                 type="chat"
-                entity={chat}
+                entity={{
+                  id: chat.id,
+                  title: chat.title,
+                  slug: chat.slug || undefined,
+                  description: chat.description || undefined
+                }}
                 variant="icon"
                 className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
               />
