@@ -23,39 +23,51 @@ export function TelegramRedirect({
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     
-    // Проверяем, запущено ли в Telegram
+    // ✅ Правильная ссылка для 3GIS Bot
+    const botUsername = 'ThreeGIS_bot';
+    
+    // Парсим URL чтобы извлечь startapp параметр
+    const startParam = extractStartParam(url);
+    
+    // ✅ Формируем правильную ссылку для Telegram
+    const telegramUrl = `https://t.me/${botUsername}/app${startParam ? `?startapp=${startParam}` : ''}`;
+    
+    console.log('🔗 Opening Telegram URL:', telegramUrl);
+    
+    // Проверяем платформу
     const userAgent = navigator.userAgent || '';
     const isTelegram = userAgent.includes('Telegram');
     const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
     
-    // Если уже в Telegram, используем обычную навигацию
+    // Если уже в Telegram, используем внутреннюю навигацию
     if (isTelegram) {
-      window.location.href = url;
+      // Для TMA используем window.location для внутренней навигации
+      window.location.href = url.startsWith('/') ? url : `/${url}`;
       return;
     }
     
-    // Для мобильных устройств пытаемся открыть через deep link
+    // ✅ Для внешних браузеров - открываем TMA через deep link
     if (isMobile) {
-      const telegramUrl = `https://t.me/ThreeGIS_bot/app?startapp=${encodeURIComponent(url)}`;
+      // Пытаемся открыть нативное приложение Telegram
+      const nativeUrl = `tg://resolve?domain=${botUsername}&appname=app${startParam ? `&startapp=${startParam}` : ''}`;
       
-      // Пытаемся открыть через Telegram app
+      // Создаем невидимый iframe для попытки открыть нативное приложение
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
-      iframe.src = `tg://resolve?domain=ThreeGIS_bot&appname=app&startapp=${encodeURIComponent(url)}`;
+      iframe.src = nativeUrl;
       document.body.appendChild(iframe);
       
-      // Fallback через веб-версию через 500ms
+      // Если через 500ms приложение не открылось, используем веб-версию
       setTimeout(() => {
         document.body.removeChild(iframe);
-        window.open(telegramUrl, '_blank');
+        window.open(telegramUrl, target);
       }, 500);
       
       return;
     }
     
-    // Для десктопа открываем веб-версию Telegram
-    const webTelegramUrl = `https://web.telegram.org/k/#@ThreeGIS_bot?startapp=${encodeURIComponent(url)}`;
-    window.open(webTelegramUrl, target);
+    // ✅ Для десктопа - всегда веб-версия Telegram
+    window.open(telegramUrl, target);
   };
   
   return (
@@ -67,4 +79,36 @@ export function TelegramRedirect({
       {children}
     </button>
   );
+}
+
+/**
+ * ✅ Функция для извлечения startapp параметра из URL
+ */
+function extractStartParam(url: string): string | null {
+  // Удаляем начальный слеш и извлекаем путь
+  const cleanUrl = url.replace(/^\/+/, '');
+  
+  // Конвертируем путь в startapp параметр
+  if (cleanUrl.startsWith('tg/business/')) {
+    const businessId = cleanUrl.replace('tg/business/', '');
+    return `business_${businessId}`;
+  }
+  
+  if (cleanUrl.startsWith('tg/chat/')) {
+    const chatId = cleanUrl.replace('tg/chat/', '');
+    return `chat_${chatId}`;
+  }
+  
+  if (cleanUrl.startsWith('tg/businesses')) {
+    const params = new URLSearchParams(cleanUrl.split('?')[1] || '');
+    const category = params.get('category');
+    return category ? `businesses_${category}` : 'businesses';
+  }
+  
+  if (cleanUrl === 'tg' || cleanUrl === 'tg/') {
+    return null; // Главная страница без параметров
+  }
+  
+  // Для других URL используем base64 encoding
+  return btoa(cleanUrl).replace(/[+/=]/g, '');
 }

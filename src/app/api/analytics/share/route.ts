@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // ✅ Исправлено: Используем правильные поля camelCase как в Prisma schema
+    // ✅ Исправлено: Используем правильные поля согласно @map в Prisma schema
     const analyticsData = {
       entityType: entityType as 'BUSINESS' | 'CHAT',
       entityId: parseInt(entityId),

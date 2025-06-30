@@ -110,18 +110,17 @@ export default async function BusinessSharePage({
               <Suspense fallback={
                 <div className="p-2 text-gray-600 rounded-lg w-10 h-10 bg-gray-100 animate-pulse" />
               }>
-                <div className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer">
-                  <ShareButton 
-                    type="business"
-                    entity={{
-                      id: business.id,
-                      name: business.name,
-                      slug: business.slug || undefined,
-                      description: business.description || undefined
-                    }}
-                    variant="icon"
-                  />
-                </div>
+                <ShareButton 
+                  type="business"
+                  entity={{
+                    id: business.id,
+                    name: business.name,
+                    slug: business.slug || undefined,
+                    description: business.description || undefined
+                  }}
+                  variant="icon"
+                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
+                />
               </Suspense>
               <TelegramRedirect 
                 url={`/tg/businesses/${business.id}`}

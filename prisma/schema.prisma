@@ -408,34 +408,34 @@ model ShareAnalytics {
   id          Int      @id @default(autoincrement())
   
   // Что шерили
-  entityType  ShareEntityType  // BUSINESS, CHAT
-  entityId    Int
+  entityType  ShareEntityType  @map("entityType") // BUSINESS, CHAT
+  entityId    Int              @map("entityId")
   
   // Связи с сущностями
   business    Business?        @relation(fields: [businessId], references: [id])
-  businessId  Int?
+  businessId  Int?             @map("businessId")
   chat        TelegramChat?    @relation(fields: [chatId], references: [id])
-  chatId      Int?
+  chatId      Int?             @map("chatId")
   
   // Откуда пришли
-  referrer    String?   // Источник перехода
-  userAgent   String?   // Браузер/устройство
-  ipAddress   String?   // IP для географии (анонимно)
+  referrer    String?   @map("referrer")       // Источник перехода
+  userAgent   String?   @map("userAgent")     // Браузер/устройство
+  ipAddress   String?   @map("ipAddress")     // IP для географии (анонимно)
   
   // UTM метки
-  utmSource   String?   // utm_source
-  utmMedium   String?   // utm_medium
-  utmCampaign String?   // utm_campaign
+  utmSource   String?   @map("utmSource")     // utm_source
+  utmMedium   String?   @map("utmMedium")     // utm_medium
+  utmCampaign String?   @map("utmCampaign")   // utm_campaign
   
   // Пользователь (если авторизован)
   user        User?     @relation(fields: [userId], references: [id])
-  userId      Int?
+  userId      Int?      @map("userId")
   
   // Действие
   action      ShareAction @default(LINK_CREATED)
   
   // Временные метки
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime  @default(now()) @map("createdAt")
   
   @@map("share_analytics")
 }
