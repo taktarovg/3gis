@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { ChatDetail } from '@/components/chats/ChatDetail';
+import { sanitizeChatData, createSafeChatQuery, safeQuery } from '@/lib/database-utils';
 import { prisma } from '@/lib/prisma';
 
 // ✅ Next.js 15: params теперь является Promise
@@ -17,25 +18,8 @@ async function getChat(id: string) {
       return null;
     }
 
-    const chat = await prisma.telegramChat.findUnique({
-      where: {
-        id: chatId,
-        status: 'ACTIVE',
-        isActive: true,
-      },
-      include: {
-        city: {
-          select: { name: true }
-        },
-        state: {
-          select: { name: true, id: true }
-        },
-        _count: {
-          select: { favorites: true }
-        }
-      },
-    });
-
+    // Используем безопасную функцию для получения чата
+    const chat = await createSafeChatQuery(chatId);
     return chat;
   } catch (error) {
     console.error('Error fetching chat:', error);
@@ -52,14 +36,14 @@ export default async function ChatDetailPage({ params }: ChatPageProps) {
     notFound();
   }
 
-  return <ChatDetail chat={{
+  return <ChatDetail chat={sanitizeChatData({
     ...chat,
     description: chat.description ?? undefined,
     username: chat.username ?? undefined,
     topic: chat.topic ?? undefined,
     city: chat.city ?? undefined,
     state: chat.state ?? undefined
-  }} />;
+  })} />;
 }
 
 // ✅ Next.js 15: await params в generateMetadata
@@ -94,24 +78,28 @@ export async function generateMetadata({ params }: ChatPageProps) {
 // Генерация статических страниц для популярных чатов
 export async function generateStaticParams() {
   try {
-    const popularChats = await prisma.telegramChat.findMany({
-      where: {
-        status: 'ACTIVE',
-        isActive: true,
-        memberCount: {
-          gte: 1000, // Только чаты с 1000+ участников
+    // Используем безопасную функцию для получения чатов
+    const result = await safeQuery(
+      () => prisma.telegramChat.findMany({
+        where: {
+          status: 'ACTIVE',
+          isActive: true,
+          memberCount: {
+            gte: 1000, // Только чаты с 1000+ участников
+          },
         },
-      },
-      select: {
-        id: true,
-      },
-      orderBy: {
-        memberCount: 'desc',
-      },
-      take: 50, // Первые 50 популярных чатов
-    });
+        select: {
+          id: true,
+        },
+        orderBy: {
+          memberCount: 'desc',
+        },
+        take: 50, // Первые 50 популярных чатов
+      }),
+      [] // fallback
+    );
 
-    return popularChats.map((chat) => ({
+    return result.map((chat) => ({
       id: chat.id.toString(),
     }));
   } catch (error) {

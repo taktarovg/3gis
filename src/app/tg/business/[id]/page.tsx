@@ -2,7 +2,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { BusinessDetail } from '@/components/businesses/BusinessDetail';
-import { prisma } from '@/lib/prisma';
+import { sanitizeBusinessData, createSafeBusinessQuery } from '@/lib/database-utils';
 
 interface BusinessPageProps {
   params: Promise<{
@@ -17,37 +17,8 @@ async function getBusiness(id: string) {
       return null;
     }
 
-    const business = await prisma.business.findUnique({
-      where: {
-        id: businessId,
-        status: 'ACTIVE'
-      },
-      include: {
-        category: true,
-        city: {
-          include: {
-            state: true // Включаем связь с штатом
-          }
-        },
-        photos: {
-          orderBy: { order: 'asc' }
-        },
-        reviews: {
-          include: {
-            user: true
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 10
-        },
-        _count: {
-          select: {
-            reviews: true,
-            favorites: true
-          }
-        }
-      }
-    });
-
+    // Используем безопасную функцию для получения бизнеса
+    const business = await createSafeBusinessQuery(businessId);
     return business;
   } catch (error) {
     console.error('Error fetching business:', error);
@@ -65,14 +36,14 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
     notFound();
   }
 
-  // Преобразуем данные для компонента
-  const business = {
+  // Преобразуем данные для компонента с безопасной обработкой
+  const business = sanitizeBusinessData({
     ...businessData,
     city: {
       name: businessData.city.name,
       state: businessData.city.state?.name || businessData.city.stateId
     }
-  };
+  });
 
   return (
     <div className="threegis-app-container">
