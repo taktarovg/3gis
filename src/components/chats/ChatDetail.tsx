@@ -81,7 +81,7 @@ export function ChatDetail({ chat }: ChatDetailProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 pb-32">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-4 sticky top-0 z-10">
         <div className="flex items-center gap-3">
@@ -234,7 +234,7 @@ export function ChatDetail({ chat }: ChatDetailProps) {
       </div>
 
       {/* ✅ ОБНОВЛЕНО: Фиксированные кнопки действий с реальной реализацией избранного */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 safe-area-pb">
+      <div className="fixed bottom-20 left-0 right-0 p-4 bg-white border-t border-gray-200">
         <div className="flex gap-3">
           <button
             onClick={handleJoin}
