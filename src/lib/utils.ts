@@ -417,3 +417,85 @@ export function formatDateTime(dateString: string): string {
     return dateString;
   }
 }
+
+/**
+ * Расчет времени чтения статьи
+ */
+export function calculateReadingTime(content: string): number {
+  if (!content || typeof content !== 'string') return 1;
+  
+  // Убираем Markdown разметку для точного подсчета
+  const plainText = content
+    .replace(/#+\s/g, '') // Заголовки
+    .replace(/\*\*(.*?)\*\*/g, '$1') // Жирный текст
+    .replace(/\*(.*?)\*/g, '$1') // Курсив
+    .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Ссылки
+    .replace(/`(.*?)`/g, '$1') // Код
+    .replace(/\n+/g, ' ') // Переносы строк
+    .trim();
+  
+  // Подсчитываем слова
+  const words = plainText.split(/\s+/).filter(word => word.length > 0);
+  
+  // Примерно 200 слов в минуту для русского текста
+  const wordsPerMinute = 200;
+  const readingTime = Math.ceil(words.length / wordsPerMinute);
+  
+  // Минимум 1 минута
+  return Math.max(1, readingTime);
+}
+
+/**
+ * Создание SEO-дружественного slug'а
+ */
+export function createSlug(text: string): string {
+  if (!text) return '';
+  
+  return text
+    .toLowerCase()
+    .trim()
+    // Русские буквы в латиницу
+    .replace(/а/g, 'a')
+    .replace(/б/g, 'b')
+    .replace(/в/g, 'v')
+    .replace(/г/g, 'g')
+    .replace(/д/g, 'd')
+    .replace(/е/g, 'e')
+    .replace(/ё/g, 'yo')
+    .replace(/ж/g, 'zh')
+    .replace(/з/g, 'z')
+    .replace(/и/g, 'i')
+    .replace(/й/g, 'y')
+    .replace(/к/g, 'k')
+    .replace(/л/g, 'l')
+    .replace(/м/g, 'm')
+    .replace(/н/g, 'n')
+    .replace(/о/g, 'o')
+    .replace(/п/g, 'p')
+    .replace(/р/g, 'r')
+    .replace(/с/g, 's')
+    .replace(/т/g, 't')
+    .replace(/у/g, 'u')
+    .replace(/ф/g, 'f')
+    .replace(/х/g, 'kh')
+    .replace(/ц/g, 'ts')
+    .replace(/ч/g, 'ch')
+    .replace(/ш/g, 'sh')
+    .replace(/щ/g, 'sch')
+    .replace(/ъ/g, '')
+    .replace(/ы/g, 'y')
+    .replace(/ь/g, '')
+    .replace(/э/g, 'e')
+    .replace(/ю/g, 'yu')
+    .replace(/я/g, 'ya')
+    // Удаляем небуквенные символы
+    .replace(/[^a-z0-9\s-]/g, '')
+    // Пробелы в дефисы
+    .replace(/\s+/g, '-')
+    // Убираем множественные дефисы
+    .replace(/-+/g, '-')
+    // Убираем дефисы в начале и конце
+    .replace(/^-+|-+$/g, '')
+    // Ограничиваем длину
+    .substring(0, 60);
+}

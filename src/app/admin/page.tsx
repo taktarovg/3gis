@@ -12,7 +12,8 @@ import {
   TrendingUp,
   Calendar,
   Eye,
-  Star
+  Star,
+  FileText
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -31,6 +32,12 @@ interface DashboardStats {
     total: number;
     active: number;
     pending: number;
+  };
+  blog: {
+    totalPosts: number;
+    publishedPosts: number;
+    draftPosts: number;
+    weeklyViews: number;
   };
   views: {
     total: number;
@@ -65,6 +72,12 @@ export default function AdminDashboard() {
             total: 18,
             active: 15,
             pending: 3,
+          },
+          blog: {
+            totalPosts: 12,
+            publishedPosts: 8,
+            draftPosts: 4,
+            weeklyViews: 1450,
           },
           views: {
             total: 12540,
@@ -168,13 +181,20 @@ export default function AdminDashboard() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center">
-              <Eye className="w-8 h-8 text-orange-500" />
+              <FileText className="w-8 h-8 text-indigo-500" />
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">Просмотры</p>
-                <p className="text-xl font-semibold">{stats?.views?.total?.toLocaleString()}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  +{stats?.views?.today} сегодня
-                </p>
+                <p className="text-sm font-medium text-gray-600">Блог</p>
+                <p className="text-xl font-semibold">{stats?.blog?.totalPosts}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge className="bg-green-100 text-green-800 text-xs">
+                    {stats?.blog?.publishedPosts} опубликовано
+                  </Badge>
+                  {stats?.blog?.draftPosts && stats.blog.draftPosts > 0 && (
+                    <Badge className="bg-gray-100 text-gray-800 text-xs">
+                      {stats.blog.draftPosts} черновиков
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
@@ -262,32 +282,38 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Users className="w-5 h-5 mr-2" />
-              Пользователи
+              <FileText className="w-5 h-5 mr-2" />
+              Блог 3GIS
             </CardTitle>
             <CardDescription>
-              Управление зарегистрированными пользователями
+              Управление статьями и контентом для SEO продвижения
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
-                <span>Всего пользователей:</span>
-                <span className="font-medium">{stats?.users?.total}</span>
+                <span>Всего статей:</span>
+                <span className="font-medium">{stats?.blog?.totalPosts}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Новых сегодня:</span>
-                <span className="font-medium text-green-600">+{stats?.users?.recent}</span>
+                <span>Опубликовано:</span>
+                <span className="font-medium text-green-600">{stats?.blog?.publishedPosts}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Premium пользователи:</span>
-                <span className="font-medium text-yellow-600">89</span>
+                <span>Просмотров за неделю:</span>
+                <span className="font-medium text-blue-600">{stats?.blog?.weeklyViews}</span>
               </div>
             </div>
-            <div className="mt-4">
-              <Link href="/admin/users">
+            <div className="mt-4 space-y-2">
+              <Link href="/admin/blog">
                 <Button className="w-full" size="sm">
-                  Управление пользователями
+                  Управление блогом
+                </Button>
+              </Link>
+              <Link href="/admin/blog/create">
+                <Button className="w-full" size="sm" variant="outline">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Создать статью
                 </Button>
               </Link>
             </div>

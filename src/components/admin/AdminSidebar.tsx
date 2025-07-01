@@ -9,7 +9,8 @@ import {
   Users, 
   BarChart3,
   Settings,
-  ExternalLink
+  ExternalLink,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +24,16 @@ const navigation = [
     name: 'Заведения',
     href: '/admin/businesses',
     icon: Building2,
+  },
+  {
+    name: 'Блог',
+    href: '/admin/blog',
+    icon: FileText,
+    children: [
+      { name: 'Все статьи', href: '/admin/blog' },
+      { name: 'Создать статью', href: '/admin/blog/create' },
+      { name: 'Категории', href: '/admin/blog/categories' },
+    ],
   },
   {
     name: 'Чаты',
@@ -122,6 +133,14 @@ export function AdminSidebar() {
           >
             <ExternalLink className="mr-2 h-4 w-4" />
             Telegram App
+          </Link>
+          <Link 
+            href="/blog" 
+            target="_blank"
+            className="flex items-center text-sm text-gray-600 hover:text-gray-900"
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Публичный блог
           </Link>
         </div>
       </div>

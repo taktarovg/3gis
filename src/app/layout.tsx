@@ -4,6 +4,7 @@ import { ClientProvider } from './ClientProvider';
 import { inter } from './fonts';
 import { Toaster } from '@/components/ui/toaster';
 import { CookieBanner } from '@/components/legal/CookieBanner';
+import { GoogleAnalytics, PageViewTracker } from '@/components/analytics/GoogleAnalytics';
 import Script from 'next/script';
 
 export const metadata: Metadata = {
@@ -154,28 +155,11 @@ export default function RootLayout({
         {/* Cookie Banner - показывается только НЕ в Telegram Mini App */}
         <CookieBanner />
         
-        {/* Analytics (если понадобится) */}
-        {process.env.NODE_ENV === 'production' && (
-          <>
-            {/* Google Analytics */}
-            <Script
-              src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"
-              strategy="afterInteractive"
-            />
-            <Script
-              id="google-analytics"
-              strategy="afterInteractive"
-              dangerouslySetInnerHTML={{
-                __html: `
-                  window.dataLayer = window.dataLayer || [];
-                  function gtag(){dataLayer.push(arguments);}
-                  gtag('js', new Date());
-                  gtag('config', 'GA_MEASUREMENT_ID');
-                `,
-              }}
-            />
-          </>
-        )}
+        {/* Google Analytics 4 - всегда включен для аналитики */}
+        <GoogleAnalytics />
+        
+        {/* Page View Tracker - автоматическое отслеживание навигации */}
+        <PageViewTracker />
       </body>
     </html>
   );

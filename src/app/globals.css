@@ -3,6 +3,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ✅ Импорты для @uiw/react-md-editor - ОБЯЗАТЕЛЬНО для Next.js */
+@import "@uiw/react-md-editor/markdown-editor.css";
+@import "@uiw/react-markdown-preview/markdown.css";
+
 /* Дополнительные стили для лендинга */
 @layer base {
   :root {
@@ -294,4 +298,126 @@ body {
   .no-print {
     display: none !important;
   }
+}
+
+/* === СТИЛИ ДЛЯ MARKDOWN РЕДАКТОРА === */
+
+/* Кастомизация темы для dark mode */
+[data-color-mode="dark"] {
+  --color-prettylights-syntax-comment: #8b949e;
+  --color-prettylights-syntax-constant: #79c0ff;
+  --color-prettylights-syntax-entity: #d2a8ff;
+  --color-prettylights-syntax-storage-modifier-import: #c9d1d9;
+  --color-prettylights-syntax-entity-tag: #7ee787;
+  --color-prettylights-syntax-keyword: #ff7b72;
+  --color-prettylights-syntax-string: #a5d6ff;
+  --color-prettylights-syntax-variable: #ffa657;
+  --color-prettylights-syntax-brackethighlighter-unmatched: #f85149;
+  --color-prettylights-syntax-invalid-illegal-text: #f0f6fc;
+  --color-prettylights-syntax-invalid-illegal-bg: #8e1519;
+  --color-prettylights-syntax-carriage-return-text: #f0f6fc;
+  --color-prettylights-syntax-carriage-return-bg: #b62324;
+  --color-prettylights-syntax-string-regexp: #7ee787;
+  --color-prettylights-syntax-markup-list: #f2cc60;
+  --color-prettylights-syntax-markup-heading: #1f6feb;
+  --color-prettylights-syntax-markup-italic: #c9d1d9;
+  --color-prettylights-syntax-markup-bold: #c9d1d9;
+  --color-prettylights-syntax-markup-deleted-text: #ffdcd7;
+  --color-prettylights-syntax-markup-deleted-bg: #67060c;
+  --color-prettylights-syntax-markup-inserted-text: #aff5b4;
+  --color-prettylights-syntax-markup-inserted-bg: #033a16;
+  --color-prettylights-syntax-markup-changed-text: #ffdfb6;
+  --color-prettylights-syntax-markup-changed-bg: #5a1e02;
+  --color-prettylights-syntax-markup-ignored-text: #c9d1d9;
+  --color-prettylights-syntax-markup-ignored-bg: #1158c7;
+  --color-prettylights-syntax-meta-diff-range: #d2a8ff;
+  --color-prettylights-syntax-brackethighlighter-angle: #8b949e;
+  --color-prettylights-syntax-sublimelinter-gutter-mark: #484f58;
+  --color-prettylights-syntax-constant-other-reference-link: #a5d6ff;
+}
+
+/* Кастомизация markdown редактора */
+.w-md-editor {
+  background-color: transparent !important;
+}
+
+.w-md-editor.w-md-editor-focus {
+  border-color: hsl(var(--ring)) !important;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.1) !important;
+}
+
+.w-md-editor-text-container {
+  font-size: 14px !important;
+}
+
+.w-md-editor-text {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  line-height: 1.6 !important;
+}
+
+/* Стили для автосохранения индикатора */
+.autosave-indicator {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.autosave-indicator.saving {
+  background-color: hsl(var(--warning));
+  color: hsl(var(--warning-foreground));
+}
+
+.autosave-indicator.saved {
+  background-color: hsl(var(--success));
+  color: hsl(var(--success-foreground));
+}
+
+.autosave-indicator.error {
+  background-color: hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
+}
+
+/* Кастомные CSS переменные для success/warning (если нет в theme) */
+:root {
+  --success: 142 76% 36%;
+  --success-foreground: 355 100% 97%;
+  --warning: 43 96% 56%;
+  --warning-foreground: 26 83% 14%;
+}
+
+.dark {
+  --success: 142 76% 50%;
+  --success-foreground: 355 100% 97%;
+  --warning: 43 96% 60%;
+  --warning-foreground: 26 83% 14%;
+}
+
+/* Стили для панели выбора заведений */
+.business-selector {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.business-selector::-webkit-scrollbar {
+  width: 6px;
+}
+
+.business-selector::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 3px;
+}
+
+.business-selector::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 3px;
+}
+
+.business-selector::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
 }
