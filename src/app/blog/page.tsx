@@ -1,1 +1,255 @@
-import { Suspense } from 'react';\nimport Link from 'next/link';\nimport Image from 'next/image';\nimport { Clock, User, Eye, ArrowRight, Search } from 'lucide-react';\nimport { Header } from '@/components/layout/Header';\nimport { Footer } from '@/components/layout/Footer';\nimport { Breadcrumbs } from '@/components/ui/Breadcrumbs';\nimport { BlogSchema } from '@/components/blog/BlogSchema';\nimport { BlogPageViewTracker } from '@/components/analytics/GoogleAnalytics';\n\n// Получение данных блога\nasync function getBlogData() {\n  try {\n    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';\n    \n    // Получение постов и категорий параллельно\n    const [postsResponse, categoriesResponse] = await Promise.all([\n      fetch(`${baseUrl}/api/blog/posts?limit=12`, {\n        next: { revalidate: 300 } // Кэш на 5 минут\n      }),\n      fetch(`${baseUrl}/api/blog/categories?includePostCount=true`, {\n        next: { revalidate: 3600 } // Кэш на 1 час\n      })\n    ]);\n\n    if (!postsResponse.ok || !categoriesResponse.ok) {\n      throw new Error('Failed to fetch blog data');\n    }\n\n    const [postsData, categoriesData] = await Promise.all([\n      postsResponse.json(),\n      categoriesResponse.json()\n    ]);\n\n    return {\n      posts: postsData.posts || [],\n      categories: categoriesData.categories || [],\n      pagination: postsData.pagination\n    };\n  } catch (error) {\n    console.error('Error fetching blog data:', error);\n    return {\n      posts: [],\n      categories: [],\n      pagination: null\n    };\n  }\n}\n\n// Метаданные для SEO\nexport const metadata = {\n  title: 'Блог 3GIS - Полезные статьи для русскоговорящих в США',\n  description: 'Читайте наш блог о жизни в Америке, обзоры русскоязычных заведений, гайды по адаптации и полезные советы для иммигрантов.',\n  keywords: ['блог 3gis', 'русские в америке', 'иммиграция сша', 'русскоязычные услуги', 'жизнь в америке'],\n  openGraph: {\n    title: 'Блог 3GIS - Твой помощник в Америке',\n    description: 'Полезные статьи, обзоры заведений и гайды для русскоговорящих американцев',\n    images: ['/og-blog.jpg'],\n    type: 'website'\n  }\n};\n\nexport default async function BlogPage() {\n  const { posts, categories } = await getBlogData();\n\n  return (\n    <div className=\"min-h-screen bg-gray-50\">\n      {/* Google Analytics */}\n      <BlogPageViewTracker />\n      \n      {/* JSON-LD Schema */}\n      <BlogSchema posts={posts} />\n      \n      <Header variant=\"app\" />\n      \n      <main className=\"container mx-auto px-4 py-8\">\n        {/* Хлебные крошки */}\n        <Breadcrumbs \n          items={[\n            { label: 'Блог', href: '/blog' }\n          ]}\n          className=\"mb-6\"\n        />\n        \n        {/* Заголовок и описание */}\n        <div className=\"text-center mb-12\">\n          <h1 className=\"text-4xl md:text-5xl font-bold text-gray-900 mb-4\">\n            Блог 3GIS\n          </h1>\n          <p className=\"text-xl text-gray-600 max-w-3xl mx-auto\">\n            Полезные статьи о жизни в Америке, обзоры русскоязычных заведений \n            и гайды по адаптации для русскоговорящих иммигрантов\n          </p>\n        </div>\n        \n        {/* Категории */}\n        {categories.length > 0 && (\n          <div className=\"mb-12\">\n            <h2 className=\"text-2xl font-bold text-gray-900 mb-6\">Категории</h2>\n            <div className=\"grid grid-cols-2 md:grid-cols-4 gap-4\">\n              {categories.map((category) => (\n                <Link\n                  key={category.id}\n                  href={`/blog/category/${category.slug}`}\n                  className=\"group p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-all duration-200\"\n                >\n                  <div className=\"flex items-center justify-between\">\n                    <div>\n                      <h3 className=\"font-semibold text-gray-900 group-hover:text-blue-600\">\n                        {category.name}\n                      </h3>\n                      <p className=\"text-sm text-gray-500 mt-1\">\n                        {category.postCount || 0} статей\n                      </p>\n                    </div>\n                    <div \n                      className=\"w-4 h-8 rounded\"\n                      style={{ backgroundColor: category.color }}\n                    />\n                  </div>\n                </Link>\n              ))}\n            </div>\n          </div>\n        )}\n        \n        {/* Список статей */}\n        {posts.length > 0 ? (\n          <div className=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8\">\n            {posts.map((post) => (\n              <BlogPostCard key={post.id} post={post} />\n            ))}\n          </div>\n        ) : (\n          <div className=\"text-center py-12\">\n            <h3 className=\"text-xl font-semibold text-gray-900 mb-2\">\n              Скоро здесь появятся статьи\n            </h3>\n            <p className=\"text-gray-600\">\n              Мы готовим полезный контент для вас!\n            </p>\n          </div>\n        )}\n        \n        {/* CTA секция */}\n        <div className=\"mt-16 bg-blue-600 rounded-2xl p-8 md:p-12 text-center text-white\">\n          <h2 className=\"text-3xl font-bold mb-4\">\n            Найдите русскоязычные услуги в приложении\n          </h2>\n          <p className=\"text-xl text-blue-100 mb-8 max-w-2xl mx-auto\">\n            Откройте 3GIS в Telegram и найдите врачей, рестораны, юристов \n            и другие услуги рядом с вами\n          </p>\n          <Link\n            href=\"https://t.me/ThreeGIS_bot/app\"\n            target=\"_blank\"\n            className=\"inline-flex items-center px-8 py-4 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors\"\n          >\n            Открыть приложение\n            <ArrowRight className=\"w-5 h-5 ml-2\" />\n          </Link>\n        </div>\n      </main>\n      \n      <Footer />\n    </div>\n  );\n}\n\n// Компонент карточки статьи\nfunction BlogPostCard({ post }: { post: any }) {\n  return (\n    <Link \n      href={`/blog/${post.slug}`}\n      className=\"group block bg-white rounded-lg border border-gray-200 hover:shadow-lg transition-all duration-200 overflow-hidden\"\n    >\n      {/* Изображение */}\n      <div className=\"aspect-video bg-gray-100 relative overflow-hidden\">\n        {post.featuredImage ? (\n          <Image\n            src={post.featuredImage}\n            alt={post.title}\n            fill\n            className=\"object-cover group-hover:scale-105 transition-transform duration-200\"\n          />\n        ) : (\n          <div className=\"w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center\">\n            <Search className=\"w-12 h-12 text-blue-400\" />\n          </div>\n        )}\n        \n        {/* Категория бейдж */}\n        <div className=\"absolute top-3 left-3\">\n          <span \n            className=\"px-3 py-1 text-sm font-medium text-white rounded-full\"\n            style={{ backgroundColor: post.category.color }}\n          >\n            {post.category.name}\n          </span>\n        </div>\n      </div>\n\n      {/* Контент */}\n      <div className=\"p-6\">\n        <h3 className=\"text-xl font-bold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors mb-3\">\n          {post.title}\n        </h3>\n        \n        <p className=\"text-gray-600 line-clamp-3 mb-4\">\n          {post.excerpt}\n        </p>\n\n        {/* Метаданные */}\n        <div className=\"flex items-center justify-between text-sm text-gray-500\">\n          <div className=\"flex items-center space-x-4\">\n            <div className=\"flex items-center\">\n              <User className=\"w-4 h-4 mr-1\" />\n              <span>{post.author.name}</span>\n            </div>\n            <div className=\"flex items-center\">\n              <Clock className=\"w-4 h-4 mr-1\" />\n              <span>{post.readingTime} мин</span>\n            </div>\n          </div>\n          <div className=\"flex items-center\">\n            <Eye className=\"w-4 h-4 mr-1\" />\n            <span>{post.viewCount}</span>\n          </div>\n        </div>\n      </div>\n    </Link>\n  );\n}\n\n// CSS для line-clamp\nconst styles = `\n  .line-clamp-2 {\n    display: -webkit-box;\n    -webkit-line-clamp: 2;\n    -webkit-box-orient: vertical;\n    overflow: hidden;\n  }\n  .line-clamp-3 {\n    display: -webkit-box;\n    -webkit-line-clamp: 3;\n    -webkit-box-orient: vertical;\n    overflow: hidden;\n  }\n`;\n\nif (typeof document !== 'undefined') {\n  const styleSheet = document.createElement('style');\n  styleSheet.textContent = styles;\n  document.head.appendChild(styleSheet);\n}
+import { Suspense } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Clock, User, Eye, ArrowRight, Search } from 'lucide-react';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
+import { BlogSchema } from '@/components/blog/BlogSchema';
+import { BlogPageViewTracker } from '@/components/analytics/GoogleAnalytics';
+
+// Получение данных блога
+async function getBlogData() {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    
+    // Получение постов и категорий параллельно
+    const [postsResponse, categoriesResponse] = await Promise.all([
+      fetch(`${baseUrl}/api/blog/posts?limit=12`, {
+        next: { revalidate: 300 } // Кэш на 5 минут
+      }),
+      fetch(`${baseUrl}/api/blog/categories?includePostCount=true`, {
+        next: { revalidate: 3600 } // Кэш на 1 час
+      })
+    ]);
+
+    if (!postsResponse.ok || !categoriesResponse.ok) {
+      throw new Error('Failed to fetch blog data');
+    }
+
+    const [postsData, categoriesData] = await Promise.all([
+      postsResponse.json(),
+      categoriesResponse.json()
+    ]);
+
+    return {
+      posts: postsData.posts || [],
+      categories: categoriesData.categories || [],
+      pagination: postsData.pagination
+    };
+  } catch (error) {
+    console.error('Error fetching blog data:', error);
+    return {
+      posts: [],
+      categories: [],
+      pagination: null
+    };
+  }
+}
+
+// Метаданные для SEO
+export const metadata = {
+  title: 'Блог 3GIS - Полезные статьи для русскоговорящих в США',
+  description: 'Читайте наш блог о жизни в Америке, обзоры русскоязычных заведений, гайды по адаптации и полезные советы для иммигрантов.',
+  keywords: ['блог 3gis', 'русские в америке', 'иммиграция сша', 'русскоязычные услуги', 'жизнь в америке'],
+  openGraph: {
+    title: 'Блог 3GIS - Твой помощник в Америке',
+    description: 'Полезные статьи, обзоры заведений и гайды для русскоговорящих американцев',
+    images: ['/og-blog.jpg'],
+    type: 'website'
+  }
+};
+
+export default async function BlogPage() {
+  const { posts, categories } = await getBlogData();
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Google Analytics */}
+      <BlogPageViewTracker />
+      
+      {/* JSON-LD Schema */}
+      <BlogSchema posts={posts} />
+      
+      <Header variant="app" />
+      
+      <main className="container mx-auto px-4 py-8">
+        {/* Хлебные крошки */}
+        <Breadcrumbs 
+          items={[
+            { label: 'Блог', href: '/blog' }
+          ]}
+          className="mb-6"
+        />
+        
+        {/* Заголовок и описание */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            Блог 3GIS
+          </h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Полезные статьи о жизни в Америке, обзоры русскоязычных заведений 
+            и гайды по адаптации для русскоговорящих иммигрантов
+          </p>
+        </div>
+        
+        {/* Категории */}
+        {categories.length > 0 && (
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Категории</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {categories.map((category) => (
+                <Link
+                  key={category.id}
+                  href={`/blog/category/${category.slug}`}
+                  className="group p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-all duration-200"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 group-hover:text-blue-600">
+                        {category.name}
+                      </h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {category.postCount || 0} статей
+                      </p>
+                    </div>
+                    <div 
+                      className="w-4 h-8 rounded"
+                      style={{ backgroundColor: category.color }}
+                    />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Список статей */}
+        {posts.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {posts.map((post) => (
+              <BlogPostCard key={post.id} post={post} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Скоро здесь появятся статьи
+            </h3>
+            <p className="text-gray-600">
+              Мы готовим полезный контент для вас!
+            </p>
+          </div>
+        )}
+        
+        {/* CTA секция */}
+        <div className="mt-16 bg-blue-600 rounded-2xl p-8 md:p-12 text-center text-white">
+          <h2 className="text-3xl font-bold mb-4">
+            Найдите русскоязычные услуги в приложении
+          </h2>
+          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            Откройте 3GIS в Telegram и найдите врачей, рестораны, юристов 
+            и другие услуги рядом с вами
+          </p>
+          <Link
+            href="https://t.me/ThreeGIS_bot/app"
+            target="_blank"
+            className="inline-flex items-center px-8 py-4 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            Открыть приложение
+            <ArrowRight className="w-5 h-5 ml-2" />
+          </Link>
+        </div>
+      </main>
+      
+      <Footer />
+    </div>
+  );
+}
+
+// Компонент карточки статьи
+function BlogPostCard({ post }: { post: any }) {
+  return (
+    <Link 
+      href={`/blog/${post.slug}`}
+      className="group block bg-white rounded-lg border border-gray-200 hover:shadow-lg transition-all duration-200 overflow-hidden"
+    >
+      {/* Изображение */}
+      <div className="aspect-video bg-gray-100 relative overflow-hidden">
+        {post.featuredImage ? (
+          <Image
+            src={post.featuredImage}
+            alt={post.title}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-200"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
+            <Search className="w-12 h-12 text-blue-400" />
+          </div>
+        )}
+        
+        {/* Категория бейдж */}
+        <div className="absolute top-3 left-3">
+          <span 
+            className="px-3 py-1 text-sm font-medium text-white rounded-full"
+            style={{ backgroundColor: post.category.color }}
+          >
+            {post.category.name}
+          </span>
+        </div>
+      </div>
+
+      {/* Контент */}
+      <div className="p-6">
+        <h3 className="text-xl font-bold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors mb-3">
+          {post.title}
+        </h3>
+        
+        <p className="text-gray-600 line-clamp-3 mb-4">
+          {post.excerpt}
+        </p>
+
+        {/* Метаданные */}
+        <div className="flex items-center justify-between text-sm text-gray-500">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center">
+              <User className="w-4 h-4 mr-1" />
+              <span>{post.author.name}</span>
+            </div>
+            <div className="flex items-center">
+              <Clock className="w-4 h-4 mr-1" />
+              <span>{post.readingTime} мин</span>
+            </div>
+          </div>
+          <div className="flex items-center">
+            <Eye className="w-4 h-4 mr-1" />
+            <span>{post.viewCount}</span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// CSS для line-clamp
+const styles = `
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+`;
+
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = styles;
+  document.head.appendChild(styleSheet);
+}
