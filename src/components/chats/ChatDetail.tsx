@@ -5,6 +5,7 @@ import { ArrowLeft, Users, MapPin, Shield, ExternalLink, Heart, Share, Flag } fr
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ShareButton } from '@/components/share/ShareButton';
+import { ChatFavoriteButton } from '@/components/favorites/ChatFavoriteButton';
 
 interface ChatDetailProps {
   chat: {
@@ -39,8 +40,6 @@ const TYPE_COLORS = {
 export function ChatDetail({ chat }: ChatDetailProps) {
   const router = useRouter();
   const [isJoining, setIsJoining] = useState(false);
-  const [isFavorited, setIsFavorited] = useState(false);
-
 
   const handleJoin = async () => {
     setIsJoining(true);
@@ -59,17 +58,6 @@ export function ChatDetail({ chat }: ChatDetailProps) {
       console.error('Error joining chat:', error);
     } finally {
       setIsJoining(false);
-    }
-  };
-
-
-
-  const handleFavorite = async () => {
-    try {
-      // TODO: Implement favorite functionality
-      setIsFavorited(!isFavorited);
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
     }
   };
 
@@ -245,7 +233,7 @@ export function ChatDetail({ chat }: ChatDetailProps) {
         </div>
       </div>
 
-      {/* Фиксированные кнопки действий */}
+      {/* ✅ ОБНОВЛЕНО: Фиксированные кнопки действий с реальной реализацией избранного */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 safe-area-pb">
         <div className="flex gap-3">
           <button
@@ -269,17 +257,15 @@ export function ChatDetail({ chat }: ChatDetailProps) {
             className="px-3 py-3 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
           />
           
-          <button
-            onClick={handleFavorite}
-            className={cn(
-              'px-3 py-3 border rounded-lg transition-colors',
-              isFavorited 
-                ? 'border-red-300 bg-red-50 text-red-600' 
-                : 'border-gray-300 hover:bg-gray-50'
-            )}
-          >
-            <Heart className={cn('w-4 h-4', isFavorited && 'fill-current')} />
-          </button>
+          {/* ✅ ИСПРАВЛЕНО: Заменили заглушку на реальную кнопку избранного */}
+          <ChatFavoriteButton
+            chatId={chat.id}
+            favoritesCount={chat._count.favorites}
+            size="md"
+            variant="outline"
+            showCount={false}
+            className="px-3 py-3"
+          />
           
           <button className="px-3 py-3 border border-gray-300 hover:bg-gray-50 text-red-600 hover:text-red-700 rounded-lg transition-colors">
             <Flag className="w-4 h-4" />
