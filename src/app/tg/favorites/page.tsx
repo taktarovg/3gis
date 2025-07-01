@@ -12,6 +12,7 @@ type TabType = 'businesses' | 'chats';
 export default function FavoritesPage() {
   const [activeTab, setActiveTab] = useState<TabType>('businesses');
   const [favoriteChats, setFavoriteChats] = useState<any[]>([]);
+  const [chatCount, setChatCount] = useState(0);
   const [loadingChats, setLoadingChats] = useState(true);
   
   const { data: businessFavorites, isLoading: isLoadingBusinesses, error: businessError } = useFavorites();
@@ -30,9 +31,11 @@ export default function FavoritesPage() {
         const data = await response.json();
         console.log('💬 [FAVORITES] Chat favorites response:', data);
         setFavoriteChats(data?.favorites || []);
+        setChatCount(data?.count || 0);
       } catch (error) {
         console.error('Error loading favorite chats:', error);
         setFavoriteChats([]);
+        setChatCount(0);
       } finally {
         setLoadingChats(false);
       }
@@ -48,9 +51,10 @@ export default function FavoritesPage() {
       // Отправляем статистику перехода
       await fetch(`/api/chats/${chatId}/join`, { method: 'POST' });
       
-      // Находим чат и открываем ссылку
-      const chat = favoriteChats.find(c => c.id === chatId);
-      if (chat) {
+      // Находим чат в избранных (ищем в свойстве chat)
+      const favoriteChat = favoriteChats.find(favorite => favorite.chat.id === chatId);
+      if (favoriteChat && favoriteChat.chat) {
+        const chat = favoriteChat.chat;
         if (chat.username) {
           window.open(`https://t.me/${chat.username}`, '_blank');
         } else {
@@ -62,7 +66,7 @@ export default function FavoritesPage() {
     }
   };
 
-  const totalFavorites = businessCount + favoriteChats.length;
+  const totalFavorites = businessCount + chatCount;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -111,7 +115,7 @@ export default function FavoritesPage() {
             }`}
           >
             <MessageSquare className="w-4 h-4" />
-            Чаты ({favoriteChats.length})
+            Чаты ({chatCount})
           </button>
         </div>
       </div>
@@ -142,10 +146,10 @@ export default function FavoritesPage() {
               </div>
             ) : favoriteChats.length > 0 ? (
               <div className="space-y-4">
-                {favoriteChats.map((chat) => (
+                {favoriteChats.map((favorite) => (
                   <ChatCard
-                    key={chat.id}
-                    chat={chat}
+                    key={favorite.id}
+                    chat={favorite.chat}
                     onJoin={handleJoinChat}
                   />
                 ))}
