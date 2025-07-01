@@ -104,7 +104,7 @@ model Business {
   shareAnalytics ShareAnalytics[]  // Аналитика шеринга
   
   // Связь с блогом
-  blogPosts     BlogPost[]         @relation("BlogPostBusinesses")
+  blogPosts     BlogPostBusiness[]  // Обратная связь к many-to-many
   
   category      BusinessCategory   @relation(fields: [categoryId], references: [id])
   city          City               @relation(fields: [cityId], references: [id])
@@ -345,7 +345,7 @@ model TelegramChat {
   shareAnalytics ShareAnalytics[] // Аналитика шеринга
   
   // Связь с блогом
-  blogPosts     BlogPost[]       @relation("BlogPostChats")
+  blogPosts     BlogPostChat[]   // Обратная связь к many-to-many
   
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -504,8 +504,8 @@ model BlogPost {
   updatedAt   DateTime     @updatedAt
   
   // Связи с заведениями и чатами
-  mentionedBusinesses Business[] @relation("BlogPostBusinesses")
-  mentionedChats     TelegramChat[] @relation("BlogPostChats")
+  mentionedBusinesses BlogPostBusiness[] // Обратная связь к many-to-many
+  mentionedChats     BlogPostChat[]     // Обратная связь к many-to-many
   
   @@map("blog_posts")
 }
@@ -525,9 +525,9 @@ model BlogCategory {
 
 // Many-to-many связи
 model BlogPostBusiness {
-  blogPost   BlogPost @relation("BlogPostBusinesses", fields: [blogPostId], references: [id])
+  blogPost   BlogPost @relation(fields: [blogPostId], references: [id])
   blogPostId Int
-  business   Business @relation("BlogPostBusinesses", fields: [businessId], references: [id])
+  business   Business @relation(fields: [businessId], references: [id])
   businessId Int
   
   @@id([blogPostId, businessId])
@@ -535,9 +535,9 @@ model BlogPostBusiness {
 }
 
 model BlogPostChat {
-  blogPost   BlogPost     @relation("BlogPostChats", fields: [blogPostId], references: [id])
+  blogPost   BlogPost     @relation(fields: [blogPostId], references: [id])
   blogPostId Int
-  chat       TelegramChat @relation("BlogPostChats", fields: [chatId], references: [id])
+  chat       TelegramChat @relation(fields: [chatId], references: [id])
   chatId     Int
   
   @@id([blogPostId, chatId])
