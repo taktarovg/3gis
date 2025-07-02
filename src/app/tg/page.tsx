@@ -73,6 +73,27 @@ interface Category {
   order: number;
 }
 
+// ✅ SDK v3.x: Правильная типизация LaunchParams для v3.x
+interface LaunchParams {
+  tgWebAppBotInline?: boolean;
+  tgWebAppData?: {
+    user?: {
+      id: number;
+      first_name: string;
+      last_name?: string;
+      username?: string;
+      language_code?: string;
+    };
+    auth_date?: Date;
+    query_id?: string;
+    hash?: string;
+  };
+  tgWebAppStartParam?: string;
+  tgWebAppThemeParams?: Record<string, string>;
+  tgWebAppVersion?: string;
+  tgWebAppPlatform?: string;
+}
+
 // ✅ Добавляем хук для получения категорий на клиенте с правильной типизацией
 function useCategories() {
   const [categories, setCategories] = React.useState<Category[]>([]); // ✅ Явная типизация
@@ -122,14 +143,15 @@ export default function ThreeGISHomePage() {
   
   // ✅ SDK v3.x: Получаем параметры запуска (хук должен вызываться БЕЗУСЛОВНО)
   // В v3.x SSR обрабатывается автоматически
-  const launchParams = useLaunchParams();
+  const launchParams = useLaunchParams() as LaunchParams;
   
   // ✅ Обрабатываем startapp параметры для навигации
   useEffect(() => {
     // ✅ SDK v3.x: проверяем tgWebAppStartParam вместо startParam
     const startParam = launchParams?.tgWebAppStartParam || launchParams?.tgWebAppData?.startParam;
     
-    if (startParam) {
+    // ✅ Проверяем что startParam это строка перед использованием
+    if (startParam && typeof startParam === 'string') {
       console.log('🚀 Start param detected:', startParam);
       
       // ✅ Обрабатываем различные типы startapp параметров
