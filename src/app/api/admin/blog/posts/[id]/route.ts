@@ -5,10 +5,11 @@ import { calculateReadingTime } from '@/lib/utils';
 // GET /api/admin/blog/posts/[id] - получение поста по ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const postId = parseInt(params.id);
+    const { id } = await params;
+    const postId = parseInt(id);
 
     const post = await prisma.blogPost.findUnique({
       where: { id: postId },
@@ -96,10 +97,11 @@ export async function GET(
 // PUT /api/admin/blog/posts/[id] - обновление поста
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const postId = parseInt(params.id);
+    const { id } = await params;
+    const postId = parseInt(id);
     const body = await request.json();
     const {
       title,
@@ -238,10 +240,11 @@ export async function PUT(
 // DELETE /api/admin/blog/posts/[id] - удаление поста
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const postId = parseInt(params.id);
+    const { id } = await params;
+    const postId = parseInt(id);
 
     // Удаление в транзакции (каскадное удаление связей)
     await prisma.$transaction(async (tx) => {

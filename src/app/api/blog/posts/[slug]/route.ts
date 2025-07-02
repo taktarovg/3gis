@@ -4,10 +4,10 @@ import { calculateReadingTime } from '@/lib/utils';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = params;
+    const { slug } = await params;
 
     // Получение поста по slug
     const post = await prisma.blogPost.findUnique({
@@ -189,7 +189,7 @@ export async function GET(
 // PUT - обновление поста (только для админов)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     // Проверка авторизации
@@ -201,7 +201,7 @@ export async function PUT(
       );
     }
 
-    const { slug } = params;
+    const { slug } = await params;
     const body = await request.json();
 
     // Поиск поста для обновления
@@ -325,7 +325,7 @@ export async function PUT(
 // DELETE - удаление поста (только для админов)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     // Проверка авторизации
@@ -337,7 +337,7 @@ export async function DELETE(
       );
     }
 
-    const { slug } = params;
+    const { slug } = await params;
 
     // Поиск поста для удаления
     const existingPost = await prisma.blogPost.findUnique({
