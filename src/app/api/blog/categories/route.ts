@@ -26,16 +26,27 @@ export async function GET(request: NextRequest) {
     });
 
     // Форматирование данных
-    const formattedCategories = categories.map(category => ({
-      id: category.id,
-      name: category.name,
-      slug: category.slug,
-      description: category.description,
-      color: category.color,
-      ...(includePostCount && {
-        postCount: category._count?.posts || 0
-      })
-    }));
+    const formattedCategories = categories.map(category => {
+      const baseCategory = {
+        id: category.id,
+        name: category.name,
+        slug: category.slug,
+        description: category.description,
+        color: category.color,
+      };
+      
+      if (includePostCount) {
+        const categoryWithCount = category as typeof category & {
+          _count?: { posts: number }
+        };
+        return {
+          ...baseCategory,
+          postCount: categoryWithCount._count?.posts || 0
+        };
+      }
+      
+      return baseCategory;
+    });
 
     return NextResponse.json({
       categories: formattedCategories
