@@ -8,6 +8,32 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { BlogSchema } from '@/components/blog/BlogSchema';
 import { BlogPageViewTracker } from '@/components/analytics/GoogleAnalytics';
 
+// Интерфейсы для типизации
+interface BlogCategory {
+  id: number;
+  name: string;
+  slug: string;
+  color: string;
+  postCount?: number;
+}
+
+interface BlogPost {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string;
+  featuredImage?: string;
+  readingTime: number;
+  viewCount: number;
+  author: {
+    name: string;
+  };
+  category: {
+    name: string;
+    color: string;
+  };
+}
+
 // Получение данных блога
 async function getBlogData() {
   try {
@@ -98,7 +124,7 @@ export default async function BlogPage() {
           <div className="mb-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Категории</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {categories.map((category) => (
+              {categories.map((category: BlogCategory) => (
                 <Link
                   key={category.id}
                   href={`/blog/category/${category.slug}`}
@@ -127,7 +153,7 @@ export default async function BlogPage() {
         {/* Список статей */}
         {posts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {posts.map((post) => (
+            {posts.map((post: BlogPost) => (
               <BlogPostCard key={post.id} post={post} />
             ))}
           </div>
@@ -168,7 +194,7 @@ export default async function BlogPage() {
 }
 
 // Компонент карточки статьи
-function BlogPostCard({ post }: { post: any }) {
+function BlogPostCard({ post }: { post: BlogPost }) {
   return (
     <Link 
       href={`/blog/${post.slug}`}
