@@ -3,20 +3,6 @@
 import { useEffect } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 
-// Типизация для Google Analytics
-type GtagCommand = 'config' | 'event' | 'js' | 'consent';
-type GtagConfigCommand = (command: 'config', targetId: string, config?: any) => void;
-type GtagEventCommand = (command: 'event', action: string, parameters?: any) => void;
-type GtagConsentCommand = (command: 'consent', action: string, parameters?: any) => void;
-type GtagJsCommand = (command: 'js', date: Date) => void;
-
-declare global {
-  interface Window {
-    gtag: GtagConfigCommand & GtagEventCommand & GtagConsentCommand & GtagJsCommand;
-    dataLayer: any[];
-  }
-}
-
 export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
 // Google Analytics tracking functions
