@@ -15,7 +15,7 @@ export default function AnalyticsTestPage() {
       console.log('window.gtag:', window.gtag);
       console.log('window.dataLayer:', window.dataLayer);
       
-      if (window.gtag) {
+      if (window.gtag && typeof window.gtag === 'function') {
         // Отправляем тестовое событие
         trackEvent('test_analytics', 'test', 'Analytics Test Button Click');
         track3GISEvent.searchBusiness('Тестовый поиск', 'рестораны', 'Нью-Йорк');
