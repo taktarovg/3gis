@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,28 +75,24 @@ export default function CreateBlogPostPage() {
   const [showChatSelector, setShowChatSelector] = useState(false);
   const [keywordInput, setKeywordInput] = useState('');
 
-  useEffect(() => {
-    loadInitialData();
-    
-    // Автосохранение каждые 30 секунд
-    const autosaveInterval = setInterval(() => {
-      if (formData.title || formData.content) {
-        handleAutosave();
-      }
-    }, 30000);
-
-    return () => clearInterval(autosaveInterval);
+  const generateSlug = useCallback((title: string): string => {
+    return title
+      .toLowerCase()
+      .replace(/[а-я]/g, (char) => {
+        const map: { [key: string]: string } = {
+          'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
+          'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'j', 'к': 'k', 'л': 'l', 'м': 'm',
+          'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+          'ф': 'f', 'х': 'h', 'ц': 'c', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+          'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+        };
+        return map[char] || char;
+      })
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }, []);
 
-  // Автогенерация slug при изменении заголовка
-  useEffect(() => {
-    if (formData.title && !formData.slug) {
-      const generatedSlug = generateSlug(formData.title);
-      setFormData(prev => ({ ...prev, slug: generatedSlug }));
-    }
-  }, [formData.title]);
-
-  const loadInitialData = async () => {
+  const loadInitialData = useCallback(async () => {
     try {
       // Симуляция загрузки данных
       setTimeout(() => {
@@ -124,26 +120,9 @@ export default function CreateBlogPostPage() {
     } catch (error) {
       console.error('Error loading initial data:', error);
     }
-  };
+  }, []);
 
-  const generateSlug = (title: string): string => {
-    return title
-      .toLowerCase()
-      .replace(/[а-я]/g, (char) => {
-        const map: { [key: string]: string } = {
-          'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
-          'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'j', 'к': 'k', 'л': 'l', 'м': 'm',
-          'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
-          'ф': 'f', 'х': 'h', 'ц': 'c', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
-          'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
-        };
-        return map[char] || char;
-      })
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-  };
-
-  const handleAutosave = async () => {
+  const handleAutosave = useCallback(async () => {
     setSaving(true);
     try {
       // Симуляция автосохранения
@@ -154,7 +133,30 @@ export default function CreateBlogPostPage() {
     } finally {
       setSaving(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadInitialData();
+  }, [loadInitialData]);
+
+  // Автогенерация slug при изменении заголовка
+  useEffect(() => {
+    if (formData.title && !formData.slug) {
+      const generatedSlug = generateSlug(formData.title);
+      setFormData(prev => ({ ...prev, slug: generatedSlug }));
+    }
+  }, [formData.title, formData.slug, generateSlug]);
+
+  useEffect(() => {
+    // Автосохранение каждые 30 секунд
+    const autosaveInterval = setInterval(() => {
+      if (formData.title || formData.content) {
+        handleAutosave();
+      }
+    }, 30000);
+
+    return () => clearInterval(autosaveInterval);
+  }, [formData.content, formData.title, handleAutosave]);
 
   const handleSave = async (publish: boolean = false) => {
     setSaving(true);

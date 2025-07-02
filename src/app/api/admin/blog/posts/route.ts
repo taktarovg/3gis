@@ -76,12 +76,6 @@ export async function GET(request: NextRequest) {
               lastName: true,
               avatar: true
             }
-          },
-          _count: {
-            select: {
-              mentionedBusinesses: true,
-              mentionedChats: true
-            }
           }
         },
         orderBy: [
@@ -111,10 +105,6 @@ export async function GET(request: NextRequest) {
         id: post.author.id,
         name: `${post.author.firstName} ${post.author.lastName}`.trim(),
         avatar: post.author.avatar
-      },
-      mentionedCount: {
-        businesses: post._count.mentionedBusinesses,
-        chats: post._count.mentionedChats
       }
     }));
 
@@ -122,24 +112,14 @@ export async function GET(request: NextRequest) {
     const stats = await Promise.all([
       prisma.blogPost.count(),
       prisma.blogPost.count({ where: { status: 'PUBLISHED' } }),
-      prisma.blogPost.count({ where: { status: 'DRAFT' } }),
-      prisma.blogPost.aggregate({
-        _sum: {
-          viewCount: true
-        },
-        where: {
-          publishedAt: {
-            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Последние 7 дней
-          }
-        }
-      })
+      prisma.blogPost.count({ where: { status: 'DRAFT' } })
     ]);
 
     const blogStats = {
       totalPosts: stats[0],
       publishedPosts: stats[1],
       draftPosts: stats[2],
-      weeklyViews: stats[3]._sum.viewCount || 0
+      weeklyViews: 0 // Пока без подсчета просмотров
     };
 
     // Метаданные пагинации

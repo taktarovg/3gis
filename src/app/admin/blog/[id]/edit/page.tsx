@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 
 interface BlogPost {
@@ -101,39 +102,7 @@ export default function EditBlogPostPage() {
   const [showChatSelector, setShowChatSelector] = useState(false);
   const [keywordInput, setKeywordInput] = useState('');
 
-  useEffect(() => {
-    loadPostData();
-    loadInitialData();
-    
-    const autosaveInterval = setInterval(() => {
-      if (formData.title || formData.content) {
-        handleAutosave();
-      }
-    }, 30000);
-
-    return () => clearInterval(autosaveInterval);
-  }, []);
-
-  useEffect(() => {
-    if (post) {
-      setFormData({
-        title: post.title,
-        slug: post.slug,
-        excerpt: post.excerpt,
-        content: post.content,
-        categoryId: post.categoryId.toString(),
-        metaTitle: post.metaTitle,
-        metaDescription: post.metaDescription,
-        keywords: post.keywords,
-        featuredImage: post.featuredImage,
-        featuredImageAlt: post.featuredImageAlt,
-        mentionedBusinesses: post.mentionedBusinesses,
-        mentionedChats: post.mentionedChats
-      });
-    }
-  }, [post]);
-
-  const loadPostData = async () => {
+  const loadPostData = useCallback(async () => {
     try {
       setTimeout(() => {
         const mockPost: BlogPost = {
@@ -181,9 +150,9 @@ export default function EditBlogPostPage() {
       console.error('Error loading post:', error);
       setLoading(false);
     }
-  };
+  }, [postId]);
 
-  const loadInitialData = async () => {
+  const loadInitialData = useCallback(async () => {
     try {
       setTimeout(() => {
         setCategories([
@@ -210,9 +179,9 @@ export default function EditBlogPostPage() {
     } catch (error) {
       console.error('Error loading initial data:', error);
     }
-  };
+  }, []);
 
-  const handleAutosave = async () => {
+  const handleAutosave = useCallback(async () => {
     setSaving(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -222,7 +191,41 @@ export default function EditBlogPostPage() {
     } finally {
       setSaving(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadPostData();
+    loadInitialData();
+  }, [loadPostData, loadInitialData]);
+
+  useEffect(() => {
+    if (post) {
+      setFormData({
+        title: post.title,
+        slug: post.slug,
+        excerpt: post.excerpt,
+        content: post.content,
+        categoryId: post.categoryId.toString(),
+        metaTitle: post.metaTitle,
+        metaDescription: post.metaDescription,
+        keywords: post.keywords,
+        featuredImage: post.featuredImage,
+        featuredImageAlt: post.featuredImageAlt,
+        mentionedBusinesses: post.mentionedBusinesses,
+        mentionedChats: post.mentionedChats
+      });
+    }
+  }, [post]);
+
+  useEffect(() => {
+    const autosaveInterval = setInterval(() => {
+      if (formData.title || formData.content) {
+        handleAutosave();
+      }
+    }, 30000);
+
+    return () => clearInterval(autosaveInterval);
+  }, [formData.content, formData.title, handleAutosave]);
 
   const handleSave = async (publish: boolean = false) => {
     setSaving(true);
@@ -606,9 +609,11 @@ export default function EditBlogPostPage() {
                 </Button>
                 {formData.featuredImage && (
                   <div className="mt-2">
-                    <img 
+                    <Image 
                       src={formData.featuredImage} 
-                      alt={formData.featuredImageAlt}
+                      alt={formData.featuredImageAlt || 'Изображение статьи'}
+                      width={400}
+                      height={128}
                       className="w-full h-32 object-cover rounded border"
                     />
                     <Input

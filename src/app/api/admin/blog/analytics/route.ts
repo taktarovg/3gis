@@ -1,1 +1,96 @@
-// app/api/admin/blog/analytics/route.ts\nimport { NextRequest, NextResponse } from 'next/server';\nimport { prisma } from '@/lib/prisma';\n\n// GET /api/admin/blog/analytics - получение статистики блога\nexport async function GET(request: NextRequest) {\n  try {\n    // Параллельное получение всех метрик\n    const [totalPosts, publishedPosts, draftPosts, weeklyViews, monthlyViews] = await Promise.all([\n      // Общее количество постов\n      prisma.blogPost.count(),\n\n      // Количество опубликованных постов\n      prisma.blogPost.count({\n        where: { status: 'PUBLISHED' }\n      }),\n\n      // Количество черновиков\n      prisma.blogPost.count({\n        where: { status: 'DRAFT' }\n      }),\n\n      // Просмотры за неделю\n      prisma.blogPost.aggregate({\n        _sum: {\n          viewCount: true\n        },\n        where: {\n          status: 'PUBLISHED',\n          publishedAt: {\n            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // 7 дней назад\n          }\n        }\n      }),\n\n      // Просмотры за месяц\n      prisma.blogPost.aggregate({\n        _sum: {\n          viewCount: true\n        },\n        where: {\n          status: 'PUBLISHED',\n          publishedAt: {\n            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // 30 дней назад\n          }\n        }\n      })\n    ]);\n\n    // Дополнительная аналитика по категориям\n    const categoryStats = await prisma.blogCategory.findMany({\n      include: {\n        _count: {\n          select: {\n            posts: {\n              where: {\n                status: 'PUBLISHED'\n              }\n            }\n          }\n        }\n      },\n      orderBy: {\n        posts: {\n          _count: 'desc'\n        }\n      }\n    });\n\n    // Последние опубликованные посты\n    const recentPosts = await prisma.blogPost.findMany({\n      where: {\n        status: 'PUBLISHED'\n      },\n      include: {\n        category: {\n          select: {\n            name: true,\n            color: true\n          }\n        }\n      },\n      orderBy: {\n        publishedAt: 'desc'\n      },\n      take: 5\n    });\n\n    const stats = {\n      totalPosts,\n      publishedPosts,\n      draftPosts,\n      weeklyViews: weeklyViews._sum.viewCount || 0,\n      monthlyViews: monthlyViews._sum.viewCount || 0,\n      categoryStats,\n      recentPosts\n    };\n\n    return NextResponse.json(stats);\n  } catch (error) {\n    console.error('Ошибка получения аналитики:', error);\n    return NextResponse.json(\n      { error: 'Не удалось загрузить статистику' },\n      { status: 500 }\n    );\n  }\n}"
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+
+// GET /api/admin/blog/analytics - получение статистики блога
+export async function GET(request: NextRequest) {
+  try {
+    // Базовая статистика
+    const [totalPosts, publishedPosts, draftPosts] = await Promise.all([
+      // Общее количество постов
+      prisma.blogPost.count(),
+
+      // Количество опубликованных постов
+      prisma.blogPost.count({
+        where: { status: 'PUBLISHED' }
+      }),
+
+      // Количество черновиков
+      prisma.blogPost.count({
+        where: { status: 'DRAFT' }
+      })
+    ]);
+
+    // Статистика по категориям
+    const categoryStats = await prisma.blogCategory.findMany({
+      include: {
+        _count: {
+          select: {
+            posts: true
+          }
+        }
+      },
+      orderBy: {
+        name: 'asc'
+      }
+    });
+
+    // Последние опубликованные посты
+    const recentPosts = await prisma.blogPost.findMany({
+      where: {
+        status: 'PUBLISHED'
+      },
+      include: {
+        category: {
+          select: {
+            name: true,
+            color: true
+          }
+        },
+        author: {
+          select: {
+            firstName: true,
+            lastName: true
+          }
+        }
+      },
+      orderBy: {
+        publishedAt: 'desc'
+      },
+      take: 5
+    });
+
+    const stats = {
+      totalPosts,
+      publishedPosts,
+      draftPosts,
+      weeklyViews: 0, // Пока не реализовано
+      monthlyViews: 0, // Пока не реализовано
+      categoryStats: categoryStats.map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        slug: cat.slug,
+        color: cat.color,
+        postsCount: cat._count.posts
+      })),
+      recentPosts: recentPosts.map(post => ({
+        id: post.id,
+        title: post.title,
+        slug: post.slug,
+        publishedAt: post.publishedAt,
+        viewCount: post.viewCount,
+        category: post.category,
+        author: {
+          name: `${post.author.firstName} ${post.author.lastName}`.trim()
+        }
+      }))
+    };
+
+    return NextResponse.json(stats);
+  } catch (error) {
+    console.error('Ошибка получения аналитики блога:', error);
+    return NextResponse.json(
+      { error: 'Не удалось загрузить статистику' },
+      { status: 500 }
+    );
+  }
+}

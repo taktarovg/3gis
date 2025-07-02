@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,19 +42,24 @@ export default function BlogCategoriesPage() {
     color: '#3B82F6'
   });
 
-  useEffect(() => {
-    loadCategories();
+  const generateSlug = useCallback((name: string): string => {
+    return name
+      .toLowerCase()
+      .replace(/[а-я]/g, (char) => {
+        const map: { [key: string]: string } = {
+          'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
+          'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'j', 'к': 'k', 'л': 'l', 'м': 'm',
+          'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+          'ф': 'f', 'х': 'h', 'ц': 'c', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+          'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+        };
+        return map[char] || char;
+      })
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }, []);
 
-  // Автогенерация slug при изменении названия
-  useEffect(() => {
-    if (formData.name && !editingCategory) {
-      const generatedSlug = generateSlug(formData.name);
-      setFormData(prev => ({ ...prev, slug: generatedSlug }));
-    }
-  }, [formData.name]);
-
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     try {
       // Симуляция загрузки данных
       setTimeout(() => {
@@ -98,24 +103,19 @@ export default function BlogCategoriesPage() {
       console.error('Error loading categories:', error);
       setLoading(false);
     }
-  };
+  }, []);
 
-  const generateSlug = (name: string): string => {
-    return name
-      .toLowerCase()
-      .replace(/[а-я]/g, (char) => {
-        const map: { [key: string]: string } = {
-          'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
-          'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'j', 'к': 'k', 'л': 'l', 'м': 'm',
-          'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
-          'ф': 'f', 'х': 'h', 'ц': 'c', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
-          'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
-        };
-        return map[char] || char;
-      })
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-  };
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
+
+  // Автогенерация slug при изменении названия
+  useEffect(() => {
+    if (formData.name && !editingCategory) {
+      const generatedSlug = generateSlug(formData.name);
+      setFormData(prev => ({ ...prev, slug: generatedSlug }));
+    }
+  }, [formData.name, editingCategory, generateSlug]);
 
   const handleCreateCategory = async () => {
     try {
