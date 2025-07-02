@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ClientButton } from '@/components/ui/client-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +23,7 @@ import {
   Clock,
   CheckCircle2
 } from 'lucide-react';
+import { ImageUpload } from '@/components/ui/image-upload';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -166,18 +168,33 @@ export default function CreateBlogPostPage() {
         status: publish ? 'PUBLISHED' : 'DRAFT'
       };
       
-      // Симуляция сохранения
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Реальное сохранение через API
+      const response = await fetch('/api/blog/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(postData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save post');
+      }
+
+      const savedPost = await response.json();
+      console.log('✅ Post saved successfully:', savedPost);
       
       if (publish) {
         // Редирект на публичную страницу
-        router.push(`/blog/${formData.slug}`);
+        router.push(`/blog/${savedPost.slug}`);
       } else {
-        // Редирект в админку
+        // Показываем уведомление и редирект в админку
+        alert('✅ Черновик сохранен успешно!');
         router.push('/admin/blog');
       }
     } catch (error) {
       console.error('Save error:', error);
+      alert('❌ Ошибка сохранения. Попробуйте еще раз.');
     } finally {
       setSaving(false);
     }
@@ -261,21 +278,21 @@ export default function CreateBlogPostPage() {
         </div>
         
         <div className="flex items-center gap-2">
-          <Button 
+          <ClientButton 
             variant="outline" 
             onClick={() => handleSave(false)}
             disabled={saving}
           >
             <Save className="w-4 h-4 mr-2" />
             Сохранить черновик
-          </Button>
-          <Button 
+          </ClientButton>
+          <ClientButton 
             onClick={() => handleSave(true)}
             disabled={saving || !formData.title || !formData.content}
           >
             <Globe className="w-4 h-4 mr-2" />
             Опубликовать
-          </Button>
+          </ClientButton>
         </div>
       </div>
 
@@ -398,25 +415,27 @@ export default function CreateBlogPostPage() {
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword())}
                     className="rounded-r-none"
                   />
-                  <Button 
+                  <ClientButton 
                     type="button" 
                     onClick={addKeyword}
                     className="rounded-l-none"
                   >
                     Добавить
-                  </Button>
+                  </ClientButton>
                 </div>
                 {formData.keywords.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {formData.keywords.map((keyword) => (
                       <Badge key={keyword} variant="secondary" className="gap-1">
                         {keyword}
-                        <button
+                        <ClientButton
                           onClick={() => removeKeyword(keyword)}
-                          className="hover:text-red-500"
+                          className="hover:text-red-500 p-0 h-auto bg-transparent border-0 shadow-none"
+                          variant="ghost"
+                          size="sm"
                         >
                           <X className="w-3 h-3" />
-                        </button>
+                        </ClientButton>
                       </Badge>
                     ))}
                   </div>
@@ -454,10 +473,12 @@ export default function CreateBlogPostPage() {
               <div>
                 <Label htmlFor="featuredImage">Изображение статьи</Label>
                 <div className="mt-1">
-                  <Button variant="outline" className="w-full">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Загрузить изображение
-                  </Button>
+                  <ImageUpload
+                    onImageUpload={(url) => setFormData(prev => ({ ...prev, featuredImage: url }))}
+                    onImageRemove={() => setFormData(prev => ({ ...prev, featuredImage: '', featuredImageAlt: '' }))}
+                    currentImage={formData.featuredImage}
+                    maxSize={5}
+                  />
                 </div>
                 {formData.featuredImage && (
                   <div className="mt-2">
@@ -484,14 +505,14 @@ export default function CreateBlogPostPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
+              <ClientButton 
                 variant="outline" 
                 className="w-full mb-3"
                 onClick={() => setShowBusinessSelector(!showBusinessSelector)}
               >
                 <Building2 className="w-4 h-4 mr-2" />
                 Выбрать заведения
-              </Button>
+              </ClientButton>
 
               {showBusinessSelector && (
                 <div className="space-y-2 border rounded-lg p-3 bg-gray-50">
@@ -502,14 +523,14 @@ export default function CreateBlogPostPage() {
                         <p className="text-sm font-medium">{business.name}</p>
                         <p className="text-xs text-gray-500">{business.category} • {business.city}</p>
                       </div>
-                      <Button
+                      <ClientButton
                         size="sm"
                         onClick={() => copyBusinessLink(business.id)}
                         className="text-xs"
                       >
                         <Copy className="w-3 h-3 mr-1" />
                         Копировать ссылку
-                      </Button>
+                      </ClientButton>
                     </div>
                   ))}
                 </div>
@@ -545,14 +566,14 @@ export default function CreateBlogPostPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
+              <ClientButton 
                 variant="outline" 
                 className="w-full mb-3"
                 onClick={() => setShowChatSelector(!showChatSelector)}
               >
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Выбрать чаты
-              </Button>
+              </ClientButton>
 
               {showChatSelector && (
                 <div className="space-y-2 border rounded-lg p-3 bg-gray-50">
@@ -563,14 +584,14 @@ export default function CreateBlogPostPage() {
                         <p className="text-sm font-medium">{chat.title}</p>
                         <p className="text-xs text-gray-500">{chat.category} • {chat.memberCount} участников</p>
                       </div>
-                      <Button
+                      <ClientButton
                         size="sm"
                         onClick={() => copyChatLink(chat.id)}
                         className="text-xs"
                       >
                         <Copy className="w-3 h-3 mr-1" />
                         Копировать ссылку
-                      </Button>
+                      </ClientButton>
                     </div>
                   ))}
                 </div>

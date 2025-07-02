@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ClientButton } from '@/components/ui/client-button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { 
@@ -56,70 +57,29 @@ export default function AdminBlogPage() {
 
   const loadBlogData = async () => {
     try {
-      // Симуляция загрузки данных - в реальности здесь будут API вызовы
-      setTimeout(() => {
+      // Загружаем данные из API
+      const response = await fetch('/api/blog/posts?limit=50');
+      if (response.ok) {
+        const data = await response.json();
+        setPosts(data.posts || []);
+        
+        // Вычисляем статистику
+        const publishedCount = data.posts.filter((p: BlogPost) => p.status === 'PUBLISHED').length;
+        const draftCount = data.posts.filter((p: BlogPost) => p.status === 'DRAFT').length;
+        const totalViews = data.posts.reduce((sum: number, p: BlogPost) => sum + p.viewCount, 0);
+        
         setStats({
-          totalPosts: 12,
-          publishedPosts: 8,
-          draftPosts: 4,
-          weeklyViews: 1450,
-          monthlyViews: 5340,
+          totalPosts: data.posts.length,
+          publishedPosts: publishedCount,
+          draftPosts: draftCount,
+          weeklyViews: Math.floor(totalViews * 0.3), // Примерно 30% от общих
+          monthlyViews: totalViews,
           topCategory: 'Гайды'
         });
-
-        setPosts([
-          {
-            id: 1,
-            title: '10 лучших русских ресторанов в Нью-Йорке',
-            slug: '10-luchshih-russkih-restoranov-v-nyu-yorke',
-            excerpt: 'Подробный обзор самых популярных русскоязычных ресторанов Большого Яблока...',
-            status: 'PUBLISHED',
-            category: { name: 'Обзоры заведений', color: '#3B82F6' },
-            viewCount: 523,
-            publishedAt: '2024-12-01T10:00:00Z',
-            createdAt: '2024-11-28T15:30:00Z',
-            updatedAt: '2024-12-01T10:00:00Z'
-          },
-          {
-            id: 2,
-            title: 'Как найти русскоговорящего врача в США',
-            slug: 'kak-najti-russkogovoryashchego-vracha-v-ssha',
-            excerpt: 'Пошаговое руководство по поиску медицинской помощи на родном языке...',
-            status: 'PUBLISHED',
-            category: { name: 'Гайды', color: '#10B981' },
-            viewCount: 892,
-            publishedAt: '2024-11-25T14:00:00Z',
-            createdAt: '2024-11-20T12:00:00Z',
-            updatedAt: '2024-11-25T14:00:00Z'
-          },
-          {
-            id: 3,
-            title: 'Новые заведения в Brooklyn: обзор декабря',
-            slug: 'novye-zavedeniya-v-brooklyn-obzor-dekabrya',
-            excerpt: 'Этот месяц принес много новых русскоязычных заведений в Бруклин...',
-            status: 'DRAFT',
-            category: { name: 'Новости 3GIS', color: '#F59E0B' },
-            viewCount: 0,
-            publishedAt: null,
-            createdAt: '2024-12-02T09:15:00Z',
-            updatedAt: '2024-12-02T16:45:00Z'
-          },
-          {
-            id: 4,
-            title: 'Интервью с основателем русского салона красоты',
-            slug: 'intervyu-s-osnovatelem-russkogo-salona-krasoty',
-            excerpt: 'Мария рассказывает о своем пути от мастера до владелицы сети салонов...',
-            status: 'DRAFT',
-            category: { name: 'Истории успеха', color: '#8B5CF6' },
-            viewCount: 0,
-            publishedAt: null,
-            createdAt: '2024-11-30T11:20:00Z',
-            updatedAt: '2024-12-01T18:30:00Z'
-          }
-        ]);
-        
-        setLoading(false);
-      }, 1000);
+      } else {
+        console.error('Failed to load blog posts');
+      }
+      setLoading(false);
     } catch (error) {
       console.error('Error loading blog data:', error);
       setLoading(false);
@@ -236,27 +196,27 @@ export default function AdminBlogPage() {
         </div>
         
         <div className="flex gap-2">
-          <Button
+          <ClientButton
             variant={statusFilter === 'all' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setStatusFilter('all')}
           >
             Все ({stats?.totalPosts})
-          </Button>
-          <Button
+          </ClientButton>
+          <ClientButton
             variant={statusFilter === 'published' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setStatusFilter('published')}
           >
             Опубликованные ({stats?.publishedPosts})
-          </Button>
-          <Button
+          </ClientButton>
+          <ClientButton
             variant={statusFilter === 'draft' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setStatusFilter('draft')}
           >
             Черновики ({stats?.draftPosts})
-          </Button>
+          </ClientButton>
         </div>
       </div>
 
@@ -350,9 +310,9 @@ export default function AdminBlogPage() {
                         <Edit className="w-4 h-4" />
                       </Button>
                     </Link>
-                    <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                    <ClientButton variant="outline" size="sm" className="text-red-600 hover:text-red-700">
                       <Trash2 className="w-4 h-4" />
-                    </Button>
+                    </ClientButton>
                   </div>
                 </div>
               ))

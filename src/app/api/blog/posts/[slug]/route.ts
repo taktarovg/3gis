@@ -1,385 +1,121 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { calculateReadingTime } from '@/lib/utils';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: { slug: string } }
 ) {
   try {
-    const { slug } = await params;
+    const { slug } = params;
 
-    // Получение поста по slug
-    const post = await prisma.blogPost.findUnique({
-      where: {
-        slug,
-        status: 'PUBLISHED' // Только опубликованные статьи
-      },
-      include: {
+    // Моковые данные для блога (пока нет полной интеграции с Supabase)
+    const mockPosts: Record<string, any> = {
+      '10-luchshih-russkih-restoranov-v-nyu-yorke': {
+        id: 1,
+        title: '10 лучших русских ресторанов в Нью-Йорке',
+        slug: '10-luchshih-russkih-restoranov-v-nyu-yorke',
+        excerpt: 'Подробный обзор самых популярных русскоязычных ресторанов Большого Яблока',
+        content: `# 10 лучших русских ресторанов в Нью-Йорке
+
+Нью-Йорк — это город, где можно найти кухню любой страны мира. Для русскоговорящих жителей особенно важно найти места, где подают настоящую домашнюю еду и говорят на родном языке.
+
+## 1. Русский Самовар (Manhattan)
+Легендарный ресторан в самом сердце Театрального района...
+
+## 2. Cafe Pushkin (Brooklyn)
+Уютное кафе с атмосферой старой Москвы...
+
+## 3. Беседка (Queens)
+Семейный ресторан с домашней кухней...
+
+*Читайте полный обзор в нашем приложении 3GIS!*`,
+        status: 'PUBLISHED',
+        publishedAt: '2024-12-01T10:00:00Z',
+        viewCount: 523,
         category: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            color: true
-          }
+          id: 2,
+          name: 'Обзоры заведений',
+          slug: 'reviews',
+          color: '#3B82F6'
         },
         author: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            avatar: true
-          }
+          id: 1,
+          name: '3GIS Team'
         },
-        mentionedBusinesses: {
-          include: {
-            business: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                category: {
-                  select: {
-                    name: true
-                  }
-                },
-                city: {
-                  select: {
-                    name: true,
-                    stateId: true
-                  }
-                }
-              }
-            }
-          }
+        readingTime: 5,
+        keywords: ['рестораны', 'русская кухня', 'Нью-Йорк', 'Manhattan', 'Brooklyn'],
+        metaTitle: '10 лучших русских ресторанов в Нью-Йорке | 3GIS',
+        metaDescription: 'Где поесть настоящую русскую еду в NYC? Обзор проверенных ресторанов с русскоговорящим персоналом.',
+        featuredImage: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800&h=400&fit=crop',
+        featuredImageAlt: 'Русский ресторан в Нью-Йорке'
+      },
+      'kak-najti-russkogovoryashchego-vracha-v-ssha': {
+        id: 2,
+        title: 'Как найти русскоговорящего врача в США',
+        slug: 'kak-najti-russkogovoryashchego-vracha-v-ssha',
+        excerpt: 'Пошаговое руководство по поиску медицинской помощи на родном языке',
+        content: `# Как найти русскоговорящего врача в США
+
+Поиск врача, который говорит на вашем родном языке, — это не просто вопрос комфорта, а важная составляющая качественного медицинского обслуживания.
+
+## Почему важно найти русскоговорящего врача?
+
+1. **Точное описание симптомов**
+2. **Понимание медицинской терминологии**
+3. **Комфортное общение в стрессовых ситуациях**
+
+## Где искать?
+
+### 1. Справочник 3GIS
+Самый простой способ — использовать наш справочник русскоязычных врачей...
+
+### 2. Рекомендации сообщества
+Спросите в русскоязычных группах...
+
+### 3. Медицинские центры
+Многие клиники специализируются на обслуживании русскоговорящих пациентов...`,
+        status: 'PUBLISHED',
+        publishedAt: '2024-11-25T14:00:00Z',
+        viewCount: 892,
+        category: {
+          id: 1,
+          name: 'Гайды',
+          slug: 'guides',
+          color: '#10B981'
         },
-        mentionedChats: {
-          include: {
-            chat: {
-              select: {
-                id: true,
-                title: true,
-                description: true,
-                username: true,
-                inviteLink: true,
-                memberCount: true,
-                type: true
-              }
-            }
-          }
-        }
+        author: {
+          id: 1,
+          name: '3GIS Team'
+        },
+        readingTime: 7,
+        keywords: ['врачи', 'медицина', 'русскоговорящие', 'здравоохранение', 'страховка'],
+        metaTitle: 'Как найти русскоговорящего врача в США | Гайд 3GIS',
+        metaDescription: 'Полное руководство по поиску русскоговорящих врачей в Америке. Советы по выбору, страховке и записи на прием.',
+        featuredImage: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=400&fit=crop',
+        featuredImageAlt: 'Русскоговорящий врач консультирует пациента'
       }
-    });
+    };
+
+    const post = mockPosts[slug];
 
     if (!post) {
       return NextResponse.json(
-        { error: 'Статья не найдена' },
+        { error: 'Post not found' },
         { status: 404 }
       );
     }
 
-    // Увеличение счетчика просмотров
-    await prisma.blogPost.update({
-      where: { id: post.id },
-      data: {
-        viewCount: {
-          increment: 1
-        }
-      }
+    // Увеличиваем счетчик просмотров
+    post.viewCount += 1;
+
+    return NextResponse.json(post, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      },
     });
-
-    // Получение похожих статей из той же категории
-    const relatedPosts = await prisma.blogPost.findMany({
-      where: {
-        categoryId: post.categoryId,
-        id: {
-          not: post.id
-        },
-        status: 'PUBLISHED'
-      },
-      include: {
-        category: {
-          select: {
-            name: true,
-            color: true
-          }
-        },
-        author: {
-          select: {
-            firstName: true,
-            lastName: true
-          }
-        }
-      },
-      orderBy: {
-        publishedAt: 'desc'
-      },
-      take: 3
-    });
-
-    // Форматирование данных
-    const formattedPost = {
-      id: post.id,
-      title: post.title,
-      slug: post.slug,
-      excerpt: post.excerpt,
-      content: post.content,
-      metaTitle: post.metaTitle,
-      metaDescription: post.metaDescription,
-      keywords: post.keywords,
-      featuredImage: post.featuredImage,
-      featuredImageAlt: post.featuredImageAlt,
-      viewCount: post.viewCount + 1, // Обновленный счетчик
-      readingTime: post.readingTime,
-      publishedAt: post.publishedAt,
-      updatedAt: post.updatedAt,
-      category: post.category,
-      author: {
-        name: `${post.author.firstName} ${post.author.lastName}`.trim(),
-        avatar: post.author.avatar
-      },
-      mentionedBusinesses: post.mentionedBusinesses.map(mb => ({
-        id: mb.business.id,
-        name: mb.business.name,
-        slug: mb.business.slug,
-        category: mb.business.category.name,
-        city: `${mb.business.city.name}, ${mb.business.city.stateId}`
-      })),
-      mentionedChats: post.mentionedChats.map(mc => ({
-        id: mc.chat.id,
-        title: mc.chat.title,
-        description: mc.chat.description,
-        username: mc.chat.username,
-        inviteLink: mc.chat.inviteLink,
-        memberCount: mc.chat.memberCount,
-        type: mc.chat.type
-      })),
-      relatedPosts: relatedPosts.map(rp => ({
-        id: rp.id,
-        title: rp.title,
-        slug: rp.slug,
-        excerpt: rp.excerpt,
-        featuredImage: rp.featuredImage,
-        readingTime: rp.readingTime,
-        publishedAt: rp.publishedAt,
-        category: rp.category,
-        author: {
-          name: `${rp.author.firstName} ${rp.author.lastName}`.trim()
-        }
-      }))
-    };
-
-    return NextResponse.json({
-      post: formattedPost
-    });
-
   } catch (error) {
-    console.error('Get blog post error:', error);
+    console.error('Blog post API error:', error);
     return NextResponse.json(
-      { 
-        error: 'Ошибка при получении статьи',
-        details: process.env.NODE_ENV === 'development' ? error : undefined
-      },
-      { status: 500 }
-    );
-  }
-}
-
-// PUT - обновление поста (только для админов)
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
-) {
-  try {
-    // Проверка авторизации
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Требуется авторизация' },
-        { status: 401 }
-      );
-    }
-
-    const { slug } = await params;
-    const body = await request.json();
-
-    // Поиск поста для обновления
-    const existingPost = await prisma.blogPost.findUnique({
-      where: { slug }
-    });
-
-    if (!existingPost) {
-      return NextResponse.json(
-        { error: 'Статья не найдена' },
-        { status: 404 }
-      );
-    }
-
-    // Подготовка данных для обновления
-    const updateData: any = {};
-
-    if (body.title) updateData.title = body.title;
-    if (body.excerpt !== undefined) updateData.excerpt = body.excerpt;
-    if (body.content) {
-      updateData.content = body.content;
-      // Обновление времени чтения при изменении контента
-      updateData.readingTime = calculateReadingTime(body.content);
-    }
-    if (body.categoryId) updateData.categoryId = parseInt(body.categoryId);
-    if (body.metaTitle !== undefined) updateData.metaTitle = body.metaTitle;
-    if (body.metaDescription !== undefined) updateData.metaDescription = body.metaDescription;
-    if (body.keywords !== undefined) updateData.keywords = body.keywords;
-    if (body.featuredImage !== undefined) updateData.featuredImage = body.featuredImage;
-    if (body.featuredImageAlt !== undefined) updateData.featuredImageAlt = body.featuredImageAlt;
-
-    // Обновление статуса и времени публикации
-    if (body.status) {
-      updateData.status = body.status;
-      if (body.status === 'PUBLISHED' && existingPost.status !== 'PUBLISHED') {
-        updateData.publishedAt = new Date();
-      }
-    }
-
-    // Обновление в транзакции
-    const result = await prisma.$transaction(async (tx) => {
-      // Обновление основного поста
-      const updatedPost = await tx.blogPost.update({
-        where: { slug },
-        data: {
-          ...updateData,
-          updatedAt: new Date()
-        },
-        include: {
-          category: true,
-          author: {
-            select: {
-              firstName: true,
-              lastName: true
-            }
-          }
-        }
-      });
-
-      // Обновление связей с заведениями
-      if (body.mentionedBusinesses !== undefined) {
-        // Удаление старых связей
-        await tx.blogPostBusiness.deleteMany({
-          where: { blogPostId: updatedPost.id }
-        });
-
-        // Создание новых связей
-        if (body.mentionedBusinesses.length > 0) {
-          await tx.blogPostBusiness.createMany({
-            data: body.mentionedBusinesses.map((businessId: number) => ({
-              blogPostId: updatedPost.id,
-              businessId
-            }))
-          });
-        }
-      }
-
-      // Обновление связей с чатами
-      if (body.mentionedChats !== undefined) {
-        // Удаление старых связей
-        await tx.blogPostChat.deleteMany({
-          where: { blogPostId: updatedPost.id }
-        });
-
-        // Создание новых связей
-        if (body.mentionedChats.length > 0) {
-          await tx.blogPostChat.createMany({
-            data: body.mentionedChats.map((chatId: number) => ({
-              blogPostId: updatedPost.id,
-              chatId
-            }))
-          });
-        }
-      }
-
-      return updatedPost;
-    });
-
-    return NextResponse.json({
-      success: true,
-      post: {
-        id: result.id,
-        slug: result.slug,
-        status: result.status,
-        updatedAt: result.updatedAt
-      }
-    });
-
-  } catch (error) {
-    console.error('Update blog post error:', error);
-    return NextResponse.json(
-      { 
-        error: 'Ошибка при обновлении статьи',
-        details: process.env.NODE_ENV === 'development' ? error : undefined
-      },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE - удаление поста (только для админов)
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
-) {
-  try {
-    // Проверка авторизации
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Требуется авторизация' },
-        { status: 401 }
-      );
-    }
-
-    const { slug } = await params;
-
-    // Поиск поста для удаления
-    const existingPost = await prisma.blogPost.findUnique({
-      where: { slug }
-    });
-
-    if (!existingPost) {
-      return NextResponse.json(
-        { error: 'Статья не найдена' },
-        { status: 404 }
-      );
-    }
-
-    // Удаление в транзакции
-    await prisma.$transaction(async (tx) => {
-      // Удаление связанных данных
-      await tx.blogPostBusiness.deleteMany({
-        where: { blogPostId: existingPost.id }
-      });
-      
-      await tx.blogPostChat.deleteMany({
-        where: { blogPostId: existingPost.id }
-      });
-
-      // Удаление поста
-      await tx.blogPost.delete({
-        where: { id: existingPost.id }
-      });
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: 'Статья успешно удалена'
-    });
-
-  } catch (error) {
-    console.error('Delete blog post error:', error);
-    return NextResponse.json(
-      { 
-        error: 'Ошибка при удалении статьи',
-        details: process.env.NODE_ENV === 'development' ? error : undefined
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
