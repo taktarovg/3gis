@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { calculateReadingTime } from '@/lib/utils';
 
 export async function GET(
   request: NextRequest,
@@ -37,6 +38,7 @@ export async function GET(
               select: {
                 id: true,
                 name: true,
+                slug: true,
                 category: {
                   select: {
                     name: true
@@ -45,7 +47,7 @@ export async function GET(
                 city: {
                   select: {
                     name: true,
-                    state: true
+                    stateId: true
                   }
                 }
               }
@@ -59,8 +61,10 @@ export async function GET(
                 id: true,
                 title: true,
                 description: true,
+                username: true,
+                inviteLink: true,
                 memberCount: true,
-                telegramLink: true
+                type: true
               }
             }
           }
@@ -138,15 +142,18 @@ export async function GET(
       mentionedBusinesses: post.mentionedBusinesses.map(mb => ({
         id: mb.business.id,
         name: mb.business.name,
+        slug: mb.business.slug,
         category: mb.business.category.name,
-        city: `${mb.business.city.name}, ${mb.business.city.state}`
+        city: `${mb.business.city.name}, ${mb.business.city.stateId}`
       })),
       mentionedChats: post.mentionedChats.map(mc => ({
         id: mc.chat.id,
         title: mc.chat.title,
         description: mc.chat.description,
+        username: mc.chat.username,
+        inviteLink: mc.chat.inviteLink,
         memberCount: mc.chat.memberCount,
-        telegramLink: mc.chat.telegramLink
+        type: mc.chat.type
       })),
       relatedPosts: relatedPosts.map(rp => ({
         id: rp.id,
@@ -214,18 +221,17 @@ export async function PUT(
 
     if (body.title) updateData.title = body.title;
     if (body.excerpt !== undefined) updateData.excerpt = body.excerpt;
-    if (body.content) updateData.content = body.content;
+    if (body.content) {
+      updateData.content = body.content;
+      // Обновление времени чтения при изменении контента
+      updateData.readingTime = calculateReadingTime(body.content);
+    }
     if (body.categoryId) updateData.categoryId = parseInt(body.categoryId);
     if (body.metaTitle !== undefined) updateData.metaTitle = body.metaTitle;
     if (body.metaDescription !== undefined) updateData.metaDescription = body.metaDescription;
     if (body.keywords !== undefined) updateData.keywords = body.keywords;
     if (body.featuredImage !== undefined) updateData.featuredImage = body.featuredImage;
     if (body.featuredImageAlt !== undefined) updateData.featuredImageAlt = body.featuredImageAlt;
-
-    // Обновление времени чтения при изменении контента
-    if (body.content) {
-      updateData.readingTime = Math.max(1, Math.ceil(body.content.split(' ').length / 200));
-    }
 
     // Обновление статуса и времени публикации
     if (body.status) {
@@ -235,64 +241,72 @@ export async function PUT(
       }
     }
 
-    // Обновление поста
-    const updatedPost = await prisma.blogPost.update({
-      where: { slug },
-      data: updateData,
-      include: {
-        category: true,
-        author: {
-          select: {
-            firstName: true,
-            lastName: true
+    // Обновление в транзакции
+    const result = await prisma.$transaction(async (tx) => {
+      // Обновление основного поста
+      const updatedPost = await tx.blogPost.update({
+        where: { slug },
+        data: {
+          ...updateData,
+          updatedAt: new Date()
+        },
+        include: {
+          category: true,
+          author: {
+            select: {
+              firstName: true,
+              lastName: true
+            }
           }
         }
+      });
+
+      // Обновление связей с заведениями
+      if (body.mentionedBusinesses !== undefined) {
+        // Удаление старых связей
+        await tx.blogPostBusiness.deleteMany({
+          where: { blogPostId: updatedPost.id }
+        });
+
+        // Создание новых связей
+        if (body.mentionedBusinesses.length > 0) {
+          await tx.blogPostBusiness.createMany({
+            data: body.mentionedBusinesses.map((businessId: number) => ({
+              blogPostId: updatedPost.id,
+              businessId
+            }))
+          });
+        }
       }
+
+      // Обновление связей с чатами
+      if (body.mentionedChats !== undefined) {
+        // Удаление старых связей
+        await tx.blogPostChat.deleteMany({
+          where: { blogPostId: updatedPost.id }
+        });
+
+        // Создание новых связей
+        if (body.mentionedChats.length > 0) {
+          await tx.blogPostChat.createMany({
+            data: body.mentionedChats.map((chatId: number) => ({
+              blogPostId: updatedPost.id,
+              chatId
+            }))
+          });
+        }
+      }
+
+      return updatedPost;
     });
-
-    // Обновление связей с заведениями
-    if (body.mentionedBusinesses !== undefined) {
-      // Удаление старых связей
-      await prisma.blogPostBusiness.deleteMany({
-        where: { blogPostId: updatedPost.id }
-      });
-
-      // Создание новых связей
-      if (body.mentionedBusinesses.length > 0) {
-        await prisma.blogPostBusiness.createMany({
-          data: body.mentionedBusinesses.map((businessId: number) => ({
-            blogPostId: updatedPost.id,
-            businessId
-          }))
-        });
-      }
-    }
-
-    // Обновление связей с чатами
-    if (body.mentionedChats !== undefined) {
-      // Удаление старых связей
-      await prisma.blogPostChat.deleteMany({
-        where: { blogPostId: updatedPost.id }
-      });
-
-      // Создание новых связей
-      if (body.mentionedChats.length > 0) {
-        await prisma.blogPostChat.createMany({
-          data: body.mentionedChats.map((chatId: number) => ({
-            blogPostId: updatedPost.id,
-            chatId
-          }))
-        });
-      }
-    }
 
     return NextResponse.json({
       success: true,
       post: {
-        id: updatedPost.id,
-        slug: updatedPost.slug,
-        status: updatedPost.status,
-        updatedAt: updatedPost.updatedAt
+        id: result.id,
+        slug: result.slug,
+        status: result.status,
+        updatedAt: result.updatedAt
       }
     });
 
@@ -337,19 +351,21 @@ export async function DELETE(
       );
     }
 
-    // Удаление связанных данных
-    await Promise.all([
-      prisma.blogPostBusiness.deleteMany({
+    // Удаление в транзакции
+    await prisma.$transaction(async (tx) => {
+      // Удаление связанных данных
+      await tx.blogPostBusiness.deleteMany({
         where: { blogPostId: existingPost.id }
-      }),
-      prisma.blogPostChat.deleteMany({
+      });
+      
+      await tx.blogPostChat.deleteMany({
         where: { blogPostId: existingPost.id }
-      })
-    ]);
+      });
 
-    // Удаление поста
-    await prisma.blogPost.delete({
-      where: { id: existingPost.id }
+      // Удаление поста
+      await tx.blogPost.delete({
+        where: { id: existingPost.id }
+      });
     });
 
     return NextResponse.json({

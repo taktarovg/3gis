@@ -1,1 +1,98 @@
-// app/api/admin/blog/categories/route.ts\nimport { NextRequest, NextResponse } from 'next/server';\nimport { prisma } from '@/lib/prisma';\n\n// GET /api/admin/blog/categories - получение всех категорий блога\nexport async function GET(request: NextRequest) {\n  try {\n    const categories = await prisma.blogCategory.findMany({\n      include: {\n        _count: {\n          select: {\n            posts: true\n          }\n        }\n      },\n      orderBy: {\n        createdAt: 'asc'\n      }\n    });\n\n    return NextResponse.json(categories);\n  } catch (error) {\n    console.error('Ошибка получения категорий:', error);\n    return NextResponse.json(\n      { error: 'Не удалось загрузить категории' },\n      { status: 500 }\n    );\n  }\n}\n\n// POST /api/admin/blog/categories - создание новой категории\nexport async function POST(request: NextRequest) {\n  try {\n    const body = await request.json();\n    const { name, slug, description, color } = body;\n\n    // Валидация обязательных полей\n    if (!name || !slug) {\n      return NextResponse.json(\n        { error: 'Название и slug обязательны' },\n        { status: 400 }\n      );\n    }\n\n    // Проверяем уникальность названия и slug\n    const existingCategory = await prisma.blogCategory.findFirst({\n      where: {\n        OR: [\n          { name },\n          { slug }\n        ]\n      }\n    });\n\n    if (existingCategory) {\n      return NextResponse.json(\n        { error: 'Категория с таким названием или slug уже существует' },\n        { status: 400 }\n      );\n    }\n\n    // Создаем категорию\n    const category = await prisma.blogCategory.create({\n      data: {\n        name,\n        slug,\n        description,\n        color: color || '#3B82F6'\n      }\n    });\n\n    return NextResponse.json({ category }, { status: 201 });\n  } catch (error) {\n    console.error('Ошибка создания категории:', error);\n    return NextResponse.json(\n      { error: 'Не удалось создать категорию' },\n      { status: 500 }\n    );\n  }\n}"
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+
+// GET /api/admin/blog/categories - получение всех категорий блога
+export async function GET(request: NextRequest) {
+  try {
+    const categories = await prisma.blogCategory.findMany({
+      include: {
+        _count: {
+          select: {
+            posts: true
+          }
+        }
+      },
+      orderBy: {
+        name: 'asc'
+      }
+    });
+
+    // Форматируем данные для фронтенда
+    const formattedCategories = categories.map(category => ({
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+      description: category.description,
+      color: category.color,
+      postCount: category._count.posts,
+      createdAt: category.createdAt
+    }));
+
+    return NextResponse.json(formattedCategories);
+  } catch (error) {
+    console.error('Ошибка получения категорий блога:', error);
+    return NextResponse.json(
+      { error: 'Не удалось загрузить категории' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST /api/admin/blog/categories - создание новой категории
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { name, slug, description, color } = body;
+
+    // Валидация обязательных полей
+    if (!name || !slug) {
+      return NextResponse.json(
+        { error: 'Название и slug обязательны' },
+        { status: 400 }
+      );
+    }
+
+    // Проверяем уникальность названия и slug
+    const existingCategory = await prisma.blogCategory.findFirst({
+      where: {
+        OR: [
+          { name },
+          { slug }
+        ]
+      }
+    });
+
+    if (existingCategory) {
+      return NextResponse.json(
+        { error: 'Категория с таким названием или slug уже существует' },
+        { status: 400 }
+      );
+    }
+
+    // Создаем категорию
+    const category = await prisma.blogCategory.create({
+      data: {
+        name,
+        slug,
+        description: description || '',
+        color: color || '#3B82F6'
+      }
+    });
+
+    return NextResponse.json({ 
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+      description: category.description,
+      color: category.color,
+      postCount: 0,
+      createdAt: category.createdAt
+    }, { status: 201 });
+  } catch (error) {
+    console.error('Ошибка создания категории блога:', error);
+    return NextResponse.json(
+      { error: 'Не удалось создать категорию' },
+      { status: 500 }
+    );
+  }
+}

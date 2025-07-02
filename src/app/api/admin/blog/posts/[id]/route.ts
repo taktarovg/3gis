@@ -13,26 +13,56 @@ export async function GET(
     const post = await prisma.blogPost.findUnique({
       where: { id: postId },
       include: {
-        category: true,
-        author: {
-          select: { id: true, firstName: true, lastName: true, avatar: true }
-        },
-        mentionedBusinesses: {
-          select: { 
-            id: true, 
-            name: true, 
+        category: {
+          select: {
+            id: true,
+            name: true,
             slug: true,
-            category: { select: { name: true } },
-            city: { select: { name: true } }
+            color: true
           }
         },
-        mentionedChats: {
+        author: {
           select: { 
             id: true, 
-            title: true, 
-            slug: true,
-            type: true,
-            memberCount: true
+            firstName: true, 
+            lastName: true, 
+            avatar: true 
+          }
+        },
+        // Explicit many-to-many для businesses
+        mentionedBusinesses: {
+          select: {
+            business: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                category: { 
+                  select: { 
+                    name: true 
+                  } 
+                },
+                city: { 
+                  select: { 
+                    name: true 
+                  } 
+                }
+              }
+            }
+          }
+        },
+        // Explicit many-to-many для chats
+        mentionedChats: {
+          select: {
+            chat: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                type: true,
+                memberCount: true
+              }
+            }
           }
         }
       },
@@ -45,7 +75,15 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(post);
+    // Форматируем данные для фронтенда
+    const formattedPost = {
+      ...post,
+      // Упрощаем структуру mentioned entities
+      mentionedBusinesses: post.mentionedBusinesses.map(mb => mb.business),
+      mentionedChats: post.mentionedChats.map(mc => mc.chat)
+    };
+
+    return NextResponse.json(formattedPost);
   } catch (error) {
     console.error('Error fetching blog post:', error);
     return NextResponse.json(
@@ -83,47 +121,111 @@ export async function PUT(
     // Автоматический расчет времени чтения
     const readingTime = calculateReadingTime(content);
 
-    // Обновление поста
-    const post = await prisma.blogPost.update({
+    // Обновление поста в транзакции
+    const post = await prisma.$transaction(async (tx) => {
+      // 1. Обновляем основной пост
+      const updatedPost = await tx.blogPost.update({
+        where: { id: postId },
+        data: {
+          title,
+          slug,
+          excerpt,
+          content,
+          metaTitle,
+          metaDescription,
+          keywords,
+          readingTime,
+          featuredImage,
+          featuredImageAlt,
+          categoryId: parseInt(categoryId),
+          status,
+          publishedAt: status === 'PUBLISHED' ? (publishedAt ? new Date(publishedAt) : new Date()) : null,
+          updatedAt: new Date(),
+        },
+      });
+
+      // 2. Удаляем старые связи с businesses
+      await tx.blogPostBusiness.deleteMany({
+        where: { blogPostId: postId }
+      });
+
+      // 3. Создаем новые связи с businesses
+      if (mentionedBusinessIds.length > 0) {
+        await tx.blogPostBusiness.createMany({
+          data: mentionedBusinessIds.map((businessId: number) => ({
+            blogPostId: postId,
+            businessId: businessId
+          }))
+        });
+      }
+
+      // 4. Удаляем старые связи с chats
+      await tx.blogPostChat.deleteMany({
+        where: { blogPostId: postId }
+      });
+
+      // 5. Создаем новые связи с chats
+      if (mentionedChatIds.length > 0) {
+        await tx.blogPostChat.createMany({
+          data: mentionedChatIds.map((chatId: number) => ({
+            blogPostId: postId,
+            chatId: chatId
+          }))
+        });
+      }
+
+      return updatedPost;
+    });
+
+    // Получаем обновленный пост с включениями
+    const fullPost = await prisma.blogPost.findUnique({
       where: { id: postId },
-      data: {
-        title,
-        slug,
-        excerpt,
-        content,
-        metaTitle,
-        metaDescription,
-        keywords,
-        readingTime,
-        featuredImage,
-        featuredImageAlt,
-        categoryId: parseInt(categoryId),
-        status,
-        publishedAt: status === 'PUBLISHED' ? publishedAt || new Date() : null,
-        mentionedBusinesses: {
-          set: [], // Сначала очищаем все связи
-          connect: mentionedBusinessIds.map((id: number) => ({ id })),
-        },
-        mentionedChats: {
-          set: [], // Сначала очищаем все связи
-          connect: mentionedChatIds.map((id: number) => ({ id })),
-        },
-      },
       include: {
-        category: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
+          }
+        },
         author: {
-          select: { id: true, firstName: true, lastName: true }
+          select: { 
+            id: true, 
+            firstName: true, 
+            lastName: true 
+          }
         },
         mentionedBusinesses: {
-          select: { id: true, name: true }
+          select: {
+            business: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
         },
         mentionedChats: {
-          select: { id: true, title: true }
+          select: {
+            chat: {
+              select: {
+                id: true,
+                title: true
+              }
+            }
+          }
         }
       },
     });
 
-    return NextResponse.json(post);
+    // Форматируем данные для ответа
+    const formattedPost = {
+      ...fullPost,
+      mentionedBusinesses: fullPost?.mentionedBusinesses.map(mb => mb.business) || [],
+      mentionedChats: fullPost?.mentionedChats.map(mc => mc.chat) || []
+    };
+
+    return NextResponse.json(formattedPost);
   } catch (error) {
     console.error('Error updating blog post:', error);
     return NextResponse.json(
@@ -141,8 +243,21 @@ export async function DELETE(
   try {
     const postId = parseInt(params.id);
 
-    await prisma.blogPost.delete({
-      where: { id: postId },
+    // Удаление в транзакции (каскадное удаление связей)
+    await prisma.$transaction(async (tx) => {
+      // Удаляем связи
+      await tx.blogPostBusiness.deleteMany({
+        where: { blogPostId: postId }
+      });
+      
+      await tx.blogPostChat.deleteMany({
+        where: { blogPostId: postId }
+      });
+
+      // Удаляем сам пост
+      await tx.blogPost.delete({
+        where: { id: postId },
+      });
     });
 
     return NextResponse.json({ success: true });

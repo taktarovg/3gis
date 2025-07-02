@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { createSlug, calculateReadingTime } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -166,7 +167,7 @@ export async function POST(request: NextRequest) {
     // Генерация slug, если не указан
     let slug = body.slug;
     if (!slug) {
-      slug = generateSlug(body.title);
+      slug = createSlug(body.title);
       
       // Проверка уникальности slug
       const existingPost = await prisma.blogPost.findUnique({
@@ -178,65 +179,71 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Расчет времени чтения (примерно 200 слов в минуту)
-    const readingTime = Math.max(1, Math.ceil(body.content.split(' ').length / 200));
+    // Расчет времени чтения
+    const readingTime = calculateReadingTime(body.content);
 
-    // Создание поста
-    const newPost = await prisma.blogPost.create({
-      data: {
-        title: body.title,
-        slug,
-        excerpt: body.excerpt || '',
-        content: body.content,
-        categoryId: parseInt(body.categoryId),
-        authorId: parseInt(body.authorId),
-        metaTitle: body.metaTitle || null,
-        metaDescription: body.metaDescription || null,
-        keywords: body.keywords || [],
-        featuredImage: body.featuredImage || null,
-        featuredImageAlt: body.featuredImageAlt || null,
-        readingTime,
-        status: body.status || 'DRAFT',
-        publishedAt: body.status === 'PUBLISHED' ? new Date() : null
-      },
-      include: {
-        category: true,
-        author: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            avatar: true
+    // Создание поста в транзакции
+    const result = await prisma.$transaction(async (tx) => {
+      // Создание основного поста
+      const newPost = await tx.blogPost.create({
+        data: {
+          title: body.title,
+          slug,
+          excerpt: body.excerpt || '',
+          content: body.content,
+          categoryId: parseInt(body.categoryId),
+          authorId: parseInt(body.authorId),
+          metaTitle: body.metaTitle || null,
+          metaDescription: body.metaDescription || null,
+          keywords: body.keywords || [],
+          featuredImage: body.featuredImage || null,
+          featuredImageAlt: body.featuredImageAlt || null,
+          readingTime,
+          status: body.status || 'DRAFT',
+          publishedAt: body.status === 'PUBLISHED' ? new Date() : null
+        },
+        include: {
+          category: true,
+          author: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              avatar: true
+            }
           }
         }
+      });
+
+      // Создание связей с заведениями
+      if (body.mentionedBusinesses && body.mentionedBusinesses.length > 0) {
+        await tx.blogPostBusiness.createMany({
+          data: body.mentionedBusinesses.map((businessId: number) => ({
+            blogPostId: newPost.id,
+            businessId
+          }))
+        });
       }
+
+      // Создание связей с чатами
+      if (body.mentionedChats && body.mentionedChats.length > 0) {
+        await tx.blogPostChat.createMany({
+          data: body.mentionedChats.map((chatId: number) => ({
+            blogPostId: newPost.id,
+            chatId
+          }))
+        });
+      }
+
+      return newPost;
     });
-
-    // Создание связей с заведениями и чатами
-    if (body.mentionedBusinesses && body.mentionedBusinesses.length > 0) {
-      await prisma.blogPostBusiness.createMany({
-        data: body.mentionedBusinesses.map((businessId: number) => ({
-          blogPostId: newPost.id,
-          businessId
-        }))
-      });
-    }
-
-    if (body.mentionedChats && body.mentionedChats.length > 0) {
-      await prisma.blogPostChat.createMany({
-        data: body.mentionedChats.map((chatId: number) => ({
-          blogPostId: newPost.id,
-          chatId
-        }))
-      });
-    }
 
     return NextResponse.json({
       success: true,
       post: {
-        id: newPost.id,
-        slug: newPost.slug,
-        status: newPost.status
+        id: result.id,
+        slug: result.slug,
+        status: result.status
       }
     }, { status: 201 });
 
@@ -250,22 +257,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// Функция генерации slug
-function generateSlug(title: string): string {
-  const translitMap: { [key: string]: string } = {
-    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
-    'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'j', 'к': 'k', 'л': 'l', 'м': 'm',
-    'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
-    'ф': 'f', 'х': 'h', 'ц': 'c', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
-    'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
-  };
-
-  return title
-    .toLowerCase()
-    .replace(/[а-я]/g, (char) => translitMap[char] || char)
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .substring(0, 100); // Ограничение длины
 }
