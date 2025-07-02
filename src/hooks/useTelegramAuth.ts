@@ -34,10 +34,10 @@ export function useTelegramAuth() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // ✅ SDK v3.x: Правильное безусловное использование хуков
-  // В v3.x useLaunchParams не принимает SSR параметр - это обрабатывается автоматически
-  const launchParams = useLaunchParams() as LaunchParams;
-  const rawInitData = useRawInitData();
+  // ✅ SDK v3.x: Правильное безусловное использование хуков с SSR флагами
+  // В v3.x ВСЕ хуки требуют SSR флаг true для Next.js совместимости
+  const launchParams = useLaunchParams(true) as LaunchParams;
+  const rawInitData = useRawInitData(true);
   
   useEffect(() => {
     try {

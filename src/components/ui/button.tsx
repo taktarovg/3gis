@@ -43,27 +43,36 @@ export interface ButtonProps
   asChild?: boolean
 }
 
-// ✅ ИСПРАВЛЕНИЕ: Мемоизируем компонент для предотвращения ошибок hydration
-const Button = React.memo(React.forwardRef<HTMLButtonElement, ButtonProps>(
+// ✅ ИСПРАВЛЕНИЕ SSR: Button компонент с правильной hydration совместимостью
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, onClick, ...props }, ref) => {
-    // ✅ БЕЗОПАСНАЯ обработка onClick для SSR совместимости
+    // ✅ Состояние для отслеживания клиентской инициализации
+    const [isClient, setIsClient] = React.useState(false);
+    
+    // ✅ Эффект для установки клиентского флага
+    React.useEffect(() => {
+      setIsClient(true);
+    }, []);
+    
+    // ✅ SSR безопасный onClick handler
     const handleClick = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-      if (typeof onClick === 'function') {
+      if (isClient && typeof onClick === 'function') {
         onClick(event);
       }
-    }, [onClick]);
+    }, [isClient, onClick]);
 
     const Comp = asChild ? Slot : "button"
+    
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        onClick={handleClick}
+        onClick={isClient ? handleClick : undefined}
         {...props}
       />
     )
   }
-));
+);
 Button.displayName = "Button"
 
 export { Button, buttonVariants }

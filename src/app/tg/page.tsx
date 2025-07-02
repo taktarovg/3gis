@@ -141,9 +141,9 @@ export default function ThreeGISHomePage() {
   const router = useRouter();
   const { categories, loading } = useCategories();
   
-  // ✅ SDK v3.x: Получаем параметры запуска (хук должен вызываться БЕЗУСЛОВНО)
-  // В v3.x SSR обрабатывается автоматически
-  const launchParams = useLaunchParams() as LaunchParams;
+  // ✅ SDK v3.x: Получаем параметры запуска с SSR флагом (ОБЯЗАТЕЛЬНО для Next.js)
+  // В v3.x SSR режим требует явного указания флага true
+  const launchParams = useLaunchParams(true) as LaunchParams;
   
   // ✅ Обрабатываем startapp параметры для навигации
   useEffect(() => {

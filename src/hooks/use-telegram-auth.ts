@@ -66,8 +66,8 @@ export function useTelegramAuth(): AuthState & AuthActions {
     isAuthenticated: false,
   });
 
-  // Безусловные вызовы хуков SDK v3.x согласно Rules of Hooks
-  const initDataRaw = useRawInitData();
+  // Безусловные вызовы хуков SDK v3.x согласно Rules of Hooks + SSR флаги
+  const initDataRaw = useRawInitData(true); // ✅ SSR флаг для Next.js
   const launchParams = useLaunchParams(true); // ✅ В v3.x требуется SSR флаг для Next.js
   
   // Извлекаем пользовательские данные из launchParams для SDK v3.x

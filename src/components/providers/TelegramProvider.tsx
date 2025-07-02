@@ -4,6 +4,8 @@ import { createContext, useContext, useEffect, useState, type PropsWithChildren 
 import { init, backButton, mainButton } from '@telegram-apps/sdk-react';
 import { useTelegramAuth, useTelegramEnvironment } from '@/hooks/useTelegramAuth';
 
+// ✅ SDK v3.x: Правильная инициализация с SSR совместимостью
+
 // ✅ SDK v3.x: Правильная инициализация через init() и mount()
 
 interface TelegramContextValue {
