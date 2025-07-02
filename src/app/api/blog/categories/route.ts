@@ -12,8 +12,14 @@ export async function GET(request: NextRequest) {
       orderBy: {
         id: 'asc'
       },
-      include: includePostCount ? {
-        _count: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        color: true,
+        createdAt: true, // Теперь поле существует
+        _count: includePostCount ? {
           select: {
             posts: {
               where: {
@@ -21,8 +27,8 @@ export async function GET(request: NextRequest) {
               }
             }
           }
-        }
-      } : undefined
+        } : undefined
+      }
     });
 
     // Форматирование данных

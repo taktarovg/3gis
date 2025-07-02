@@ -97,10 +97,9 @@ export default function RootLayout({
   return (
     <html lang="ru" className={`${inter.variable}`}>
       <head>
-        {/* Мета-теги для запрета кэширования динамического контента */}
-        <meta httpEquiv="Cache-Control" content="no-store, must-revalidate" />
-        <meta httpEquiv="Pragma" content="no-cache" />
-        <meta httpEquiv="Expires" content="0" />
+        {/* Мета-теги для Next.js 15.3.3 кэширования */}
+        <meta httpEquiv="Cache-Control" content="public, max-age=31536000, immutable" />
+        <meta name="robots" content="index, follow" />
         
         {/* Favicon для Google Search */}
         <link rel="icon" href="/favicon.ico" sizes="any" />
