@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = params;
+    const { slug } = await context.params;
 
     // Моковые данные для блога (пока нет полной интеграции с Supabase)
     const mockPosts: Record<string, any> = {
