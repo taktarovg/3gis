@@ -96,7 +96,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     }));
 
-    // Получение городов
+    // Получение городов (используем name вместо slug)
     const cities = await prisma.city.findMany({
       where: {
         businesses: {
@@ -106,12 +106,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         }
       },
       select: {
-        slug: true
+        name: true,
+        stateId: true
       }
     });
 
     const cityPages = cities.map(city => ({
-      url: `${baseUrl}/city/${city.slug}`,
+      url: `${baseUrl}/city/${encodeURIComponent(city.name.toLowerCase().replace(/\s+/g, '-'))}-${city.stateId.toLowerCase()}`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.4,
