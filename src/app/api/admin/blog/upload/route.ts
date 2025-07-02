@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
     // Получение списка изображений из Cloudinary
     const result = await cloudinary.search
       .expression(`folder:3gis/${folder}`)
-      .sort_by([['created_at', 'desc']])
+      .sort_by('created_at', 'desc')
       .max_results(limit)
       .execute();
 
