@@ -48,7 +48,7 @@ export function ShareButtons({ postId, title, url, description }: ShareButtonsPr
         break;
 
       case 'native':
-        if (navigator.share) {
+        if ('share' in navigator) {
           try {
             await navigator.share({
               title,
@@ -133,7 +133,7 @@ export function ShareButtons({ postId, title, url, description }: ShareButtonsPr
               </button>
 
               {/* Native Share API (если поддерживается) */}
-              {typeof navigator !== 'undefined' && navigator.share && (
+              {typeof navigator !== 'undefined' && 'share' in navigator && (
                 <>
                   <div className="border-t border-gray-100 my-2" />
                   <button
@@ -188,7 +188,7 @@ export function ShareButtonsMobile({ postId, title, url, description }: ShareBut
         break;
 
       case 'native':
-        if (typeof navigator !== 'undefined' && navigator.share) {
+        if (typeof navigator !== 'undefined' && 'share' in navigator) {
           try {
             await navigator.share({
               title,
@@ -228,7 +228,7 @@ export function ShareButtonsMobile({ postId, title, url, description }: ShareBut
       </button>
 
       {/* Native Share (если поддерживается) */}
-      {typeof navigator !== 'undefined' && navigator.share && (
+      {typeof navigator !== 'undefined' && 'share' in navigator && (
         <button
           onClick={() => handleShare('native')}
           className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors"
