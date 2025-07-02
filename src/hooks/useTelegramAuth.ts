@@ -75,6 +75,7 @@ export function useTelegramAuth() {
   return {
     user,
     isInitialized,
+    isLoading: !isInitialized, // ✅ Добавляем isLoading для совместимости
     error,
     rawInitData,
     isAuthenticated: !!user,
