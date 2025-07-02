@@ -96,9 +96,10 @@ async function getCategoryData(slug: string, page: number = 1): Promise<Category
 export async function generateMetadata({ 
   params 
 }: { 
-  params: { slug: string } 
+  params: Promise<{ slug: string }> 
 }): Promise<Metadata> {
-  const data = await getCategoryData(params.slug);
+  const resolvedParams = await params;
+  const data = await getCategoryData(resolvedParams.slug);
 
   if (!data) {
     return {
@@ -157,11 +158,13 @@ export default async function CategoryPage({
   params,
   searchParams
 }: { 
-  params: { slug: string };
-  searchParams: { page?: string };
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
-  const page = parseInt(searchParams.page || '1');
-  const data = await getCategoryData(params.slug, page);
+  const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
+  const page = parseInt(resolvedSearchParams.page || '1');
+  const data = await getCategoryData(resolvedParams.slug, page);
 
   if (!data) {
     notFound();
@@ -243,7 +246,7 @@ export default async function CategoryPage({
               <div className="flex justify-center items-center space-x-4">
                 {pagination.hasPrevPage && (
                   <Link
-                    href={`/blog/category/${category.slug}?page=${pagination.page - 1}`}
+                    href={`/blog/category/${resolvedParams.slug}?page=${pagination.page - 1}`}
                     className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     Предыдущая
@@ -256,7 +259,7 @@ export default async function CategoryPage({
 
                 {pagination.hasNextPage && (
                   <Link
-                    href={`/blog/category/${category.slug}?page=${pagination.page + 1}`}
+                    href={`/blog/category/${resolvedParams.slug}?page=${pagination.page + 1}`}
                     className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     Следующая
