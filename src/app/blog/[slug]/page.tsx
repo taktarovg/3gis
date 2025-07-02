@@ -328,16 +328,21 @@ export default async function BlogPostPage({
                   );
                 },
                 // Кастомные стили для изображений
-                img: ({ src, alt, ...props }) => (
-                  <Image
-                    src={src || ''}
-                    alt={alt || ''}
-                    width={800}
-                    height={600}
-                    className="rounded-lg shadow-md"
-                    {...props}
-                  />
-                ),
+                img: ({ src, alt, ...props }) => {
+                  // Извлекаем width и height из props или устанавливаем значения по умолчанию
+                  const width = props.width ? Number(props.width) : 800;
+                  const height = props.height ? Number(props.height) : 600;
+                  
+                  return (
+                    <Image
+                      src={src || ''}
+                      alt={alt || ''}
+                      width={width}
+                      height={height}
+                      className="rounded-lg shadow-md"
+                    />
+                  );
+                },
                 // Кастомные стили для ссылок
                 a: ({ href, children, ...props }) => (
                   <Link 
