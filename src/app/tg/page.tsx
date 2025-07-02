@@ -147,8 +147,8 @@ export default function ThreeGISHomePage() {
   
   // ✅ Обрабатываем startapp параметры для навигации
   useEffect(() => {
-    // ✅ SDK v3.x: проверяем tgWebAppStartParam вместо startParam
-    const startParam = launchParams?.tgWebAppStartParam || launchParams?.tgWebAppData?.startParam;
+    // ✅ SDK v3.x: в v3.x startParam находится только в tgWebAppStartParam
+    const startParam = launchParams?.tgWebAppStartParam;
     
     // ✅ Проверяем что startParam это строка перед использованием
     if (startParam && typeof startParam === 'string') {
