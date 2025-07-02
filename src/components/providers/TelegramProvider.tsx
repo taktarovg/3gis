@@ -1,8 +1,10 @@
 'use client';
 
-import { SDKProvider } from '@telegram-apps/sdk-react';
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
+import { init, backButton, mainButton } from '@telegram-apps/sdk-react';
 import { useTelegramAuth, useTelegramEnvironment } from '@/hooks/useTelegramAuth';
+
+// ✅ SDK v3.x: Правильная инициализация через init() и mount()
 
 interface TelegramContextValue {
   isReady: boolean;
@@ -22,43 +24,70 @@ const TelegramContext = createContext<TelegramContextValue>({
 
 export function TelegramProvider({ children }: PropsWithChildren) {
   const [isReady, setIsReady] = useState(false);
+  const [sdkInitialized, setSdkInitialized] = useState(false);
   const { isTelegramEnvironment, isDevelopment } = useTelegramEnvironment();
   
   useEffect(() => {
-    // Инициализация для Next.js 15.3.3
+    // ✅ Правильная инициализация SDK v3.x согласно документации
     if (typeof window !== 'undefined') {
-      // Настройка для Development mode
-      if (isDevelopment && !isTelegramEnvironment) {
-        // Mock Telegram environment для локальной разработки
-        const mockTelegram = {
-          WebApp: {
-            ready: () => {},
-            expand: () => {},
-            MainButton: {
-              show: () => {},
-              hide: () => {},
-              setText: () => {},
-              onClick: () => {},
-              offClick: () => {}
-            },
-            BackButton: {
-              show: () => {},
-              hide: () => {},
-              onClick: () => {},
-              offClick: () => {}
-            },
-            HapticFeedback: {
-              impactOccurred: () => {},
-              notificationOccurred: () => {},
-              selectionChanged: () => {}
-            },
-            initData: 'user=%7B%22id%22%3A123456789%2C%22first_name%22%3A%22%D0%A2%D0%B5%D1%81%D1%82%22%2C%22last_name%22%3A%22%D0%9F%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D1%82%D0%B5%D0%BB%D1%8C%22%2C%22username%22%3A%22test_user%22%2C%22language_code%22%3A%22ru%22%7D&auth_date=1703001600&hash=test_hash'
-          }
-        };
+      let initSuccess = false;
+      
+      try {
+        // ✅ Шаг 1: Инициализация SDK (ОБЯЗАТЕЛЬНО)
+        init();
+        console.log('✅ Telegram SDK v3.x инициализирован');
         
-        (window as any).Telegram = mockTelegram;
+        // ✅ Шаг 2: Монтирование нужных компонентов
+        try {
+          // Монтируем BackButton для навигации
+          if (backButton && typeof backButton.mount === 'function') {
+            backButton.mount();
+            console.log('✅ BackButton смонтирован');
+          }
+          
+          // Монтируем MainButton для основных действий
+          if (mainButton && typeof mainButton.mount === 'function') {
+            mainButton.mount();
+            console.log('✅ MainButton смонтирован');
+          }
+        } catch (mountError) {
+          console.warn('⚠️ Ошибка монтирования компонентов:', mountError);
+        }
+        
+        // ✅ Шаг 3: Настройка Telegram WebApp (если доступно)
+        const tg = (window as any)?.Telegram?.WebApp;
+        if (tg) {
+          tg.ready();
+          tg.expand();
+          
+          // Настройки для Mini App
+          if (tg.disableVerticalSwipes) {
+            tg.disableVerticalSwipes();
+          }
+          
+          if (tg.setHeaderColor) {
+            tg.setHeaderColor('#ffffff');
+          }
+          
+          console.log('✅ Telegram WebApp настроен');
+        } else if (isDevelopment) {
+          // Development mode: минимальный mock
+          console.log('🔧 Development: Telegram WebApp не обнаружен, работаем в browser режиме');
+        }
+        
+        initSuccess = true;
+        
+      } catch (error) {
+        console.error('❌ Ошибка инициализации Telegram SDK:', error);
+        
+        // Для development режима продолжаем работу
+        if (isDevelopment) {
+          console.log('🔧 Development: Продолжаем работу без SDK');
+          initSuccess = true;
+        }
       }
       
+      setSdkInitialized(initSuccess);
       setIsReady(true);
     }
   }, [isDevelopment, isTelegramEnvironment]);
@@ -68,27 +97,28 @@ export function TelegramProvider({ children }: PropsWithChildren) {
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Инициализация приложения...</p>
+          <p className="text-gray-600">Инициализация Telegram SDK...</p>
         </div>
       </div>
     );
   }
   
   return (
-    <SDKProvider acceptCustomStyles debug={isDevelopment}>
-      <TelegramContextProvider>
-        {children}
-      </TelegramContextProvider>
-    </SDKProvider>
+    <TelegramContextProvider sdkInitialized={sdkInitialized}>
+      {children}
+    </TelegramContextProvider>
   );
 }
 
-function TelegramContextProvider({ children }: PropsWithChildren) {
+function TelegramContextProvider({ 
+  children, 
+  sdkInitialized 
+}: PropsWithChildren & { sdkInitialized: boolean }) {
   const { user, isInitialized, error, isAuthenticated } = useTelegramAuth();
   const { isTelegramEnvironment } = useTelegramEnvironment();
   
   const contextValue: TelegramContextValue = {
-    isReady: isInitialized,
+    isReady: isInitialized && sdkInitialized,
     user,
     isAuthenticated,
     isTelegramEnvironment,
@@ -110,14 +140,14 @@ export function useTelegram() {
   return context;
 }
 
-// Компонент для отображения состояния Telegram
+// ✅ Компонент для отображения состояния Telegram (упрощенный)
 export function TelegramStatus() {
   const { isReady, user, isTelegramEnvironment, error } = useTelegram();
   
   if (error) {
     return (
-      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-        <strong className="font-bold">Ошибка Telegram:</strong>
+      <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm">
+        <strong className="font-bold">Ошибка:</strong>
         <span className="block sm:inline"> {error}</span>
       </div>
     );
@@ -125,20 +155,24 @@ export function TelegramStatus() {
   
   if (!isReady) {
     return (
-      <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-        Инициализация Telegram...
+      <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-3 py-2 rounded text-sm">
+        Инициализация...
       </div>
     );
   }
   
   return (
-    <div className={`px-4 py-3 rounded ${isTelegramEnvironment ? 'bg-green-100 border-green-400 text-green-700' : 'bg-blue-100 border-blue-400 text-blue-700'}`}>
+    <div className={`px-3 py-2 rounded text-sm ${
+      isTelegramEnvironment 
+        ? 'bg-green-100 border-green-400 text-green-700' 
+        : 'bg-blue-100 border-blue-400 text-blue-700'
+    }`}>
       <strong className="font-bold">
-        {isTelegramEnvironment ? '✅ Telegram Mini App' : '🖥️ Web Browser'}
+        {isTelegramEnvironment ? '✅ Telegram' : '🖥️ Browser'}
       </strong>
       {user && (
         <span className="block sm:inline">
-          {' '}- Пользователь: {user.first_name} {user.last_name}
+          {' '}- {user.first_name} {user.last_name}
         </span>
       )}
     </div>

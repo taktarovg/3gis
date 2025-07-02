@@ -3,7 +3,7 @@
 import { useLaunchParams, useRawInitData } from '@telegram-apps/sdk-react';
 import { useEffect, useState } from 'react';
 
-// Правильные типы для Telegram SDK v3.x
+// ✅ Правильные типы для Telegram SDK v3.x основанные на документации
 interface TelegramUser {
   id: number;
   first_name: string;
@@ -14,12 +14,13 @@ interface TelegramUser {
   photo_url?: string;
 }
 
+// ✅ SDK v3.x возвращает объект с префиксом tgWebApp
 interface LaunchParams {
   tgWebAppBotInline?: boolean;
   tgWebAppData?: {
     user?: TelegramUser;
-    auth_date?: number;
-    query_id?: string;
+    authDate?: Date;  // в v3.x authDate вместо auth_date
+    queryId?: string; // в v3.x queryId вместо query_id  
     hash?: string;
   };
   tgWebAppStartParam?: string;
@@ -33,16 +34,27 @@ export function useTelegramAuth() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Правильное использование хуков с SSR поддержкой для Next.js 15.3.3
-  const launchParams = useLaunchParams(true) as LaunchParams; // SSR = true для Next.js
-  const rawInitData = useRawInitData();
+  // ✅ Правильное использование хуков SDK v3.x без параметров (SSR автоматически обрабатывается)
+  let launchParams: LaunchParams | null = null;
+  let rawInitData: string | null = null;
+  
+  try {
+    // ✅ SDK v3.x: useLaunchParams() без параметров, но с обработкой SSR
+    launchParams = useLaunchParams() as LaunchParams;
+    rawInitData = useRawInitData();
+  } catch (err) {
+    // В SSR окружении хуки могут не работать - это нормально
+    console.warn('Telegram hooks not available (SSR mode):', err);
+  }
   
   useEffect(() => {
     try {
+      // ✅ SDK v3.x: проверяем tgWebAppData 
       if (launchParams?.tgWebAppData?.user) {
         setUser(launchParams.tgWebAppData.user);
         setIsInitialized(true);
-      } else if (typeof window !== 'undefined' && !window.Telegram?.WebApp) {
+        console.log('✅ Telegram user loaded:', launchParams.tgWebAppData.user);
+      } else if (typeof window !== 'undefined') {
         // Development mode - создаем mock пользователя
         if (process.env.NODE_ENV === 'development') {
           const mockUser: TelegramUser = {
@@ -54,6 +66,11 @@ export function useTelegramAuth() {
           };
           setUser(mockUser);
           setIsInitialized(true);
+          console.log('🔧 Development mode: Mock user created');
+        } else {
+          // Production без пользователя
+          setIsInitialized(true);
+          console.log('⚠️ No Telegram user data available');
         }
       }
     } catch (err) {
@@ -73,7 +90,7 @@ export function useTelegramAuth() {
   };
 }
 
-// Хук для проверки Telegram окружения
+// ✅ Хук для проверки Telegram окружения
 export function useTelegramEnvironment() {
   const [isTelegramEnvironment, setIsTelegramEnvironment] = useState(false);
   const [isWebApp, setIsWebApp] = useState(false);
@@ -85,6 +102,12 @@ export function useTelegramEnvironment() {
       
       setIsTelegramEnvironment(hasTelegramWebApp || hasInitData);
       setIsWebApp(hasTelegramWebApp);
+      
+      console.log('🌐 Telegram Environment Check:', { 
+        hasTelegramWebApp, 
+        hasInitData, 
+        isTelegramEnvironment: hasTelegramWebApp || hasInitData 
+      });
     }
   }, []);
   
@@ -95,7 +118,7 @@ export function useTelegramEnvironment() {
   };
 }
 
-// Утилиты для работы с Telegram данными
+// ✅ Утилиты для работы с Telegram данными
 export function formatTelegramUser(user: TelegramUser | null): string {
   if (!user) return 'Гость';
   

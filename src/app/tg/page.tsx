@@ -6,11 +6,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MessageSquare } from 'lucide-react';
 import { useLaunchParams } from '@telegram-apps/sdk-react';
-// import { CategoryGrid } from '@/components/categories/CategoryGrid'; // Перенесен в dynamic import
-// import { SearchBox } from '@/components/search/SearchBox'; // Перенесен в dynamic import
-// import { NearbyButton } from '@/components/location/NearbyButton'; // Перенесен в dynamic import
-// import { DonationWidget } from '@/components/donations/DonationWidget'; // Перенесен в dynamic import
-// import { PlatformDebug } from '@/components/debug/PlatformDebug'; // Перенесен в dynamic import
 import dynamic from 'next/dynamic';
 
 // ✅ Динамические импорты компонентов с event handlers для исправления SSR ошибки
@@ -125,12 +120,19 @@ export default function ThreeGISHomePage() {
   const router = useRouter();
   const { categories, loading } = useCategories();
   
-  // ✅ SDK v3.x: Получаем параметры запуска
-  const launchParams = useLaunchParams(true);
+  // ✅ SDK v3.x: Получаем параметры запуска без параметров
+  let launchParams: any = null;
+  
+  try {
+    launchParams = useLaunchParams();
+  } catch (error) {
+    console.warn('⚠️ Launch params not available:', error);
+  }
   
   // ✅ Обрабатываем startapp параметры для навигации
   useEffect(() => {
-    const startParam = launchParams?.tgWebAppData?.startParam;
+    // ✅ SDK v3.x: проверяем tgWebAppStartParam вместо startParam
+    const startParam = launchParams?.tgWebAppStartParam || launchParams?.tgWebAppData?.startParam;
     
     if (startParam) {
       console.log('🚀 Start param detected:', startParam);
