@@ -303,9 +303,16 @@ export default async function BlogPostPage({
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                code({ node, inline, className, children, ...props }) {
+                code({ node, className, children, ...props }: {
+                  node?: any;
+                  className?: string;
+                  children?: React.ReactNode;
+                  [key: string]: any;
+                }) {
                   const match = /language-(\w+)/.exec(className || '');
-                  return !inline && match ? (
+                  const isInline = !node || node.tagName !== 'pre';
+                  
+                  return !isInline && match ? (
                     <SyntaxHighlighter
                       style={vscDarkPlus}
                       language={match[1]}
