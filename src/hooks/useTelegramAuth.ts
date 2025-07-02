@@ -34,18 +34,10 @@ export function useTelegramAuth() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // ✅ Правильное использование хуков SDK v3.x без параметров (SSR автоматически обрабатывается)
-  let launchParams: LaunchParams | null = null;
-  let rawInitData: string | null = null;
-  
-  try {
-    // ✅ SDK v3.x: useLaunchParams() без параметров, но с обработкой SSR
-    launchParams = useLaunchParams() as LaunchParams;
-    rawInitData = useRawInitData();
-  } catch (err) {
-    // В SSR окружении хуки могут не работать - это нормально
-    console.warn('Telegram hooks not available (SSR mode):', err);
-  }
+  // ✅ SDK v3.x: Правильное безусловное использование хуков
+  // В v3.x useLaunchParams не принимает SSR параметр - это обрабатывается автоматически
+  const launchParams = useLaunchParams() as LaunchParams;
+  const rawInitData = useRawInitData();
   
   useEffect(() => {
     try {

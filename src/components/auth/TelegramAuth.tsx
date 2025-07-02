@@ -1,7 +1,7 @@
 // src/components/auth/TelegramAuth.tsx
 'use client';
 
-import { useTelegramAuth } from '@/hooks/use-telegram-auth';
+import { useTelegramAuth } from '@/hooks/useTelegramAuth';
 import { MobileAuthHandler } from '@/components/auth/MobileAuthHandler';
 
 // Re-export components for convenience

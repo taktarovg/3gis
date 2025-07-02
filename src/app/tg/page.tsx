@@ -120,14 +120,9 @@ export default function ThreeGISHomePage() {
   const router = useRouter();
   const { categories, loading } = useCategories();
   
-  // ✅ SDK v3.x: Получаем параметры запуска без параметров
-  let launchParams: any = null;
-  
-  try {
-    launchParams = useLaunchParams();
-  } catch (error) {
-    console.warn('⚠️ Launch params not available:', error);
-  }
+  // ✅ SDK v3.x: Получаем параметры запуска (хук должен вызываться БЕЗУСЛОВНО)
+  // В v3.x SSR обрабатывается автоматически
+  const launchParams = useLaunchParams();
   
   // ✅ Обрабатываем startapp параметры для навигации
   useEffect(() => {
