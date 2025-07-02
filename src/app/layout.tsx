@@ -8,7 +8,7 @@ import { GoogleAnalytics, PageViewTracker } from '@/components/analytics/GoogleA
 import Script from 'next/script';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://3gis.vercel.app'),
+  metadataBase: new URL('https://3gis.biz'),
   title: {
     default: '3GIS - Русскоязычный справочник организаций в США',
     template: '%s | 3GIS - Твой проводник в Америке'
@@ -26,11 +26,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: '3GIS - Твой проводник в Америке',
     description: 'Русскоязычный справочник организаций в США. Найди врачей, юристов, рестораны и другие услуги на родном языке.',
-    url: 'https://3gis.vercel.app',
+    url: 'https://3gis.biz',
     siteName: '3GIS',
     images: [
       {
-        url: 'https://3gis.vercel.app/og-image.png',
+        url: 'https://3gis.biz/og-image.png',
         width: 1200,
         height: 630,
         alt: '3GIS - Русскоязычный справочник США'
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: '3GIS - Русскоязычный справочник США',
     description: 'Находите русскоговорящие услуги по всей Америке',
-    images: ['https://3gis.vercel.app/og-image.png'],
+    images: ['https://3gis.biz/og-image.png'],
   },
   robots: {
     index: true,
@@ -61,8 +61,9 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/icons/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/icons/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
     shortcut: '/favicon.ico',
     apple: [
@@ -101,6 +102,11 @@ export default function RootLayout({
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
         
+        {/* Favicon для Google Search */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/icons/icon-192.png" sizes="192x192" type="image/png" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        
         {/* Preconnect для улучшения производительности */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -123,7 +129,7 @@ export default function RootLayout({
               "name": "3GIS",
               "alternateName": "3GIS - Русскоязычный справочник США",
               "description": "Справочник русскоязычных организаций в США",
-              "url": "https://3gis.vercel.app",
+              "url": "https://3gis.biz",
               "potentialAction": {
                 "@type": "SearchAction",
                 "target": "https://t.me/ThreeGIS_bot/app?query={search_term_string}",
@@ -137,7 +143,7 @@ export default function RootLayout({
               "publisher": {
                 "@type": "Organization",
                 "name": "3GIS",
-                "url": "https://3gis.vercel.app"
+                "url": "https://3gis.biz"
               }
             })
           }}
