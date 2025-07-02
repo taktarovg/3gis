@@ -8,9 +8,12 @@ export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 // Google Analytics tracking functions
 export const trackPageView = (url: string) => {
   if (typeof window !== 'undefined' && window.gtag && GA_MEASUREMENT_ID) {
+    console.log('GA: Tracking page view:', url);
     window.gtag('config', GA_MEASUREMENT_ID, {
       page_path: url,
     });
+  } else {
+    console.warn('GA: trackPageView failed - gtag not available or GA_MEASUREMENT_ID not set');
   }
 };
 
@@ -129,9 +132,13 @@ export const track3GISEvent = {
 
 // Google Analytics Script Component
 export function GoogleAnalytics() {
-  if (!GA_MEASUREMENT_ID || process.env.NODE_ENV !== 'production') {
+  // Проверяем наличие GA_MEASUREMENT_ID
+  if (!GA_MEASUREMENT_ID) {
+    console.warn('Google Analytics: GA_MEASUREMENT_ID не настроен');
     return null;
   }
+
+  console.log('Google Analytics: Инициализация с ID:', GA_MEASUREMENT_ID);
 
   return (
     <>
