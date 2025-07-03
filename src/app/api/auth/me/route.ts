@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
         firstName: true,
         lastName: true,
         username: true,
+        language: true,
         avatar: true,
         role: true,
         isPremium: true,
