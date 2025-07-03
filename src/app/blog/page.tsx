@@ -1,4 +1,6 @@
-import { Suspense } from 'react';
+'use client';
+
+import React, { Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Clock, User, Eye, ArrowRight, Search } from 'lucide-react';
@@ -34,43 +36,56 @@ interface BlogPost {
   };
 }
 
-// Получение данных блога
-async function getBlogData() {
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    
-    // Получение постов и категорий параллельно
-    const [postsResponse, categoriesResponse] = await Promise.all([
-      fetch(`${baseUrl}/api/blog/posts?limit=12`, {
-        next: { revalidate: 300 } // Кэш на 5 минут
-      }),
-      fetch(`${baseUrl}/api/blog/categories?includePostCount=true`, {
-        next: { revalidate: 3600 } // Кэш на 1 час
-      })
-    ]);
+// ✅ Хук для получения данных блога на клиенте
+function useBlogData() {
+  const [data, setData] = React.useState({
+    posts: [],
+    categories: [],
+    pagination: null,
+    loading: true
+  });
 
-    if (!postsResponse.ok || !categoriesResponse.ok) {
-      throw new Error('Failed to fetch blog data');
+  React.useEffect(() => {
+    async function fetchBlogData() {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+        
+        // Получение постов и категорий параллельно
+        const [postsResponse, categoriesResponse] = await Promise.all([
+          fetch(`${baseUrl}/api/blog/posts?limit=12`),
+          fetch(`${baseUrl}/api/blog/categories?includePostCount=true`)
+        ]);
+
+        if (!postsResponse.ok || !categoriesResponse.ok) {
+          throw new Error('Failed to fetch blog data');
+        }
+
+        const [postsData, categoriesData] = await Promise.all([
+          postsResponse.json(),
+          categoriesResponse.json()
+        ]);
+
+        setData({
+          posts: postsData.posts || [],
+          categories: categoriesData.categories || [],
+          pagination: postsData.pagination,
+          loading: false
+        });
+      } catch (error) {
+        console.error('Error fetching blog data:', error);
+        setData({
+          posts: [],
+          categories: [],
+          pagination: null,
+          loading: false
+        });
+      }
     }
 
-    const [postsData, categoriesData] = await Promise.all([
-      postsResponse.json(),
-      categoriesResponse.json()
-    ]);
+    fetchBlogData();
+  }, []);
 
-    return {
-      posts: postsData.posts || [],
-      categories: categoriesData.categories || [],
-      pagination: postsData.pagination
-    };
-  } catch (error) {
-    console.error('Error fetching blog data:', error);
-    return {
-      posts: [],
-      categories: [],
-      pagination: null
-    };
-  }
+  return data;
 }
 
 // Метаданные для SEO
@@ -86,8 +101,31 @@ export const metadata = {
   }
 };
 
-export default async function BlogPage() {
-  const { posts, categories } = await getBlogData();
+export default function BlogPage() {
+  const { posts, categories, loading } = useBlogData();
+  
+  // Отображаем loading состояние
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header variant="app" />
+        <main className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <div className="animate-pulse">
+              <div className="h-12 bg-gray-200 rounded mb-4"></div>
+              <div className="h-6 bg-gray-200 rounded mb-8"></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="bg-gray-200 rounded-lg h-64"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

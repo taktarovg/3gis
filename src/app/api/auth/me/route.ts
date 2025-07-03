@@ -25,9 +25,9 @@ export async function GET(request: NextRequest) {
     const token = extractTokenFromHeader(authHeader);
     
     if (!token) {
-      console.log('❌ No token');
+      console.log('❌ No token provided');
       return NextResponse.json(
-        { error: 'Token invalid, user not found' },
+        { error: 'Unauthorized - No token provided' },
         { status: 401 }
       );
     }
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!user) {
-      console.log('❌ User not found');
+      console.log('❌ User not found in database');
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }

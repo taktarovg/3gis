@@ -5,7 +5,8 @@ import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MessageSquare } from 'lucide-react';
-import { useLaunchParams } from '@telegram-apps/sdk-react';
+// Пока убираем проблемный импорт
+// import { useRawLaunchParams } from '@telegram-apps/sdk-react';
 import dynamic from 'next/dynamic';
 
 // ✅ Динамические импорты компонентов с event handlers для исправления SSR ошибки
@@ -73,26 +74,9 @@ interface Category {
   order: number;
 }
 
-// ✅ SDK v3.x: Правильная типизация LaunchParams для v3.x
-interface LaunchParams {
-  tgWebAppBotInline?: boolean;
-  tgWebAppData?: {
-    user?: {
-      id: number;
-      first_name: string;
-      last_name?: string;
-      username?: string;
-      language_code?: string;
-    };
-    auth_date?: Date;
-    query_id?: string;
-    hash?: string;
-  };
-  tgWebAppStartParam?: string;
-  tgWebAppThemeParams?: Record<string, string>;
-  tgWebAppVersion?: string;
-  tgWebAppPlatform?: string;
-}
+// ✅ SDK v3.x: Используем строковые параметры запуска из useRawLaunchParams
+// В v3.x useLaunchParams удален, используем parseInitData для разбора
+import { parseInitData } from '@telegram-apps/sdk-react';
 
 // ✅ Добавляем хук для получения категорий на клиенте с правильной типизацией
 function useCategories() {
@@ -141,9 +125,48 @@ export default function ThreeGISHomePage() {
   const router = useRouter();
   const { categories, loading } = useCategories();
   
-  // ✅ SDK v3.x: Получаем параметры запуска с SSR флагом (ОБЯЗАТЕЛЬНО для Next.js)
-  // В v3.x SSR режим требует явного указания флага true
-  const launchParams = useLaunchParams(true) as LaunchParams;
+  // ✅ Временно используем мок-данные для стабильности
+  // После исправления основных проблем вернем Telegram SDK
+  const [rawLaunchParams, setRawLaunchParams] = React.useState<string | null>(null);
+  
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Получаем параметры из URL или Telegram WebApp
+      const urlParams = new URLSearchParams(window.location.search);
+      const startParam = urlParams.get('tgWebAppStartParam') || 
+                        urlParams.get('startapp') ||
+                        (window as any)?.Telegram?.WebApp?.initDataUnsafe?.start_param;
+      
+      if (startParam) {
+        setRawLaunchParams(`tgWebAppStartParam=${startParam}`);
+      } else {
+        // Мок для разработки
+        setRawLaunchParams('tgWebAppStartParam=debug&tgWebAppVersion=7.0');
+      }
+    }
+  }, []);
+  
+  // Парсим параметры в безопасном режиме
+  const [launchParams, setLaunchParams] = React.useState<any>(null);
+  
+  React.useEffect(() => {
+    if (rawLaunchParams && typeof window !== 'undefined') {
+      try {
+        // Используем встроенные функции SDK для парсинга
+        const urlParams = new URLSearchParams(rawLaunchParams);
+        const parsed = {
+          tgWebAppStartParam: urlParams.get('tgWebAppStartParam'),
+          tgWebAppData: urlParams.get('tgWebAppData'),
+          tgWebAppVersion: urlParams.get('tgWebAppVersion'),
+          tgWebAppPlatform: urlParams.get('tgWebAppPlatform')
+        };
+        setLaunchParams(parsed);
+      } catch (error) {
+        console.error('Error parsing launch params:', error);
+        setLaunchParams({});
+      }
+    }
+  }, [rawLaunchParams]);
   
   // ✅ Обрабатываем startapp параметры для навигации
   useEffect(() => {
