@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 /**
@@ -26,6 +26,20 @@ export function TelegramRedirect({
   const [userAgent, setUserAgent] = useState('');
   const router = useRouter();
 
+  const openInTelegram = useCallback(() => {
+    // ✅ Создаем универсальную ссылку для открытия в Telegram
+    const telegramUrl = `https://t.me/${botUsername}/${appPath}?startapp=${startParam}`;
+    
+    // ✅ Пробуем разные способы открытия в зависимости от платформы
+    if (userAgent.includes('mobile')) {
+      // На мобильных устройствах
+      window.location.href = telegramUrl;
+    } else {
+      // На десктопе - открываем в новой вкладке
+      window.open(telegramUrl, '_blank');
+    }
+  }, [botUsername, appPath, startParam, userAgent]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -33,9 +47,9 @@ export function TelegramRedirect({
     setUserAgent(ua);
 
     // ✅ Проверяем, открыто ли уже в Telegram
-    const isInTelegram = window.Telegram?.WebApp || 
+    const isInTelegram = !!(window.Telegram?.WebApp || 
                         ua.includes('telegram') ||
-                        window.location.href.includes('tgWebAppData');
+                        window.location.href.includes('tgWebAppData'));
 
     setIsTelegram(isInTelegram);
 
@@ -54,21 +68,7 @@ export function TelegramRedirect({
     }, 3000);
 
     return () => clearTimeout(autoRedirectTimer);
-  }, [router, botUsername, appPath, startParam]);
-
-  const openInTelegram = () => {
-    // ✅ Создаем универсальную ссылку для открытия в Telegram
-    const telegramUrl = `https://t.me/${botUsername}/${appPath}?startapp=${startParam}`;
-    
-    // ✅ Пробуем разные способы открытия в зависимости от платформы
-    if (userAgent.includes('mobile')) {
-      // На мобильных устройствах
-      window.location.href = telegramUrl;
-    } else {
-      // На десктопе - открываем в новой вкладке
-      window.open(telegramUrl, '_blank');
-    }
-  };
+  }, [router, openInTelegram]);
 
   const openWebVersion = () => {
     router.push('/tg');
