@@ -5,8 +5,8 @@ import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MessageSquare } from 'lucide-react';
-// Пока убираем проблемный импорт
-// import { useRawLaunchParams } from '@telegram-apps/sdk-react';
+// ✅ SDK v3.x: Используем только хуки из react пакета, функции парсинга из основного пакета
+import { useLaunchParams, useRawInitData } from '@telegram-apps/sdk-react';
 import dynamic from 'next/dynamic';
 
 // ✅ Динамические импорты компонентов с event handlers для исправления SSR ошибки
@@ -74,10 +74,6 @@ interface Category {
   order: number;
 }
 
-// ✅ SDK v3.x: Используем строковые параметры запуска из useRawLaunchParams
-// В v3.x useLaunchParams удален, используем parseInitData для разбора
-import { parseInitData } from '@telegram-apps/sdk-react';
-
 // ✅ Добавляем хук для получения категорий на клиенте с правильной типизацией
 function useCategories() {
   const [categories, setCategories] = React.useState<Category[]>([]); // ✅ Явная типизация
@@ -125,52 +121,22 @@ export default function ThreeGISHomePage() {
   const router = useRouter();
   const { categories, loading } = useCategories();
   
-  // ✅ Временно используем мок-данные для стабильности
-  // После исправления основных проблем вернем Telegram SDK
-  const [rawLaunchParams, setRawLaunchParams] = React.useState<string | null>(null);
+  // ✅ SDK v3.x: Используем новые хуки для получения параметров запуска
+  let launchParams: any = null;
+  let rawInitData: string | undefined = undefined;
   
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Получаем параметры из URL или Telegram WebApp
-      const urlParams = new URLSearchParams(window.location.search);
-      const startParam = urlParams.get('tgWebAppStartParam') || 
-                        urlParams.get('startapp') ||
-                        (window as any)?.Telegram?.WebApp?.initDataUnsafe?.start_param;
-      
-      if (startParam) {
-        setRawLaunchParams(`tgWebAppStartParam=${startParam}`);
-      } else {
-        // Мок для разработки
-        setRawLaunchParams('tgWebAppStartParam=debug&tgWebAppVersion=7.0');
-      }
-    }
-  }, []);
-  
-  // Парсим параметры в безопасном режиме
-  const [launchParams, setLaunchParams] = React.useState<any>(null);
-  
-  React.useEffect(() => {
-    if (rawLaunchParams && typeof window !== 'undefined') {
-      try {
-        // Используем встроенные функции SDK для парсинга
-        const urlParams = new URLSearchParams(rawLaunchParams);
-        const parsed = {
-          tgWebAppStartParam: urlParams.get('tgWebAppStartParam'),
-          tgWebAppData: urlParams.get('tgWebAppData'),
-          tgWebAppVersion: urlParams.get('tgWebAppVersion'),
-          tgWebAppPlatform: urlParams.get('tgWebAppPlatform')
-        };
-        setLaunchParams(parsed);
-      } catch (error) {
-        console.error('Error parsing launch params:', error);
-        setLaunchParams({});
-      }
-    }
-  }, [rawLaunchParams]);
+  try {
+    // ✅ В SDK v3.x useLaunchParams возвращает объект с tgWebApp* свойствами
+    launchParams = useLaunchParams(true); // SSR режим для Next.js
+    rawInitData = useRawInitData(); // получаем сырые данные инициализации
+  } catch (error) {
+    // В режиме разработки или вне Telegram игнорируем ошибки
+    console.log('Telegram SDK not available, using fallback data');
+  }
   
   // ✅ Обрабатываем startapp параметры для навигации
   useEffect(() => {
-    // ✅ SDK v3.x: в v3.x startParam находится только в tgWebAppStartParam
+    // ✅ SDK v3.x: в v3.x startParam находится в tgWebAppStartParam
     const startParam = launchParams?.tgWebAppStartParam;
     
     // ✅ Проверяем что startParam это строка перед использованием
@@ -194,7 +160,7 @@ export default function ThreeGISHomePage() {
           const chatId = startParam.replace('chat_', '');
           if (chatId && /^\d+$/.test(chatId)) {
             console.log('💬 Redirecting to chat:', chatId);
-            router.push(`/tg/chat/${chatId}`);
+            router.push(`/tg/chats/${chatId}`);
             return;
           }
         }
