@@ -116,15 +116,17 @@ function TelegramContextProvider({
   children, 
   sdkInitialized 
 }: PropsWithChildren & { sdkInitialized: boolean }) {
-  const { user, isInitialized, error, isAuthenticated } = useTelegramAuth();
+  // ✅ Используем продвинутый хук авторизации
+  const authData = useTelegramAuth();
   const { isTelegramEnvironment } = useTelegramEnvironment();
   
+  // ✅ Адаптируем интерфейс для обратной совместимости
   const contextValue: TelegramContextValue = {
-    isReady: isInitialized && sdkInitialized,
-    user,
-    isAuthenticated,
+    isReady: !authData.isLoading && sdkInitialized, // Используем isLoading вместо isInitialized
+    user: authData.user,
+    isAuthenticated: authData.isAuthenticated,
     isTelegramEnvironment,
-    error
+    error: authData.error
   };
   
   return (
@@ -174,7 +176,7 @@ export function TelegramStatus() {
       </strong>
       {user && (
         <span className="block sm:inline">
-          {' '}- {user.first_name} {user.last_name}
+          {' '}- {user.firstName} {user.lastName}
         </span>
       )}
     </div>
