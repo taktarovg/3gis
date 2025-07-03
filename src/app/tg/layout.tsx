@@ -1,59 +1,85 @@
 // src/app/tg/layout.tsx
 'use client';
 
-import { TelegramProvider } from '@/components/providers/TelegramProvider';
-import { TelegramStatus } from '@/components/providers/TelegramProvider';
+import { TelegramProvider, TelegramStatus } from '@/components/providers/TelegramProvider';
 import { NavigationLayout } from '@/components/navigation/BottomNavigation';
 import { useTelegram } from '@/components/providers/TelegramProvider';
 import { useEffect } from 'react';
 
-// ✅ Компонент для обертки контента с проверками
+/**
+ * ✅ Компонент для обертки контента с проверками готовности
+ * Совместимо с обновленным TelegramProvider и SDK v3.x
+ */
 function TelegramContent({ children }: { children: React.ReactNode }) {
-  const { isReady, error } = useTelegram();
+  const { isReady, error, isTelegramEnvironment } = useTelegram();
   
-  // ✅ Простая инициализация дополнительных функций
+  // ✅ Дополнительная настройка после инициализации
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (isReady && isTelegramEnvironment && typeof window !== 'undefined') {
       const tg = (window as any)?.Telegram?.WebApp;
-      if (tg && isReady) {
-        // Дополнительные настройки после инициализации
+      if (tg) {
         try {
-          // Устанавливаем цвет заголовка
-          if (tg.setHeaderColor) {
+          console.log('🎯 Применение дополнительных настроек Telegram WebApp...');
+          
+          // ✅ Настройки цветовой схемы
+          if (typeof tg.setHeaderColor === 'function') {
             tg.setHeaderColor('#ffffff');
           }
           
-          // Включаем полноэкранный режим
-          if (tg.requestFullscreen) {
+          if (typeof tg.setBottomBarColor === 'function') {
+            tg.setBottomBarColor('#ffffff');
+          }
+          
+          // ✅ Включаем полноэкранный режим
+          if (typeof tg.requestFullscreen === 'function') {
             tg.requestFullscreen();
           }
           
-          console.log('🎯 Additional Telegram WebApp features configured');
+          // ✅ Отключаем вертикальные свайпы
+          if (typeof tg.disableVerticalSwipes === 'function') {
+            tg.disableVerticalSwipes();
+          }
+          
+          // ✅ Закрепляем приложение (sticky mode)
+          if (typeof tg.enableClosingConfirmation === 'function') {
+            tg.enableClosingConfirmation();
+          }
+          
+          console.log('✅ Дополнительные настройки Telegram WebApp применены');
         } catch (err) {
-          console.warn('⚠️ Some Telegram features not available:', err);
+          console.warn('⚠️ Некоторые функции Telegram недоступны:', err);
         }
       }
     }
-  }, [isReady]);
+  }, [isReady, isTelegramEnvironment]);
   
+  // ✅ Обработка ошибок
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
         <div className="text-center max-w-md">
           <div className="text-6xl mb-4">⚠️</div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Ошибка инициализации</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Ошибка инициализации
+          </h2>
           <p className="text-gray-600 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Перезагрузить
-          </button>
+          <div className="space-y-3">
+            <button 
+              onClick={() => window.location.reload()} 
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Перезагрузить
+            </button>
+            <p className="text-sm text-gray-500">
+              Если проблема повторяется, откройте приложение через @ThreeGIS_bot в Telegram
+            </p>
+          </div>
         </div>
       </div>
     );
   }
   
+  // ✅ Загрузка
   if (!isReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -65,6 +91,7 @@ function TelegramContent({ children }: { children: React.ReactNode }) {
     );
   }
   
+  // ✅ Основной контент с навигацией
   return (
     <NavigationLayout>
       {children}
@@ -73,10 +100,15 @@ function TelegramContent({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * ✅ Layout для Telegram Mini App с правильной SDK v3.x инициализацией
- * - Убраны все проблемные импорты (initAuthStore, usePreventCollapse)
- * - Использует только рабочие компоненты SDK v3.x
- * - Совместим с Next.js 15.3.3 Server/Client Components
+ * ✅ Безопасный Layout для Telegram Mini App
+ * 
+ * Особенности v2.0:
+ * - Автоматическая детекция среды выполнения через EnvironmentDetector
+ * - Редирект на Telegram если открыто в браузере
+ * - Правильная инициализация SDK v3.x с актуальной документацией
+ * - Совместимость с Next.js 15.3.3
+ * - Обработка ошибок и fallback режимы
+ * - Улучшенный UX с понятными сообщениями
  */
 export default function TelegramLayout({
   children,
@@ -89,12 +121,8 @@ export default function TelegramLayout({
         {children}
       </TelegramContent>
       
-      {/* ✅ Debug информация только в development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed bottom-20 left-4 z-50 max-w-xs">
-          <TelegramStatus />
-        </div>
-      )}
+      {/* ✅ Статус отладки только в development */}
+      <TelegramStatus />
     </TelegramProvider>
   );
 }
