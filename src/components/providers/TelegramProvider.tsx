@@ -171,45 +171,47 @@ function TelegramProviderInner({ children }: PropsWithChildren) {
         if (process.env.NODE_ENV === 'development') {
           console.log('🔧 Development mode: Переключение на mock данные');
           
-          // ✅ Используем mock environment согласно документации
-          const { mockTelegramEnv } = await import('@telegram-apps/sdk');
+          // ✅ ИСПРАВЛЕНО: Используем правильную структуру для SDK v3.x согласно документации
+          const { mockTelegramEnv, parseInitData } = await import('@telegram-apps/sdk');
           
-          // Mock данные согласно документации SDK v3.x
+          // Создаем mock initData согласно документации
+          const initDataRaw = new URLSearchParams([
+            ['user', JSON.stringify({
+              id: Math.floor(Math.random() * 1000000000),
+              first_name: 'Test',
+              last_name: 'User',
+              username: 'testuser',
+              language_code: 'ru',
+              is_premium: false,
+            })],
+            ['hash', '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31'],
+            ['auth_date', Math.floor(Date.now() / 1000).toString()],
+            ['start_param', 'debug'],
+            ['chat_type', 'sender'],
+            ['chat_instance', '8428209589180549439'],
+          ]).toString();
+          
+          // ✅ Правильная структура mockTelegramEnv для SDK v3.x
           mockTelegramEnv({
-            tgWebAppThemeParams: {
-              accent_text_color: '#6ab2f2',
-              bg_color: '#17212b',
-              button_color: '#5288c1',
-              button_text_color: '#ffffff',
-              destructive_text_color: '#ec3942',
-              header_bg_color: '#17212b',
-              hint_color: '#708499',
-              link_color: '#6ab3f3',
-              secondary_bg_color: '#232e3c',
-              section_bg_color: '#17212b',
-              section_header_text_color: '#6ab3f3',
-              subtitle_text_color: '#708499',
-              text_color: '#f5f5f5',
+            themeParams: {
+              accentTextColor: '#6ab2f2',
+              bgColor: '#17212b',
+              buttonColor: '#5288c1',
+              buttonTextColor: '#ffffff',
+              destructiveTextColor: '#ec3942',
+              headerBgColor: '#17212b',
+              hintColor: '#708499',
+              linkColor: '#6ab3f3',
+              secondaryBgColor: '#232e3c',
+              sectionBgColor: '#17212b',
+              sectionHeaderTextColor: '#6ab3f3',
+              subtitleTextColor: '#708499',
+              textColor: '#f5f5f5',
             },
-            tgWebAppData: {
-              user: {
-                id: Math.floor(Math.random() * 1000000000),
-                first_name: 'Test',
-                last_name: 'User',
-                username: 'testuser',
-                language_code: 'ru',
-                is_premium: false,
-              },
-              hash: '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31',
-              auth_date: Math.floor(Date.now() / 1000),
-              start_param: 'debug',
-              chat_type: 'sender',
-              chat_instance: '8428209589180549439',
-            },
-            tgWebAppVersion: '8.0',
-            tgWebAppPlatform: 'tdesktop',
-            tgWebAppStartParam: 'debug',
-            tgWebAppBotInline: false
+            initData: parseInitData(initDataRaw),
+            initDataRaw,
+            version: '8.0',
+            platform: 'tdesktop',
           });
           
           // Повторяем инициализацию с mock данными
