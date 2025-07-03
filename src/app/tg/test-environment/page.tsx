@@ -27,7 +27,6 @@ export default function TestEnvironmentPage() {
     <div className="p-4 space-y-4 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold">🔍 Тестирование детекции среды SDK v3.x</h1>
       
-      {/* Статус Telegram Provider */}
       <div className="bg-white rounded-lg p-4 shadow border">
         <h2 className="text-lg font-semibold mb-2 flex items-center">
           📡 Telegram Provider Status
@@ -36,7 +35,7 @@ export default function TestEnvironmentPage() {
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
               <span>Ready:</span>
-              <span className={isReady ? 'text-green-600 font-bold' : 'text-red-600'}">
+              <span className={isReady ? 'text-green-600 font-bold' : 'text-red-600'}>
                 {isReady ? '✅ Готов' : '❌ Не готов'}
               </span>
             </div>
@@ -70,7 +69,6 @@ export default function TestEnvironmentPage() {
         )}
       </div>
 
-      {/* Данные пользователя */}
       {user && (
         <div className="bg-white rounded-lg p-4 shadow border">
           <h2 className="text-lg font-semibold mb-2 flex items-center">
@@ -94,7 +92,6 @@ export default function TestEnvironmentPage() {
         </div>
       )}
 
-      {/* InitData SDK v3.x */}
       {initData && (
         <div className="bg-white rounded-lg p-4 shadow border">
           <h2 className="text-lg font-semibold mb-2 flex items-center">
@@ -128,7 +125,6 @@ export default function TestEnvironmentPage() {
         </div>
       )}
 
-      {/* Environment Detection */}
       <div className="bg-white rounded-lg p-4 shadow border">
         <h2 className="text-lg font-semibold mb-2 flex items-center">
           🌐 Environment Detection
@@ -177,7 +173,6 @@ export default function TestEnvironmentPage() {
         )}
       </div>
 
-      {/* URL Parameters */}
       {Object.keys(environmentInfo.urlParams || {}).length > 0 && (
         <div className="bg-white rounded-lg p-4 shadow border">
           <h2 className="text-lg font-semibold mb-2 flex items-center">
@@ -194,7 +189,6 @@ export default function TestEnvironmentPage() {
         </div>
       )}
 
-      {/* Кнопки тестирования */}
       <div className="bg-white rounded-lg p-4 shadow border">
         <h2 className="text-lg font-semibold mb-2 flex items-center">
           🧪 Тестовые действия
@@ -257,7 +251,6 @@ export default function TestEnvironmentPage() {
         </div>
       </div>
 
-      {/* SDK Version Info */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
         <h2 className="text-lg font-semibold mb-2 flex items-center text-blue-800">
           📚 SDK Information
