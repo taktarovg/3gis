@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useTelegramAuth } from './use-telegram-auth';
+import { useTelegramAuth } from './useTelegramAuth';
 
 interface OwnerCheckResult {
   isOwner: boolean;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useTelegramAuth } from '@/hooks/use-telegram-auth';
+import { useTelegramAuth } from '@/hooks/useTelegramAuth';
 import { useRawInitData, useLaunchParams } from '@telegram-apps/sdk-react';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';

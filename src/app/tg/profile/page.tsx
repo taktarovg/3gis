@@ -14,7 +14,7 @@ import {
   LogOut,
   Camera
 } from 'lucide-react';
-import { useTelegramAuth } from '@/hooks/use-telegram-auth';
+import { useTelegramAuth } from '@/hooks/useTelegramAuth';
 import { useAuthStore } from '@/store/auth-store';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
