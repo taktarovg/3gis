@@ -171,9 +171,8 @@ function TelegramProviderInner({ children }: PropsWithChildren) {
         if (process.env.NODE_ENV === 'development') {
           console.log('🔧 Development mode: Переключение на mock данные');
           
-          // ✅ ИСПРАВЛЕНО: parseInitData находится в @telegram-apps/sdk-react для v3.x
+          // ✅ ИСПРАВЛЕНО: Создаем mock данные без parseInitData
           const { mockTelegramEnv } = await import('@telegram-apps/sdk');
-          const { parseInitData } = await import('@telegram-apps/sdk-react');
           
           // Создаем mock initData согласно документации
           const initDataRaw = new URLSearchParams([
@@ -192,7 +191,23 @@ function TelegramProviderInner({ children }: PropsWithChildren) {
             ['chat_instance', '8428209589180549439'],
           ]).toString();
           
-          // ✅ Правильная структура mockTelegramEnv для SDK v3.x
+          // Парсим данные вручную (без parseInitData)
+          const mockInitData = {
+            user: {
+              id: Math.floor(Math.random() * 1000000000),
+              first_name: 'Test',
+              last_name: 'User',
+              username: 'testuser',
+              language_code: 'ru',
+              is_premium: false,
+            },
+            auth_date: new Date(),
+            hash: '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31',
+            start_param: 'debug',
+            chat_type: 'sender',
+            chat_instance: '8428209589180549439',
+          };
+          
           mockTelegramEnv({
             themeParams: {
               accentTextColor: '#6ab2f2',
@@ -209,7 +224,7 @@ function TelegramProviderInner({ children }: PropsWithChildren) {
               subtitleTextColor: '#708499',
               textColor: '#f5f5f5',
             },
-            initData: parseInitData(initDataRaw),
+            initData: mockInitData,
             initDataRaw,
             version: '8.0',
             platform: 'tdesktop',
@@ -221,12 +236,12 @@ function TelegramProviderInner({ children }: PropsWithChildren) {
           
           setState({
             isReady: true,
-            user: launchParams.tgWebAppData?.user || null,
+            user: mockInitData.user,
             isAuthenticated: true,
             isTelegramEnvironment: false, // Указываем что это mock
             error: null,
             initData: {
-              parsed: launchParams.tgWebAppData,
+              parsed: mockInitData,
               launchParams: launchParams,
               isMock: true
             }
