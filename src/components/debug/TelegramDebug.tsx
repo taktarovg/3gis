@@ -45,7 +45,7 @@ function useTelegramNativeData() {
           // Параметры запуска (аналог launchParams)
           tgWebAppPlatform: webApp.platform,
           tgWebAppVersion: webApp.version,
-          tgWebAppStartParam: webApp.initDataUnsafe?.start_param,
+          tgWebAppStartParam: (webApp.initDataUnsafe as any)?.start_param, // ✅ Type assertion для start_param (существует в реальном API)
           tgWebAppBotInline: false,
           
           // Тема
@@ -467,7 +467,7 @@ export const TelegramNativeUtils = {
    */
   getStartParam(): string | null {
     if (!this.isAvailable()) return null;
-    return window.Telegram!.WebApp.initDataUnsafe?.start_param || null;
+    return (window.Telegram!.WebApp.initDataUnsafe as any)?.start_param || null; // ✅ Type assertion
   },
 
   /**
