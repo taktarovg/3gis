@@ -171,8 +171,9 @@ function TelegramProviderInner({ children }: PropsWithChildren) {
         if (process.env.NODE_ENV === 'development') {
           console.log('🔧 Development mode: Переключение на mock данные');
           
-          // ✅ ИСПРАВЛЕНО: Используем правильную структуру для SDK v3.x согласно документации
-          const { mockTelegramEnv, parseInitData } = await import('@telegram-apps/sdk');
+          // ✅ ИСПРАВЛЕНО: parseInitData находится в @telegram-apps/sdk-react для v3.x
+          const { mockTelegramEnv } = await import('@telegram-apps/sdk');
+          const { parseInitData } = await import('@telegram-apps/sdk-react');
           
           // Создаем mock initData согласно документации
           const initDataRaw = new URLSearchParams([
