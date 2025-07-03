@@ -61,7 +61,7 @@ function useTelegramNativeData() {
             hapticFeedback: !!webApp.HapticFeedback,
             backButton: !!webApp.BackButton,
             mainButton: !!webApp.MainButton,
-            secondaryButton: !!webApp.SecondaryButton
+            secondaryButton: !!(webApp as any).SecondaryButton // ✅ Type assertion для SecondaryButton (новая функция API)
           }
         };
         
