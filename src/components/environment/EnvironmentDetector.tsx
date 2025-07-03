@@ -1,260 +1,281 @@
 // src/components/environment/EnvironmentDetector.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ExternalLink, Smartphone, AlertTriangle } from 'lucide-react';
-
-interface EnvironmentState {
-  isTelegramEnvironment: boolean;
-  isMobile: boolean;
-  userAgent: string;
-  hasWebAppParams: boolean;
-  loading: boolean;
-}
+import { useEffect, useState, type PropsWithChildren } from 'react';
+import { Button } from '@/components/ui/button';
+import { ExternalLink, Smartphone, Monitor, RefreshCw } from 'lucide-react';
 
 /**
- * ✅ Компонент для детекции среды выполнения (SDK v3.x совместимый)
- * Безопасно определяет, запущено ли приложение внутри Telegram
- * Основан на актуальной документации @telegram-apps/sdk v3.10.1
+ * ✅ Детектор среды выполнения с умной обработкой
+ * Различает Telegram, браузер и мобильные устройства
+ * Предоставляет соответствующие инструкции пользователю
  */
-export function EnvironmentDetector({ children }: { children: React.ReactNode }) {
-  const [env, setEnv] = useState<EnvironmentState>({
-    isTelegramEnvironment: false,
-    isMobile: false,
-    userAgent: '',
-    hasWebAppParams: false,
-    loading: true
-  });
+
+interface EnvironmentDetectorProps {
+  children: React.ReactNode;
+}
+
+type EnvironmentType = 'telegram' | 'browser' | 'mobile' | 'unknown';
+
+export function EnvironmentDetector({ children }: EnvironmentDetectorProps) {
+  const [environment, setEnvironment] = useState<EnvironmentType>('unknown');
+  const [isChecking, setIsChecking] = useState(true);
+  const [showRetryOption, setShowRetryOption] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    // Детекция среды выполнения с множественными проверками
     const detectEnvironment = () => {
-      const userAgent = navigator.userAgent || '';
-      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+      console.log('🔍 Детекция среды выполнения...');
       
-      // ✅ Множественные проверки Telegram среды согласно SDK v3.x
-      const checks = {
-        // 1. Наличие объекта Telegram WebApp (основной индикатор)
-        hasWebApp: !!(window as any)?.Telegram?.WebApp,
-        
-        // 2. Наличие параметров WebApp в URL (для прямых ссылок)
-        hasWebAppParams: window.location.search.includes('tgWebApp') || 
-                        window.location.hash.includes('tgWebApp'),
-        
-        // 3. User-Agent содержит Telegram
-        hasTelegramUA: userAgent.includes('Telegram'),
-        
-        // 4. Наличие специфичных параметров запуска v3.x
-        hasLaunchParams: window.location.search.includes('tgWebAppStartParam') ||
-                        window.location.search.includes('tgWebAppPlatform') ||
-                        window.location.hash.includes('tgWebAppStartParam'),
-        
-        // 5. Референсер от Telegram
-        hasTelegramReferrer: document.referrer.includes('telegram') || 
-                           document.referrer.includes('t.me'),
-
-        // 6. Проверка через window.parent (для iframe)
-        isInFrame: window !== window.parent,
-        
-        // 7. Наличие postMessage функций Telegram (разные платформы)
-        hasPostMessage: !!(window as any)?.TelegramWebviewProxy?.postEvent ||
-                       !!(window as any)?.external?.notify ||
-                       !!(window as any)?.TelegramGameProxy,
-                       
-        // 8. Проверка наличия Telegram bridge функций
-        hasTelegramBridge: !!(window as any)?.TelegramWebview ||
-                          !!(window as any)?.TelegramWebApp
-      };
-
-      // ✅ Определяем Telegram среду по любому из критериев
-      const isTelegramEnvironment = Object.values(checks).some(Boolean);
-
-      console.log('🔍 Environment Detection (SDK v3.x):', {
-        checks,
-        isTelegramEnvironment,
-        userAgent: userAgent.substring(0, 100) + '...',
-        url: window.location.href,
-        referrer: document.referrer
-      });
-
-      setEnv({
-        isTelegramEnvironment,
+      // ✅ Проверяем Telegram WebApp
+      const hasTelegramWebApp = !!(window as any)?.Telegram?.WebApp;
+      
+      // ✅ Проверяем URL параметры Telegram
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasTelegramParams = 
+        urlParams.has('tgWebAppPlatform') || 
+        urlParams.has('tgWebAppData') ||
+        window.location.href.includes('tgWebApp');
+      
+      // ✅ Проверяем User Agent на Telegram
+      const userAgent = navigator.userAgent;
+      const isTelegramUserAgent = userAgent.includes('Telegram');
+      
+      // ✅ Проверяем мобильное устройство
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+      
+      console.log('🔍 Environment detection results:', {
+        hasTelegramWebApp,
+        hasTelegramParams,
+        isTelegramUserAgent,
         isMobile,
-        userAgent,
-        hasWebAppParams: checks.hasWebAppParams || checks.hasLaunchParams,
-        loading: false
+        userAgent: userAgent.substring(0, 100) + '...'
       });
+      
+      // ✅ Определяем среду по приоритету
+      if (hasTelegramWebApp || isTelegramUserAgent) {
+        setEnvironment('telegram');
+      } else if (hasTelegramParams) {
+        // Если есть Telegram параметры, но нет WebApp - возможно браузер с параметрами
+        setEnvironment('telegram');
+      } else if (isMobile) {
+        setEnvironment('mobile');
+      } else {
+        setEnvironment('browser');
+      }
+      
+      setIsChecking(false);
+      
+      // ✅ Показываем опцию retry через 3 секунды если не Telegram
+      if (!hasTelegramWebApp && !isTelegramUserAgent) {
+        setTimeout(() => setShowRetryOption(true), 3000);
+      }
     };
 
-    // ✅ Небольшая задержка для полной загрузки окружения
-    const timeoutId = setTimeout(detectEnvironment, 100);
+    // ✅ Задержка для полной загрузки Telegram WebApp
+    const timeoutId = setTimeout(detectEnvironment, 300);
     
-    // ✅ Также проверяем после полной загрузки страницы
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', detectEnvironment);
-    }
-    
-    return () => {
-      clearTimeout(timeoutId);
-      document.removeEventListener('DOMContentLoaded', detectEnvironment);
-    };
+    return () => clearTimeout(timeoutId);
   }, []);
 
-  // ✅ Показываем загрузку
-  if (env.loading) {
+  // ✅ Пока идет проверка
+  if (isChecking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Определение среды выполнения...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-700 font-medium">Определение среды выполнения...</p>
+          <p className="text-gray-500 text-sm mt-2">Проверяем Telegram WebApp</p>
         </div>
       </div>
     );
   }
 
-  // ✅ Если НЕ в Telegram - показываем экран перенаправления
-  if (!env.isTelegramEnvironment) {
-    return <RedirectToTelegramScreen isMobile={env.isMobile} />;
+  // ✅ Если Telegram - показываем приложение
+  if (environment === 'telegram') {
+    console.log('✅ Telegram environment detected - rendering app');
+    return <>{children}</>;
   }
 
-  // ✅ Если в Telegram - показываем основное приложение
-  return <>{children}</>;
-}
-
-/**
- * ✅ Экран для пользователей, открывших ссылку вне Telegram
- * Совместимо с Next.js 15.3.3 и современными стандартами UX
- */
-function RedirectToTelegramScreen({ isMobile }: { isMobile: boolean }) {
-  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'ThreeGIS_bot';
-  const appName = process.env.NEXT_PUBLIC_WEBSITE_NAME || '3GIS';
-  
-  // ✅ Генерируем правильную ссылку для Telegram Mini App
-  const telegramLink = `https://t.me/${botUsername}/app`;
-  
-  const handleOpenInTelegram = () => {
-    // ✅ Для мобильных устройств пробуем протокол, затем веб-ссылку
-    if (isMobile) {
-      const telegramProtocol = `tg://resolve?domain=${botUsername}&appname=app`;
-      
-      try {
-        // Пробуем сначала через протокол
-        window.location.href = telegramProtocol;
-        
-        // Fallback через веб-ссылку через задержку
-        setTimeout(() => {
-          window.open(telegramLink, '_blank', 'noopener,noreferrer');
-        }, 1500);
-      } catch (error) {
-        // Если протокол не работает, сразу веб-ссылка
-        window.open(telegramLink, '_blank', 'noopener,noreferrer');
-      }
-    } else {
-      // ✅ Для десктопа открываем в новой вкладке
-      window.open(telegramLink, '_blank', 'noopener,noreferrer');
-    }
+  // ✅ Функции для переадресации
+  const openInTelegram = () => {
+    const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'ThreeGIS_bot';
+    const telegramUrl = `https://t.me/${botUsername}/app`;
+    
+    // Пытаемся открыть в Telegram приложении
+    window.location.href = `tg://resolve?domain=${botUsername}&appname=app`;
+    
+    // Fallback на веб-версию через 1 секунду
+    setTimeout(() => {
+      window.open(telegramUrl, '_blank');
+    }, 1000);
   };
 
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(telegramLink);
-      alert('Ссылка скопирована в буфер обмена!');
-    } catch (error) {
-      // Fallback для старых браузеров
-      prompt('Скопируйте эту ссылку:', telegramLink);
-    }
+  const refreshPage = () => {
+    window.location.reload();
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
-        {/* ✅ Иконка предупреждения */}
-        <div className="mb-6">
-          <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
-            <AlertTriangle className="w-8 h-8 text-amber-600" />
+  // ✅ Экран для браузера на десктопе
+  if (environment === 'browser') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+            {/* Иконка */}
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Monitor className="w-10 h-10 text-blue-600" />
+            </div>
+
+            {/* Заголовок */}
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+              Откройте в Telegram
+            </h1>
+
+            {/* Описание */}
+            <p className="text-gray-600 mb-8 leading-relaxed">
+              <strong>3GIS</strong> - это Telegram Mini App. 
+              Для полного функционала откройте приложение через Telegram.
+            </p>
+
+            {/* Кнопки действий */}
+            <div className="space-y-4">
+              <Button 
+                onClick={openInTelegram} 
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium transition-colors"
+                size="lg"
+              >
+                <ExternalLink className="w-5 h-5 mr-2" />
+                Открыть в Telegram
+              </Button>
+
+              {showRetryOption && (
+                <Button 
+                  onClick={refreshPage} 
+                  variant="outline" 
+                  className="w-full py-3 rounded-xl font-medium"
+                  size="lg"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Обновить страницу
+                </Button>
+              )}
+            </div>
+
+            {/* Инструкции */}
+            <div className="mt-8 p-4 bg-gray-50 rounded-xl text-left">
+              <h3 className="font-semibold text-gray-900 mb-2">Как открыть:</h3>
+              <ol className="text-sm text-gray-600 space-y-1">
+                <li>1. Найдите @ThreeGIS_bot в Telegram</li>
+                <li>2. Нажмите "Запустить" или "Start"</li>
+                <li>3. Выберите "Открыть приложение"</li>
+              </ol>
+            </div>
+
+            {/* Дополнительная информация */}
+            <p className="text-xs text-gray-500 mt-6">
+              3GIS работает на всех платформах: iOS, Android, Windows, macOS
+            </p>
           </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* ✅ Заголовок */}
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">
-          Откройте в Telegram
-        </h1>
+  // ✅ Экран для мобильного устройства
+  if (environment === 'mobile') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 flex items-center justify-center p-4">
+        <div className="max-w-sm w-full">
+          <div className="bg-white rounded-2xl shadow-xl p-6 text-center">
+            {/* Иконка */}
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Smartphone className="w-8 h-8 text-blue-600" />
+            </div>
 
-        {/* ✅ Описание */}
-        <p className="text-gray-600 mb-6 leading-relaxed">
-          {appName} - это Telegram Mini App. Для корректной работы приложение должно быть открыто внутри мессенджера Telegram.
-        </p>
+            {/* Заголовок */}
+            <h1 className="text-xl font-bold text-gray-900 mb-3">
+              Установите Telegram
+            </h1>
 
-        {/* ✅ Кнопка открытия */}
-        <button
-          onClick={handleOpenInTelegram}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors mb-4 flex items-center justify-center gap-2"
-        >
-          {isMobile ? <Smartphone className="w-5 h-5" /> : <ExternalLink className="w-5 h-5" />}
-          Открыть в Telegram
-        </button>
+            {/* Описание */}
+            <p className="text-gray-600 mb-6 text-sm leading-relaxed">
+              Для использования <strong>3GIS</strong> необходимо приложение Telegram.
+            </p>
 
-        {/* ✅ Альтернативная кнопка */}
-        <button
-          onClick={handleCopyLink}
-          className="w-full border border-gray-300 hover:border-gray-400 text-gray-700 font-medium py-3 px-6 rounded-xl transition-colors"
-        >
-          Скопировать ссылку
-        </button>
+            {/* Кнопки действий */}
+            <div className="space-y-3">
+              <Button 
+                onClick={openInTelegram} 
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Открыть в Telegram
+              </Button>
 
-        {/* ✅ Инструкции */}
-        <div className="mt-6 text-left">
-          <h3 className="font-semibold text-gray-900 mb-2">Как открыть:</h3>
-          <ol className="text-sm text-gray-600 space-y-1">
-            <li>1. Откройте Telegram</li>
-            <li>2. Найдите бота @{botUsername}</li>
-            <li>3. Нажмите кнопку "Запустить приложение"</li>
-          </ol>
+              <div className="flex space-x-2">
+                <Button 
+                  onClick={() => window.open('https://apps.apple.com/app/telegram-messenger/id686449807', '_blank')} 
+                  variant="outline" 
+                  className="flex-1 text-xs py-2"
+                >
+                  App Store
+                </Button>
+                <Button 
+                  onClick={() => window.open('https://play.google.com/store/apps/details?id=org.telegram.messenger', '_blank')} 
+                  variant="outline" 
+                  className="flex-1 text-xs py-2"
+                >
+                  Google Play
+                </Button>
+              </div>
+
+              {showRetryOption && (
+                <Button 
+                  onClick={refreshPage} 
+                  variant="ghost" 
+                  className="w-full text-xs"
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  Обновить
+                </Button>
+              )}
+            </div>
+
+            {/* Инструкции */}
+            <div className="mt-6 p-3 bg-gray-50 rounded-lg text-left">
+              <h3 className="font-medium text-gray-900 mb-1 text-sm">После установки:</h3>
+              <ol className="text-xs text-gray-600 space-y-1">
+                <li>1. Найдите @ThreeGIS_bot</li>
+                <li>2. Нажмите "Start"</li>
+                <li>3. Откройте приложение</li>
+              </ol>
+            </div>
+          </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* ✅ Дополнительная информация */}
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <p className="text-xs text-gray-500">
-            {appName} использует возможности Telegram для обеспечения безопасности и лучшего пользовательского опыта.
+  // ✅ Fallback для неизвестной среды
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="max-w-md w-full text-center">
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h1 className="text-xl font-bold text-gray-900 mb-4">
+            Неизвестная среда
+          </h1>
+          <p className="text-gray-600 mb-6">
+            Приложение 3GIS лучше всего работает в Telegram.
           </p>
+          <div className="space-y-3">
+            <Button onClick={openInTelegram} className="w-full">
+              Открыть в Telegram
+            </Button>
+            <Button onClick={refreshPage} variant="outline" className="w-full">
+              Обновить страницу
+            </Button>
+          </div>
         </div>
       </div>
     </div>
   );
-}
-
-/**
- * ✅ Хук для получения информации о среде выполнения
- * Может использоваться в других компонентах для условной логики
- */
-export function useEnvironmentDetection() {
-  const [env, setEnv] = useState({
-    isTelegramEnvironment: false,
-    isMobile: false,
-    userAgent: '',
-    loading: true
-  });
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const userAgent = navigator.userAgent || '';
-    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    
-    const isTelegramEnvironment = !!(window as any)?.Telegram?.WebApp ||
-                                 userAgent.includes('Telegram') ||
-                                 window.location.search.includes('tgWebApp') ||
-                                 window.location.hash.includes('tgWebApp');
-
-    setEnv({
-      isTelegramEnvironment,
-      isMobile,
-      userAgent,
-      loading: false
-    });
-  }, []);
-
-  return env;
 }

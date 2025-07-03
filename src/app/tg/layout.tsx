@@ -100,15 +100,15 @@ function TelegramContent({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * ✅ Безопасный Layout для Telegram Mini App
+ * ✅ Безопасный Layout для Telegram Mini App v2.0
  * 
- * Особенности v2.0:
+ * Исправления для SDK v3.x:
  * - Автоматическая детекция среды выполнения через EnvironmentDetector
- * - Редирект на Telegram если открыто в браузере
- * - Правильная инициализация SDK v3.x с актуальной документацией
- * - Совместимость с Next.js 15.3.3
- * - Обработка ошибок и fallback режимы
- * - Улучшенный UX с понятными сообщениями
+ * - Правильная структура retrieveLaunchParams() для v3.x (tgWebAppData)
+ * - Mock environment для browser testing согласно документации
+ * - Retry логика с увеличивающейся задержкой
+ * - Совместимость с Next.js 15.3.3 и React Rules of Hooks
+ * - Улучшенный UX с понятными сообщениями для всех сред
  */
 export default function TelegramLayout({
   children,
