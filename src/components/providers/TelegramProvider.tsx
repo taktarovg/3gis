@@ -55,7 +55,7 @@ function TelegramProviderInner({ children }: PropsWithChildren) {
       try {
         console.log('🚀 Инициализация Telegram SDK v3.x...');
         
-        // ✅ ИСПРАВЛЕНО: Используем retrieveLaunchParams из основного SDK 
+        // ✅ ИСПРАВЛЕНО: Используем правильную структуру SDK v3.x из документации
         // Документация: https://docs.telegram-mini-apps.com/platform/init-data
         const { retrieveLaunchParams } = await import('@telegram-apps/sdk');
         
@@ -63,30 +63,33 @@ function TelegramProviderInner({ children }: PropsWithChildren) {
         const launchParams = retrieveLaunchParams();
         console.log('✅ Launch params retrieved (SDK v3.x):', launchParams);
         
-        // ✅ В SDK v3.x структура изменилась - проверяем различные варианты данных
+        // ✅ ИСПРАВЛЕНО: В SDK v3.x правильная структура: { initDataRaw, initData }
+        // НЕ tgWebAppData - это только в React hooks!
         let user = null;
         let initDataRaw = null;
         let parsedInitData = null;
 
-        // Проверяем новую структуру v3.x (tgWebAppData)
-        if (launchParams.tgWebAppData) {
-          user = launchParams.tgWebAppData.user;
-          initDataRaw = JSON.stringify(launchParams.tgWebAppData);
-          parsedInitData = launchParams.tgWebAppData;
-        }
-        // Fallback для старой структуры (initData)
-        else if (launchParams.initData) {
+        // Правильная структура согласно документации SDK v3.x
+        if (launchParams.initData && launchParams.initData.user) {
           user = launchParams.initData.user;
-          initDataRaw = launchParams.initDataRaw || JSON.stringify(launchParams.initData);
+          initDataRaw = launchParams.initDataRaw;
           parsedInitData = launchParams.initData;
+          
+          console.log('✅ Extracted user data (initData):', { 
+            hasUser: !!user, 
+            userId: user?.id,
+            userName: user?.first_name || user?.firstName,
+            structure: 'initData'
+          });
         }
-        
-        console.log('✅ Extracted user data:', { 
-          hasUser: !!user, 
-          userId: user?.id,
-          userName: user?.first_name || user?.firstName,
-          structure: launchParams.tgWebAppData ? 'tgWebAppData' : 'initData'
-        });
+        // Fallback для development или других структур
+        else if (launchParams.initDataRaw) {
+          initDataRaw = launchParams.initDataRaw;
+          console.log('⚠️ Only raw initData available, no parsed user');
+        }
+        else {
+          console.log('⚠️ No Telegram initData found - возможно не в Telegram среде');
+        }
         
         setState({
           isReady: true,
@@ -149,7 +152,16 @@ function TelegramProviderInner({ children }: PropsWithChildren) {
             error: null,
             initData: {
               raw: 'mock_init_data',
-              parsed: null
+              parsed: {
+                user: {
+                  id: 123456789,
+                  first_name: 'Test',
+                  last_name: 'User',
+                  username: 'testuser'
+                },
+                auth_date: Math.floor(Date.now() / 1000),
+                hash: 'mock_hash'
+              }
             }
           });
         } else {

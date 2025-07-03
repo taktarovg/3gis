@@ -5,8 +5,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { User, Prisma } from '@prisma/client';
 import { useAuthStore } from '@/store/auth-store';
 
-// Telegram SDK v3.x imports - убираем условные вызовы
-import { useRawInitData, useLaunchParams } from '@telegram-apps/sdk-react';
+// ✅ ИСПРАВЛЕНО: Убираем конфликтующие импорты хуков
+// Теперь используем наш обновленный TelegramProvider
+import { useTelegram } from '@/components/providers/TelegramProvider';
 
 // Импортируем правильный тип пользователя с отношениями
 const userWithRelationsPayload = Prisma.validator<Prisma.UserDefaultArgs>()({
@@ -48,15 +49,14 @@ interface AuthActions {
 }
 
 /**
- * ОПТИМИЗИРОВАННЫЙ ХУК АВТОРИЗАЦИИ ДЛЯ 3GIS SDK v3.x
- * ✅ Исправлены все React Hooks Rules ошибки
- * ✅ Убраны условные вызовы хуков
- * ✅ Совместимость с @telegram-apps/sdk-react v3.3.1
- * ✅ SSR поддержка для Next.js
- * ✅ Правильная типизация UserWithRelations
+ * ✅ УПРОЩЕННЫЙ ХУК АВТОРИЗАЦИИ ДЛЯ 3GIS (совместимый с новым TelegramProvider)
+ * Теперь использует данные из обновленного TelegramProvider вместо прямых хуков SDK
  */
 export function useTelegramAuth(): AuthState & AuthActions {
   const { setAuth, setLoading, setError, updateUserLocation, logout: clearAuth } = useAuthStore();
+  
+  // ✅ Используем данные из нашего обновленного TelegramProvider
+  const { user: telegramUser, isAuthenticated: isTelegramAuth, initData, isReady } = useTelegram();
 
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
@@ -66,36 +66,19 @@ export function useTelegramAuth(): AuthState & AuthActions {
     isAuthenticated: false,
   });
 
-  // Безусловные вызовы хуков SDK v3.x согласно Rules of Hooks + SSR флаги
-  const initDataRaw = useRawInitData(); // ✅ ИСПРАВЛЕНО: НЕ принимает параметры в v3.x!
-  const launchParams = useLaunchParams(true); // ✅ В v3.x требуется SSR флаг для Next.js
-  
-  // Извлекаем пользовательские данные из launchParams для SDK v3.x
-  // В v3 данные находятся в tgWebAppData
-  const webAppData = launchParams?.tgWebAppData;
-  const telegramUser = webAppData?.user || null;
-  
-  // В v3 доступны как camelCase, так и snake_case версии
-  const authDate = webAppData?.authDate || webAppData?.auth_date || null;
-  const queryId = webAppData?.queryId || webAppData?.query_id || null;
-  const hash = webAppData?.hash || null;
-
   /**
-   * Аутентификация через Telegram initData для SDK v3.x
+   * Аутентификация через Telegram initData
    */
   const authenticateWithTelegram = useCallback(async (): Promise<{ user: UserWithRelations; token: string } | null> => {
     try {
-      if (!initDataRaw) {
+      if (!initData?.raw) {
         throw new Error('No Telegram initData available');
       }
 
-      console.log('🚀 Начинаем аутентификацию с initData (SDK v3.x):', {
-        hasInitData: !!initDataRaw,
-        initDataLength: initDataRaw.length,
-        hasWebAppData: !!webAppData,
+      console.log('🚀 Начинаем аутентификацию с initData (новый Provider):', {
+        hasInitData: !!initData.raw,
         hasUser: !!telegramUser,
-        userId: telegramUser?.id,
-        platform: launchParams?.tgWebAppPlatform || 'unknown'
+        userId: telegramUser?.id
       });
 
       // Аутентификация через API
@@ -105,10 +88,8 @@ export function useTelegramAuth(): AuthState & AuthActions {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          initData: initDataRaw,
+          initData: initData.raw,
           debug: {
-            platform: launchParams?.tgWebAppPlatform,
-            version: launchParams?.tgWebAppVersion,
             hasUser: !!telegramUser,
             userId: telegramUser?.id
           }
@@ -121,7 +102,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
       }
 
       const authResult = await response.json();
-      console.log('✅ Telegram authentication successful (SDK v3.x)');
+      console.log('✅ Telegram authentication successful (новый Provider)');
       return authResult;
     } catch (error) {
       console.error('❌ Telegram authentication failed:', error);
@@ -132,7 +113,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
       
       throw new Error('Не удалось выполнить авторизацию через Telegram');
     }
-  }, [initDataRaw, webAppData, telegramUser, launchParams]);
+  }, [initData, telegramUser]);
 
   /**
    * Загрузка пользователя по токену из localStorage
@@ -258,7 +239,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
   }, [setError]);
 
   /**
-   * Основная логика инициализации аутентификации
+   * ✅ УПРОЩЕННАЯ логика инициализации - основана на TelegramProvider
    */
   useEffect(() => {
     let isMounted = true;
@@ -267,6 +248,11 @@ export function useTelegramAuth(): AuthState & AuthActions {
       try {
         setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
         setLoading(true);
+
+        // Ждем готовности TelegramProvider
+        if (!isReady) {
+          return;
+        }
 
         // Шаг 1: Проверяем существующий токен в localStorage
         const storedToken = localStorage.getItem('authToken');
@@ -291,55 +277,9 @@ export function useTelegramAuth(): AuthState & AuthActions {
           }
         }
 
-        // Шаг 2: Ждем получения Telegram данных
-        if (!initDataRaw || !telegramUser) {
-          // Даем время SDK инициализироваться
-          const maxWaitTime = 5000; // 5 секунд
-          const startTime = Date.now();
-          
-          const waitForTelegramData = () => {
-            return new Promise<boolean>((resolve) => {
-              const checkData = () => {
-                if (initDataRaw && telegramUser) {
-                  resolve(true);
-                  return;
-                }
-                
-                if (Date.now() - startTime > maxWaitTime) {
-                  resolve(false);
-                  return;
-                }
-                
-                setTimeout(checkData, 100);
-              };
-              
-              checkData();
-            });
-          };
-          
-          const hasData = await waitForTelegramData();
-          
-          if (!hasData) {
-            if (isMounted) {
-              setAuthState({
-                user: null,
-                token: null,
-                isLoading: false,
-                error: 'Ожидание данных Telegram... Убедитесь, что приложение открыто через бота @ThreeGIS_bot',
-                isAuthenticated: false,
-              });
-            }
-            return;
-          }
-        }
-
-        // Шаг 3: Пытаемся авторизоваться через Telegram
-        if (initDataRaw && telegramUser) {
-          console.log('🔐 Пытаемся авторизоваться через Telegram', {
-            hasInitData: !!initDataRaw,
-            hasUser: !!telegramUser,
-            userId: telegramUser?.id
-          });
+        // Шаг 2: Пытаемся авторизоваться через Telegram (если есть данные)
+        if (isTelegramAuth && telegramUser && initData?.raw) {
+          console.log('🔐 Пытаемся авторизоваться через Telegram (новый Provider)');
           
           const authResult = await authenticateWithTelegram();
           if (authResult && isMounted) {
@@ -363,16 +303,15 @@ export function useTelegramAuth(): AuthState & AuthActions {
           }
         }
 
-        // Шаг 4: Аутентификация не удалась
+        // Шаг 3: Нет данных для аутентификации
         if (isMounted) {
           setAuthState({
             user: null,
             token: null,
             isLoading: false,
-            error: 'Не удалось выполнить авторизацию через Telegram',
+            error: telegramUser ? null : 'Ожидание данных Telegram...',
             isAuthenticated: false,
           });
-          console.warn('❌ Authentication failed');
         }
 
       } catch (error) {
@@ -396,31 +335,22 @@ export function useTelegramAuth(): AuthState & AuthActions {
       }
     };
 
-    // Инициализируем только на клиенте
-    if (typeof window !== 'undefined') {
-      initializeAuth();
-    }
+    initializeAuth();
 
     return () => {
       isMounted = false;
     };
   }, [
-    initDataRaw,
+    isReady,
+    isTelegramAuth,
     telegramUser,
-    webAppData,
+    initData,
     setAuth,
     setLoading,
     setError,
     loadUserFromToken,
     authenticateWithTelegram,
   ]);
-
-  /**
-   * Логирование изменений состояния аутентификации
-   */
-  useEffect(() => {
-    console.log(`Auth state changed: authenticated=${authState.isAuthenticated}, loading=${authState.isLoading}, hasError=${!!authState.error}`);
-  }, [authState.isAuthenticated, authState.isLoading, authState.error]);
 
   return {
     // State
@@ -472,35 +402,17 @@ export const AuthUtils = {
   },
 };
 
-// ✅ Хук для проверки Telegram окружения (для совместимости с TelegramProvider)
+// ✅ Сохраняем хуки для обратной совместимости
 export function useTelegramEnvironment() {
-  const [isTelegramEnvironment, setIsTelegramEnvironment] = useState(false);
-  const [isWebApp, setIsWebApp] = useState(false);
-  
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const hasTelegramWebApp = !!(window as any).Telegram?.WebApp;
-      const hasInitData = !!new URLSearchParams(window.location.search).get('tgWebAppData');
-      
-      setIsTelegramEnvironment(hasTelegramWebApp || hasInitData);
-      setIsWebApp(hasTelegramWebApp);
-      
-      console.log('🌐 Telegram Environment Check:', { 
-        hasTelegramWebApp, 
-        hasInitData, 
-        isTelegramEnvironment: hasTelegramWebApp || hasInitData 
-      });
-    }
-  }, []);
+  const { isTelegramEnvironment } = useTelegram();
   
   return {
     isTelegramEnvironment,
-    isWebApp,
+    isWebApp: isTelegramEnvironment,
     isDevelopment: process.env.NODE_ENV === 'development'
   };
 }
 
-// ✅ Утилиты для работы с Telegram данными (для совместимости)
 export function formatTelegramUser(user: UserWithRelations | null): string {
   if (!user) return 'Гость';
   
@@ -511,6 +423,5 @@ export function formatTelegramUser(user: UserWithRelations | null): string {
 }
 
 export function getTelegramAvatarUrl(user: UserWithRelations | null): string | null {
-  // В продвинутой версии нужно брать из avatar поля
   return user?.avatar || null;
 }
