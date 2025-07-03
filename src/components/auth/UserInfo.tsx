@@ -1,7 +1,7 @@
 // src/components/auth/UserInfo.tsx
 'use client';
 
-import { useTelegramAuth } from '@/hooks/use-telegram-auth';
+import { useTelegramAuth } from '@/hooks/useTelegramAuth';
 import Image from 'next/image';
 
 /**
