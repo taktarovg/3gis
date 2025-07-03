@@ -121,23 +121,22 @@ export default function ThreeGISHomePage() {
   const router = useRouter();
   const { categories, loading } = useCategories();
   
-  // ✅ SDK v3.x: Используем новые хуки для получения параметров запуска
-  let launchParams: any = null;
-  let rawInitData: string | undefined = undefined;
-  
-  try {
-    // ✅ В SDK v3.x useLaunchParams возвращает объект с tgWebApp* свойствами
-    launchParams = useLaunchParams(true); // SSR режим для Next.js
-    rawInitData = useRawInitData(); // получаем сырые данные инициализации
-  } catch (error) {
-    // В режиме разработки или вне Telegram игнорируем ошибки
-    console.log('Telegram SDK not available, using fallback data');
-  }
+  // ✅ SDK v3.x: ОБЯЗАТЕЛЬНО вызываем хуки БЕЗУСЛОВНО для соблюдения React Rules of Hooks
+  // useLaunchParams(true) - SSR режим для Next.js (возвращает undefined на сервере)
+  // useRawInitData() - НЕ принимает параметров
+  const launchParams = useLaunchParams(true);
+  const rawInitData = useRawInitData();
   
   // ✅ Обрабатываем startapp параметры для навигации
   useEffect(() => {
+    // ✅ SDK v3.x: в SSR режиме launchParams может быть undefined, поэтому добавляем проверку
+    if (!launchParams) {
+      console.log('🔄 Launch params not available yet (SSR mode or loading)');
+      return;
+    }
+    
     // ✅ SDK v3.x: в v3.x startParam находится в tgWebAppStartParam
-    const startParam = launchParams?.tgWebAppStartParam;
+    const startParam = launchParams.tgWebAppStartParam;
     
     // ✅ Проверяем что startParam это строка перед использованием
     if (startParam && typeof startParam === 'string') {
