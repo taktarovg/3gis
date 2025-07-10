@@ -45,7 +45,7 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
   // ✅ КРИТИЧНО: Используем SSR флаг для хуков v3.x
   // Документация: https://docs.telegram-mini-apps.com/packages/telegram-apps-sdk-react/3-x
   const launchParams = useLaunchParams(true); // SSR safe mode
-  const rawInitData = useRawInitData(true); // SSR safe mode
+  const rawInitData = useRawInitData(); // НЕ принимает параметров в v3.x
   
   const initializeTelegramSDK = useCallback(async () => {
     try {
@@ -233,7 +233,7 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
         error: error instanceof Error ? error.message : 'Неизвестная ошибка инициализации'
       }));
     }
-  }, [launchParams, rawInitData]);
+  }, [launchParams]); // rawInitData не влияет на логику, убираем из зависимостей
 
   // ✅ Инициализация только на клиенте
   useEffect(() => {

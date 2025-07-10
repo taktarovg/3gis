@@ -1,7 +1,7 @@
 // src/components/telegram/TelegramRedirectHandler.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ExternalLink, Smartphone, Download } from 'lucide-react';
 import { TelegramMetaTags } from '@/components/seo/TelegramMetaTags';
 
@@ -18,47 +18,8 @@ export function TelegramRedirectHandler({ children }: TelegramRedirectHandlerPro
   const [userAgent, setUserAgent] = useState('');
   const [startParam, setStartParam] = useState<string>('');
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const ua = navigator.userAgent;
-    setUserAgent(ua);
-
-    // Получаем startapp параметр из URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlStartParam = urlParams.get('startapp') || '';
-    setStartParam(urlStartParam);
-
-    // Проверяем, находимся ли мы в Telegram
-    const isInTelegram = !!(
-      (window as any)?.Telegram?.WebApp ||
-      ua.includes('TelegramBot') ||
-      window.location.href.includes('tgWebAppPlatform') ||
-      window.location.search.includes('tgWebAppData') ||
-      // Дополнительные проверки для различных Telegram клиентов
-      ua.includes('Telegram') ||
-      // Проверка через URL параметры, которые передает Telegram
-      urlParams.has('tgWebAppData') ||
-      urlParams.has('tgWebAppVersion')
-    );
-
-    console.log('🔍 Environment detection:', {
-      isInTelegram,
-      userAgent: ua,
-      hasWebApp: !!(window as any)?.Telegram?.WebApp,
-      urlParams: Object.fromEntries(urlParams.entries())
-    });
-
-    setIsTelegramEnvironment(isInTelegram);
-
-    // Если не в Telegram, пытаемся автоматически открыть в Telegram
-    if (!isInTelegram) {
-      console.log('🔍 Не в Telegram среде, подготавливаем редирект...');
-      handleTelegramRedirect(urlStartParam);
-    }
-  }, []);
-
-  const handleTelegramRedirect = (startParam: string) => {
+  // ✅ Используем useCallback для стабильности ссылки в useEffect
+  const handleTelegramRedirect = useCallback((startParam: string, userAgent: string) => {
     const botUsername = 'ThreeGIS_bot';
     const appName = 'app';
     
@@ -97,16 +58,56 @@ export function TelegramRedirectHandler({ children }: TelegramRedirectHandlerPro
         console.error('Ошибка автоматического редиректа:', error);
       }
     }, 500);
-  };
+  }, []); // пустые зависимости, так как логика статична
 
-  const getTelegramLink = () => {
+  const getTelegramLink = useCallback(() => {
     const botUsername = 'ThreeGIS_bot';
     const appName = 'app';
     
     return startParam 
       ? `https://t.me/${botUsername}/${appName}?startapp=${encodeURIComponent(startParam)}`
       : `https://t.me/${botUsername}/${appName}`;
-  };
+  }, [startParam]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const ua = navigator.userAgent;
+    setUserAgent(ua);
+
+    // Получаем startapp параметр из URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlStartParam = urlParams.get('startapp') || '';
+    setStartParam(urlStartParam);
+
+    // Проверяем, находимся ли мы в Telegram
+    const isInTelegram = !!(
+      (window as any)?.Telegram?.WebApp ||
+      ua.includes('TelegramBot') ||
+      window.location.href.includes('tgWebAppPlatform') ||
+      window.location.search.includes('tgWebAppData') ||
+      // Дополнительные проверки для различных Telegram клиентов
+      ua.includes('Telegram') ||
+      // Проверка через URL параметры, которые передает Telegram
+      urlParams.has('tgWebAppData') ||
+      urlParams.has('tgWebAppVersion')
+    );
+
+    console.log('🔍 Environment detection:', {
+      isInTelegram,
+      userAgent: ua,
+      hasWebApp: !!(window as any)?.Telegram?.WebApp,
+      urlParams: Object.fromEntries(urlParams.entries())
+    });
+
+    setIsTelegramEnvironment(isInTelegram);
+
+    // Если не в Telegram, пытаемся автоматически открыть в Telegram
+    if (!isInTelegram) {
+      console.log('🔍 Не в Telegram среде, подготавливаем редирект...');
+      handleTelegramRedirect(urlStartParam, ua);
+    }
+  }, [handleTelegramRedirect]); // добавляем зависимость
 
   const isIOS = userAgent.includes('iPhone') || userAgent.includes('iPad');
   const isAndroid = userAgent.includes('Android');
