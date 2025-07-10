@@ -209,24 +209,34 @@ function TelegramProviderInner({ children }: PropsWithChildren) {
           };
           
           mockTelegramEnv({
-            tgWebAppThemeParams: {
-              accent_text_color: '#6ab2f2',
-              bg_color: '#17212b',
-              button_color: '#5288c1',
-              button_text_color: '#ffffff',
-              destructive_text_color: '#ec3942',
-              header_bg_color: '#17212b',
-              hint_color: '#708499',
-              link_color: '#6ab3f3',
-              secondary_bg_color: '#232e3c',
-              section_bg_color: '#17212b',
-              section_header_text_color: '#6ab3f3',
-              subtitle_text_color: '#708499',
-              text_color: '#f5f5f5',
-            },
-            tgWebAppData: mockInitData,
-            tgWebAppVersion: '8.0',
-            tgWebAppPlatform: 'tdesktop',
+            launchParams: {
+              tgWebAppThemeParams: {
+                accent_text_color: '#6ab2f2',
+                bg_color: '#17212b',
+                button_color: '#5288c1',
+                button_text_color: '#ffffff',
+                destructive_text_color: '#ec3942',
+                header_bg_color: '#17212b',
+                hint_color: '#708499',
+                link_color: '#6ab3f3',
+                secondary_bg_color: '#232e3c',
+                section_bg_color: '#17212b',
+                section_header_text_color: '#6ab3f3',
+                subtitle_text_color: '#708499',
+                text_color: '#f5f5f5',
+              },
+              tgWebAppData: new URLSearchParams([
+                ['user', JSON.stringify(mockInitData.user)],
+                ['hash', mockInitData.hash],
+                ['auth_date', Math.floor(Date.now() / 1000).toString()],
+                ['start_param', mockInitData.start_param],
+                ['chat_type', mockInitData.chat_type],
+                ['chat_instance', mockInitData.chat_instance],
+              ]),
+              tgWebAppVersion: '8.0',
+              tgWebAppPlatform: 'tdesktop',
+              tgWebAppStartParam: 'debug',
+            }
           });
           
           // Повторяем инициализацию с mock данными
