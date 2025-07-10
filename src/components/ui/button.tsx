@@ -46,28 +46,13 @@ export interface ButtonProps
 // ✅ ИСПРАВЛЕНИЕ SSR: Button компонент с правильной hydration совместимостью
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, onClick, ...props }, ref) => {
-    // ✅ Состояние для отслеживания клиентской инициализации
-    const [isClient, setIsClient] = React.useState(false);
-    
-    // ✅ Эффект для установки клиентского флага
-    React.useEffect(() => {
-      setIsClient(true);
-    }, []);
-    
-    // ✅ SSR безопасный onClick handler
-    const handleClick = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-      if (isClient && typeof onClick === 'function') {
-        onClick(event);
-      }
-    }, [isClient, onClick]);
-
     const Comp = asChild ? Slot : "button"
     
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        onClick={isClient ? handleClick : undefined}
+        onClick={onClick}
         {...props}
       />
     )
