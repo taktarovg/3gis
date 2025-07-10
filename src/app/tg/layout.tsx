@@ -2,6 +2,7 @@
 'use client';
 
 import { TelegramProvider, TelegramStatus } from '@/components/providers/TelegramProvider';
+import { TelegramRedirectHandler } from '@/components/telegram/TelegramRedirectHandler';
 import { NavigationLayout } from '@/components/navigation/BottomNavigation';
 import { useTelegram } from '@/components/providers/TelegramProvider';
 import { useEffect } from 'react';
@@ -100,15 +101,12 @@ function TelegramContent({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * ✅ Безопасный Layout для Telegram Mini App v2.0
+ * ✅ Главный Layout для Telegram Mini App v2.0 с обработкой редиректов
  * 
  * Исправления для SDK v3.x:
- * - Автоматическая детекция среды выполнения через EnvironmentDetector
- * - Правильная структура retrieveLaunchParams() для v3.x (tgWebAppData)
- * - Mock environment для browser testing согласно документации
- * - Retry логика с увеличивающейся задержкой
- * - Совместимость с Next.js 15.3.3 и React Rules of Hooks
- * - Улучшенный UX с понятными сообщениями для всех сред
+ * - TelegramRedirectHandler для автоматического открытия в Telegram при доступе через браузер
+ * - Правильная инициализация SDK v3.x с SSR поддержкой
+ * - Улучшенная UX для пользователей, заходящих через веб-ссылки
  */
 export default function TelegramLayout({
   children,
@@ -116,13 +114,15 @@ export default function TelegramLayout({
   children: React.ReactNode;
 }) {
   return (
-    <TelegramProvider>
-      <TelegramContent>
-        {children}
-      </TelegramContent>
-      
-      {/* ✅ Статус отладки только в development */}
-      <TelegramStatus />
-    </TelegramProvider>
+    <TelegramRedirectHandler>
+      <TelegramProvider>
+        <TelegramContent>
+          {children}
+        </TelegramContent>
+        
+        {/* ✅ Статус отладки только в development */}
+        <TelegramStatus />
+      </TelegramProvider>
+    </TelegramRedirectHandler>
   );
 }
