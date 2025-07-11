@@ -8,7 +8,7 @@ import { MessageSquare } from 'lucide-react';
 import { useTelegram } from '@/components/providers/TelegramProvider';
 import dynamic from 'next/dynamic';
 
-// ✅ Динамические импорты компонентов с event handlers для исправления SSR ошибки
+// ✅ Динамические импорты компонентов с правильными экспортами
 const DonationWidget = dynamic(
   () => import('@/components/donations/DonationWidget').then(mod => ({ default: mod.DonationWidget })),
   { 
@@ -22,45 +22,23 @@ const DonationWidget = dynamic(
 );
 
 const SearchBox = dynamic(
-  () => import('@/components/search/SearchBox').then(mod => ({ default: mod.SearchBox })),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="bg-gray-200 animate-pulse rounded-lg h-12"></div>
-    )
-  }
+  () => import('@/components/search/SearchBox').then(mod => ({ default: mod.SearchBox })), 
+  { ssr: false }
 );
 
 const NearbyButton = dynamic(
-  () => import('@/components/location/NearbyButton').then(mod => ({ default: mod.NearbyButton })),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="bg-gray-200 animate-pulse rounded-lg h-12"></div>
-    )
-  }
+  () => import('@/components/location/NearbyButton').then(mod => ({ default: mod.NearbyButton })), 
+  { ssr: false }
 );
 
 const CategoryGrid = dynamic(
-  () => import('@/components/categories/CategoryGrid').then(mod => ({ default: mod.CategoryGrid })),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="grid grid-cols-2 gap-4">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="bg-gray-200 animate-pulse rounded-lg h-20"></div>
-        ))}
-      </div>
-    )
-  }
+  () => import('@/components/categories/CategoryGrid').then(mod => ({ default: mod.CategoryGrid })), 
+  { ssr: false }
 );
 
 const PlatformDebug = dynamic(
-  () => import('@/components/debug/PlatformDebug').then(mod => ({ default: mod.PlatformDebug })),
-  { 
-    ssr: false,
-    loading: () => null
-  }
+  () => import('@/components/debug/PlatformDebug'), 
+  { ssr: false }
 );
 
 // ✅ Типизация для категорий
