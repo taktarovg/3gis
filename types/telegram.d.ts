@@ -3,27 +3,64 @@
 
 // Расширяем типы для @telegram-apps/sdk-react v3.x
 declare module '@telegram-apps/sdk-react' {
-  export interface LaunchParams {
-    tgWebAppData?: string | {
-      user?: any;
-      authDate?: Date;
-      queryId?: string;
-      hash?: string;
-      startParam?: string;
-      chatType?: string;
-      chatInstance?: string;
+  // ✅ Правильная структура согласно документации v3.x
+  export interface InitData {
+    user?: {
+      id: number;
+      first_name: string;
+      last_name?: string;
+      username?: string;
+      language_code?: string;
+      is_premium?: boolean;
+      photo_url?: string;
+      allows_write_to_pm?: boolean;
     };
+    receiver?: {
+      id: number;
+      first_name: string;
+      last_name?: string;
+      username?: string;
+      photo_url?: string;
+      is_bot?: boolean;
+      is_premium?: boolean;
+      language_code?: string;
+    };
+    chat?: {
+      id: number;
+      type: string;
+      title?: string;
+      username?: string;
+      photo_url?: string;
+    };
+    // ✅ Поддержка обоих форматов: snake_case и camelCase
+    auth_date?: number; // snake_case format
+    authDate?: Date;    // camelCase format (SSR mode)
+    query_id?: string;  // snake_case format  
+    queryId?: string;   // camelCase format (SSR mode)
+    start_param?: string; // snake_case format
+    startParam?: string;  // camelCase format (SSR mode)
+    chat_type?: string;   // snake_case format
+    chatType?: string;    // camelCase format (SSR mode)
+    chat_instance?: string; // snake_case format
+    chatInstance?: string;  // camelCase format (SSR mode)
+    can_send_after?: number;
+    canSendAfter?: number;
+    hash?: string;
+  }
+
+  export interface LaunchParams {
+    tgWebAppData?: InitData; // ✅ Только объект, не строка!
     tgWebAppVersion?: string;
     tgWebAppPlatform?: string;
     tgWebAppStartParam?: string;
     tgWebAppBotInline?: boolean;
-    tgWebAppThemeParams?: any;
+    tgWebAppThemeParams?: Record<string, any>;
   }
 
   export function useLaunchParams(ssrSafe?: boolean): LaunchParams | null;
   export function useRawInitData(): string | null;
   export function init(config?: any): Promise<void>;
-  export function mockTelegramEnv(config: any): void;
+  export function mockTelegramEnv(config: { launchParams: LaunchParams }): void;
   export function retrieveLaunchParams(): LaunchParams;
 }
 

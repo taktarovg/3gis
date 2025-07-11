@@ -109,14 +109,15 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
               
               if (userStr) {
                 user = JSON.parse(userStr);
+                // ✅ Правильная структура для SDK v3.x
                 processedInitData = {
                   user,
-                  authDate: new Date(parseInt(params.get('auth_date') || '0') * 1000),
-                  queryId: params.get('query_id'),
-                  hash: params.get('hash'),
-                  startParam: params.get('start_param'),
-                  chatType: params.get('chat_type'),
-                  chatInstance: params.get('chat_instance')
+                  auth_date: parseInt(params.get('auth_date') || '0'),
+                  query_id: params.get('query_id') || undefined,
+                  hash: params.get('hash') || undefined,
+                  start_param: params.get('start_param') || undefined,
+                  chat_type: params.get('chat_type') || undefined,
+                  chat_instance: params.get('chat_instance') || undefined
                 };
                 
                 // Создаем launchParams вручную
@@ -159,14 +160,15 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
                 const userStr = params.get('user');
                 if (userStr) {
                   user = JSON.parse(userStr);
+                  // ✅ Правильная структура для SDK v3.x (snake_case)
                   processedInitData = {
                     user,
-                    authDate: new Date(parseInt(params.get('auth_date') || '0') * 1000),
-                    queryId: params.get('query_id'),
-                    hash: params.get('hash'),
-                    startParam: params.get('start_param'),
-                    chatType: params.get('chat_type'),
-                    chatInstance: params.get('chat_instance')
+                    auth_date: parseInt(params.get('auth_date') || '0'),
+                    query_id: params.get('query_id') || undefined,
+                    hash: params.get('hash') || undefined,
+                    start_param: params.get('start_param') || undefined,
+                    chat_type: params.get('chat_type') || undefined,
+                    chat_instance: params.get('chat_instance') || undefined
                   };
                 }
               } else if (typeof webAppDataStr === 'object') {
@@ -236,12 +238,11 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
                 tgWebAppThemeParams: themeParams,
                 tgWebAppData: {
                   user: mockUser,
-                  authDate: new Date(Date.now()),
-                  queryId: '8428209589180549439',
+                  auth_date: Math.floor(Date.now() / 1000),
                   hash: '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31',
-                  startParam: 'debug',
-                  chatType: 'sender',
-                  chatInstance: '8428209589180549439'
+                  start_param: 'debug',
+                  chat_type: 'sender',
+                  chat_instance: '8428209589180549439'
                 },
                 tgWebAppVersion: '8.0',
                 tgWebAppPlatform: 'tdesktop',
@@ -256,13 +257,14 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
         }
 
         user = mockUser;
+        // ✅ Правильная структура для SDK v3.x
         processedInitData = {
           user: mockUser,
-          authDate: new Date(Date.now()),
+          auth_date: Math.floor(Date.now() / 1000),
           hash: '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31',
-          startParam: 'debug',
-          chatType: 'sender',
-          chatInstance: '8428209589180549439',
+          start_param: 'debug',
+          chat_type: 'sender',
+          chat_instance: '8428209589180549439',
           isMock: true,
           isDevFallback: !isLikelyTelegram
         };
@@ -270,12 +272,11 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
         finalLaunchParams = {
           tgWebAppData: {
             user: mockUser,
-            authDate: new Date(Date.now()),
-            queryId: '8428209589180549439',
+            auth_date: Math.floor(Date.now() / 1000),
             hash: '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31',
-            startParam: 'debug',
-            chatType: 'sender',
-            chatInstance: '8428209589180549439'
+            start_param: 'debug',
+            chat_type: 'sender',
+            chat_instance: '8428209589180549439'
           },
           tgWebAppVersion: '8.0',
           tgWebAppPlatform: 'tdesktop',
@@ -361,7 +362,7 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
           error: null,
           initData: {
             user: mockUser,
-            authDate: new Date(Date.now()),
+            auth_date: Math.floor(Date.now() / 1000),
             isMock: true,
             isLaunchParamsError: true
           },
