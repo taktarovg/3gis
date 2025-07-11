@@ -124,7 +124,7 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
                   tgWebAppData: directInitData,
                   tgWebAppVersion: webApp.version || '8.0',
                   tgWebAppPlatform: webApp.platform || 'unknown',
-                  tgWebAppStartParam: params.get('start_param'),
+                  tgWebAppStartParam: params.get('start_param') || undefined,
                   tgWebAppBotInline: false,
                   tgWebAppThemeParams: webApp.themeParams || {}
                 };
