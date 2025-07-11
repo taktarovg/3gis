@@ -32,20 +32,17 @@ declare module '@telegram-apps/sdk-react' {
       username?: string;
       photo_url?: string;
     };
-    // ✅ Поддержка обоих форматов: snake_case и camelCase
-    auth_date?: number; // snake_case format
-    authDate?: Date;    // camelCase format (SSR mode)
-    query_id?: string;  // snake_case format  
-    queryId?: string;   // camelCase format (SSR mode)
-    start_param?: string; // snake_case format
-    startParam?: string;  // camelCase format (SSR mode)
-    chat_type?: string;   // snake_case format
-    chatType?: string;    // camelCase format (SSR mode)
-    chat_instance?: string; // snake_case format
-    chatInstance?: string;  // camelCase format (SSR mode)
-    can_send_after?: number;
-    canSendAfter?: number;
+    // ✅ Обязательные поля для SDK v3.x
+    authDate: Date;    // Обязательное поле!
+    signature: string; // Обязательное поле!
+    
+    // ✅ Дополнительные поля
+    queryId?: string;
     hash?: string;
+    startParam?: string;
+    chatType?: string;
+    chatInstance?: string;
+    canSendAfter?: number;
   }
 
   export interface LaunchParams {
