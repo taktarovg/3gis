@@ -24,7 +24,7 @@ export interface TelegramInitData {
   [key: string]: any;
 }
 
-// ✅ ИСПРАВЛЕНО: Правильная типизация для SDK v3.x
+// ✅ ИСПРАВЛЕНО: Правильная типизация для SDK v3.x согласно документации
 export interface LaunchParams {
   tgWebAppBotInline?: boolean;
   tgWebAppData?: {
@@ -44,7 +44,7 @@ export interface LaunchParams {
   };
   tgWebAppVersion?: string;
   tgWebAppPlatform?: string;
-  tgWebAppStartParam?: string;
+  tgWebAppStartParam?: string; // ✅ КЛЮЧЕВОЕ ПОЛЕ для startapp параметров
   tgWebAppThemeParams?: Record<string, any>;
   [key: string]: any;
 }

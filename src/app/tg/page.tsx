@@ -107,8 +107,8 @@ export default function ThreeGISHomePage() {
       return;
     }
     
-    // ✅ SDK v3.x: в launchParams startParam находится в tgWebAppStartParam
-    const startParam = launchParams.tgWebAppStartParam;
+    // ✅ ИСПРАВЛЕНО: SDK v3.x безопасная проверка наличия tgWebAppStartParam
+    const startParam = (launchParams as any)?.tgWebAppStartParam;
     
     if (startParam && typeof startParam === 'string') {
       console.log('🚀 Start param detected:', startParam);
@@ -184,6 +184,8 @@ export default function ThreeGISHomePage() {
       } catch (error) {
         console.error('Error processing start param:', error);
       }
+    } else {
+      console.log('ℹ️ No start parameter found in launch params');
     }
   }, [launchParams, isReady, router]);
   
