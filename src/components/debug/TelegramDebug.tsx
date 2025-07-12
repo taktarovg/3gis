@@ -367,7 +367,7 @@ export function TelegramDebug() {
                 <Button
                   onClick={() => {
                     try {
-                      window.Telegram?.WebApp.HapticFeedback?.impactOccurred('medium');
+                      window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium');
                       addLog('Haptic feedback triggered');
                     } catch (error) {
                       addLog('Haptic feedback failed');
@@ -475,7 +475,7 @@ export const TelegramNativeUtils = {
    */
   hapticFeedback(type: 'light' | 'medium' | 'heavy' = 'light'): void {
     if (this.isAvailable()) {
-      window.Telegram!.WebApp.HapticFeedback?.impactOccurred(type);
+      window.Telegram!.WebApp?.HapticFeedback?.impactOccurred(type);
     }
   },
 

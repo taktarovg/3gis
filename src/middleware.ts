@@ -1,20 +1,42 @@
-// src/middleware.ts - Упрощенный middleware для Next.js 15.3.3
+// src/middleware.ts - Обработка редиректов для Next.js 15.3.3
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
+  const userAgent = request.headers.get('user-agent') || '';
   
-  // ✅ Простая логика без сложных проверок для избежания ошибок
-  console.log(`[admin] ${pathname} status=200`);
+  // Определяем, является ли запрос из Telegram WebApp
+  const isTelegramWebApp = userAgent.includes('TelegramBot') || 
+                          userAgent.includes('Telegram');
   
-  // Пропускаем все запросы без модификации
+  // Обработка редиректа для /tg когда открыто в браузере
+  if (pathname === '/tg' && !isTelegramWebApp) {
+    // Если есть query параметры, сохраняем их
+    const redirectUrl = new URL('/tg-redirect', request.url);
+    
+    // Передаем исходные параметры в redirect страницу
+    searchParams.forEach((value, key) => {
+      redirectUrl.searchParams.set(key, value);
+    });
+    
+    console.log(`[redirect] ${pathname} -> /tg-redirect (browser detected)`);
+    return NextResponse.redirect(redirectUrl);
+  }
+  
+  // Логирование для admin панели
+  if (pathname.startsWith('/admin')) {
+    console.log(`[admin] ${pathname} status=200`);
+  }
+  
+  // Пропускаем все остальные запросы без модификации
   return NextResponse.next();
 }
 
 export const config = {
-  // ✅ Только для admin маршрутов, чтобы не затрагивать /tg и /
+  // Обрабатываем /tg для редиректа и admin для логирования
   matcher: [
+    '/tg',
     '/admin/:path*'
   ]
 };
