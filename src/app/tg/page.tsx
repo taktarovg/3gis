@@ -41,6 +41,11 @@ const PlatformDebug = dynamic(
   { ssr: false }
 );
 
+const TelegramRedirectTest = dynamic(
+  () => import('@/components/test/TelegramRedirectTest').then(mod => ({ default: mod.TelegramRedirectTest })), 
+  { ssr: false }
+);
+
 // ✅ Типизация для категорий
 interface Category {
   id: number;
@@ -257,6 +262,11 @@ export default function ThreeGISHomePage() {
         {/* Виджет донатов */}
         <div className="px-4 mb-6">
           <DonationWidget />
+        </div>
+
+        {/* Telegram Redirect Test (только в development) */}
+        <div className="px-4 mb-6">
+          <TelegramRedirectTest />
         </div>
 
         {/* Дополнительная информация о проекте */}

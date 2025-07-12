@@ -52,7 +52,7 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
       
       let user: TelegramUser | null = null;
       let processedInitData: TelegramInitData | null = null;
-      let finalLaunchParams: unknown = launchParams;
+      let finalLaunchParams: LaunchParams | null = launchParams as LaunchParams | null;
       let finalRawInitData: string | null = rawInitData || null;
       
       const { isLikelyTelegram, checks } = checkTelegramEnvironment();
@@ -166,7 +166,7 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
                 tgWebAppStartParam: params.get('start_param') || '',
                 tgWebAppBotInline: false,
                 tgWebAppThemeParams: webApp.themeParams || {}
-              } as LaunchParams;
+              };
               
               finalRawInitData = directInitData;
               console.log('✅ Успешно извлечен user напрямую из WebApp');
@@ -206,7 +206,7 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
             subtitleTextColor: '#708499',
             textColor: '#f5f5f5'
           }
-        } as LaunchParams;
+        };
       }
 
       const environmentInfo = {
