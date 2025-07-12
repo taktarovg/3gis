@@ -251,18 +251,34 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
           try {
             // ✅ Правильная структура согласно официальной документации SDK v3.x
             mockTelegramEnv({
-              themeParams: themeParams,
-              initDataRaw: new URLSearchParams([
-                ['user', JSON.stringify(mockUser)],
-                ['hash', '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31'],
-                ['auth_date', Math.floor(Date.now() / 1000).toString()],
-                ['start_param', 'debug'],
-                ['chat_type', 'sender'],
-                ['chat_instance', '8428209589180549439'],
-              ]).toString(),
-              version: '8.0',
-              platform: 'tdesktop',
-              startParam: 'debug'
+              launchParams: {
+                tgWebAppThemeParams: {
+                  accent_text_color: '#6ab2f2',
+                  bg_color: '#17212b',
+                  button_color: '#5288c1',
+                  button_text_color: '#ffffff',
+                  destructive_text_color: '#ec3942',
+                  header_bg_color: '#17212b',
+                  hint_color: '#708499',
+                  link_color: '#6ab3f3',
+                  secondary_bg_color: '#232e3c',
+                  section_bg_color: '#17212b',
+                  section_header_text_color: '#6ab3f3',
+                  subtitle_text_color: '#708499',
+                  text_color: '#f5f5f5',
+                },
+                tgWebAppData: new URLSearchParams([
+                  ['user', JSON.stringify(mockUser)],
+                  ['hash', '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31'],
+                  ['auth_date', Math.floor(Date.now() / 1000).toString()],
+                  ['start_param', 'debug'],
+                  ['chat_type', 'sender'],
+                  ['chat_instance', '8428209589180549439'],
+                ]).toString(),
+                tgWebAppVersion: '8.0',
+                tgWebAppPlatform: 'tdesktop',
+                tgWebAppStartParam: 'debug'
+              }
             });
             console.log('✅ Mock environment успешно настроен');
           } catch (mockError) {
