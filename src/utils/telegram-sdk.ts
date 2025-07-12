@@ -74,7 +74,7 @@ export function extractUserSafely(source: unknown, sourceName: string): Telegram
     
     // Валидация найденного пользователя
     if (user && typeof user === 'object' && user !== null) {
-      const userObj = user as Record<string, unknown>;
+      const userObj = user as unknown as Record<string, unknown>;
       if (userObj.id && userObj.first_name) {
         console.log(`✅ ${sourceName}: валидный user:`, {
           id: userObj.id,
