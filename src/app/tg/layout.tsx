@@ -5,7 +5,7 @@ import { TelegramProvider, TelegramStatus } from '@/components/providers/Telegra
 import { TelegramRedirectHandler } from '@/components/telegram/TelegramRedirectHandler';
 import { NavigationLayout } from '@/components/navigation/BottomNavigation';
 import { useTelegram } from '@/components/providers/TelegramProvider';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useCallback, type ReactNode } from 'react';
 
 /**
  * ✅ Компонент для обертки контента с проверками готовности
@@ -13,6 +13,11 @@ import { useEffect, type ReactNode } from 'react';
  */
 function TelegramContent({ children }: { children: ReactNode }) {
   const { isReady, error, isTelegramEnvironment } = useTelegram();
+  
+  // ✅ ИСПРАВЛЕНИЕ: Отдельная функция для перезагрузки
+  const handleReload = useCallback(() => {
+    window.location.reload();
+  }, []);
   
   // ✅ Дополнительная настройка после инициализации
   useEffect(() => {
@@ -66,7 +71,7 @@ function TelegramContent({ children }: { children: ReactNode }) {
           <p className="text-gray-600 mb-4">{error}</p>
           <div className="space-y-3">
             <button 
-              onClick={() => window.location.reload()} 
+              onClick={handleReload} 
               className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               Перезагрузить

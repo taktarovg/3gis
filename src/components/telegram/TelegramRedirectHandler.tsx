@@ -213,9 +213,24 @@ export function TelegramRedirectHandler({ children }: TelegramRedirectHandlerPro
     };
   }, [detectTelegramEnvironment, handleAutomaticRedirect]);
 
+  // ✅ ИСПРАВЛЕНИЕ: Определяем мобильные устройства наверху для использования в других функциях
   const isIOS = userAgent.includes('iPhone') || userAgent.includes('iPad');
   const isAndroid = userAgent.includes('Android');
   const isMobile = isIOS || isAndroid;
+
+  // ✅ ИСПРАВЛЕНИЕ: Отдельная функция для обработки аналитики при клике
+  const handleTelegramLinkClick = useCallback(() => {
+    // Аналитика
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'telegram_redirect_click', {
+        source: 'browser',
+        user_agent: userAgent,
+        is_mobile: isMobile,
+        start_param: startParam,
+        method: 'manual_click'
+      });
+    }
+  }, [userAgent, isMobile, startParam]);
 
   // Показываем загрузку пока определяем среду
   if (isTelegramEnvironment === null || !detectionComplete) {
@@ -303,18 +318,7 @@ export function TelegramRedirectHandler({ children }: TelegramRedirectHandlerPro
             <a
               href={getTelegramLink()}
               className="inline-flex items-center justify-center w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-              onClick={() => {
-                // Аналитика
-                if (typeof window !== 'undefined' && (window as any).gtag) {
-                  (window as any).gtag('event', 'telegram_redirect_click', {
-                    source: 'browser',
-                    user_agent: userAgent,
-                    is_mobile: isMobile,
-                    start_param: startParam,
-                    method: 'manual_click'
-                  });
-                }
-              }}
+              onClick={handleTelegramLinkClick}
             >
               <ExternalLink className="w-5 h-5 mr-2" />
               Открыть в Telegram
