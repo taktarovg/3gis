@@ -4,6 +4,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, type PropsWithChildren } from 'react';
 
 // ✅ Правильные импорты согласно актуальной документации SDK v3.x
+// https://docs.telegram-mini-apps.com/packages/telegram-apps/3-x
 // https://docs.telegram-mini-apps.com/packages/telegram-apps-sdk-react/3-x
 import { 
   useLaunchParams, 
@@ -12,6 +13,30 @@ import {
   mockTelegramEnv,
   retrieveLaunchParams
 } from '@telegram-apps/sdk-react';
+
+// ✅ Правильные типы на основе официальной документации SDK v3.x
+// useLaunchParams(true) возвращает объект с полями camelCase
+interface TelegramInitDataV3 {
+  user?: any;
+  authDate?: Date;      // В v3.x с SSR флагом true это Date (camelCase)
+  queryId?: string;     // В v3.x с SSR флагом true это queryId (camelCase)
+  hash?: string;        // hash всегда string, но может быть undefined
+  startParam?: string;
+  chatType?: string;
+  chatInstance?: string;
+  [key: string]: any;   // Для дополнительных полей
+}
+
+// ✅ Тип для launchParams v3.x
+interface TelegramLaunchParamsV3 {
+  tgWebAppData?: TelegramInitDataV3 | string | any;
+  tgWebAppVersion?: string;
+  tgWebAppPlatform?: string;
+  tgWebAppStartParam?: string;
+  tgWebAppBotInline?: boolean;
+  tgWebAppThemeParams?: Record<string, any>;
+  [key: string]: any;
+}
 
 interface TelegramContextValue {
   isReady: boolean;
@@ -34,8 +59,8 @@ const TelegramContext = createContext<TelegramContextValue>({
 });
 
 /**
- * ✅ Компонент для инициализации SDK v3.x с правильным порядком
- * ИСПРАВЛЕН для решения LaunchParamsRetrieveError и редиректа в Telegram
+ * ✅ Компонент для инициализации SDK v3.x с правильными типами
+ * ИСПРАВЛЕН согласно актуальной документации
  */
 function TelegramSDKInitializer({ children }: PropsWithChildren) {
   const [state, setState] = useState<TelegramContextValue>({
@@ -48,8 +73,8 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
     launchParams: null
   });
   
-  // ✅ КРИТИЧНО: Используем SSR флаг для хуков v3.x
-  const launchParams = useLaunchParams(true); // SSR safe mode
+  // ✅ КРИТИЧНО: Используем SSR флаг для хуков v3.x (Next.js совместимость)
+  const launchParams = useLaunchParams(true); // SSR safe mode - возвращает camelCase поля
   const rawInitData = useRawInitData(); // НЕ принимает параметров в v3.x
   
   const initializeTelegramSDK = useCallback(async () => {
@@ -57,9 +82,9 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
       console.log('🚀 Инициализация Telegram SDK v3.x...');
       
       let user = null;
-      let processedInitData = null;
+      let processedInitData: TelegramInitDataV3 | null = null;
       let isTelegramEnvironment = false;
-      let finalLaunchParams = launchParams;
+      let finalLaunchParams: TelegramLaunchParamsV3 | any = launchParams;
       
       // ✅ ИСПРАВЛЕНИЕ: Многоуровневая проверка среды Telegram
       const environmentChecks = {
@@ -109,11 +134,10 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
               
               if (userStr) {
                 user = JSON.parse(userStr);
-                // ✅ Правильная структура для SDK v3.x с обязательными полями
+                // ✅ Правильная структура для SDK v3.x
                 processedInitData = {
                   user,
                   authDate: new Date(parseInt(params.get('auth_date') || '0') * 1000),
-                  signature: params.get('hash') || 'mock_signature',
                   queryId: params.get('query_id') || undefined,
                   hash: params.get('hash') || undefined,
                   startParam: params.get('start_param') || undefined,
@@ -129,7 +153,7 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
                   tgWebAppStartParam: params.get('start_param') || '',
                   tgWebAppBotInline: false,
                   tgWebAppThemeParams: webApp.themeParams || {}
-                };
+                } as TelegramLaunchParamsV3;
                 
                 isTelegramEnvironment = true;
                 console.log('✅ User извлечен напрямую из WebApp:', {
@@ -143,7 +167,7 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
             console.warn('⚠️ Ошибка прямого извлечения из WebApp:', directError);
           }
         } else if (launchParams) {
-          // ✅ Стандартная обработка через launchParams
+          // ✅ Стандартная обработка через launchParams v3.x
           console.log('📱 Launch params v3.x structure:', {
             keys: Object.keys(launchParams),
             hasWebAppData: !!launchParams.tgWebAppData,
@@ -155,17 +179,20 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
             const webAppDataStr = launchParams.tgWebAppData;
             
             try {
-              let webAppData;
-              if (typeof webAppDataStr === 'string') {
+              // ✅ В v3.x tgWebAppData может быть объектом или строкой
+              if (typeof webAppDataStr === 'object' && webAppDataStr.user) {
+                // Уже обработанный объект из SDK v3.x
+                user = webAppDataStr.user;
+                processedInitData = webAppDataStr as TelegramInitDataV3;
+              } else if (typeof webAppDataStr === 'string') {
+                // Строковой формат - парсим как URLSearchParams
                 const params = new URLSearchParams(webAppDataStr);
                 const userStr = params.get('user');
                 if (userStr) {
                   user = JSON.parse(userStr);
-                  // ✅ Правильная структура для SDK v3.x с обязательными полями
                   processedInitData = {
                     user,
                     authDate: new Date(parseInt(params.get('auth_date') || '0') * 1000),
-                    signature: params.get('hash') || 'mock_signature',
                     queryId: params.get('query_id') || undefined,
                     hash: params.get('hash') || undefined,
                     startParam: params.get('start_param') || undefined,
@@ -173,10 +200,6 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
                     chatInstance: params.get('chat_instance') || undefined
                   };
                 }
-              } else if (typeof webAppDataStr === 'object') {
-                webAppData = webAppDataStr;
-                user = webAppData.user;
-                processedInitData = webAppData;
               }
               
               isTelegramEnvironment = true;
@@ -208,50 +231,38 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
         };
 
         const themeParams = {
-          accent_text_color: '#6ab2f2' as `#${string}`,
-          bg_color: '#17212b' as `#${string}`,
-          button_color: '#5288c1' as `#${string}`,
-          button_text_color: '#ffffff' as `#${string}`,
-          destructive_text_color: '#ec3942' as `#${string}`,
-          header_bg_color: '#17212b' as `#${string}`,
-          hint_color: '#708499' as `#${string}`,
-          link_color: '#6ab3f3' as `#${string}`,
-          secondary_bg_color: '#232e3c' as `#${string}`,
-          section_bg_color: '#17212b' as `#${string}`,
-          section_header_text_color: '#6ab3f3' as `#${string}`,
-          subtitle_text_color: '#708499' as `#${string}`,
-          text_color: '#f5f5f5' as `#${string}`,
+          accentTextColor: '#6ab2f2',
+          bgColor: '#17212b',
+          buttonColor: '#5288c1',
+          buttonTextColor: '#ffffff',
+          destructiveTextColor: '#ec3942',
+          headerBgColor: '#17212b',
+          hintColor: '#708499',
+          linkColor: '#6ab3f3',
+          secondaryBgColor: '#232e3c',
+          sectionBgColor: '#17212b',
+          sectionHeaderTextColor: '#6ab3f3',
+          subtitleTextColor: '#708499',
+          textColor: '#f5f5f5',
         };
 
-        const mockWebAppData = new URLSearchParams([
-          ['user', JSON.stringify(mockUser)],
-          ['auth_date', Math.floor(Date.now() / 1000).toString()],
-          ['hash', '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31'],
-          ['start_param', 'debug'],
-          ['chat_type', 'sender'],
-          ['chat_instance', '8428209589180549439']
-        ]).toString();
-
-        // ✅ ИСПРАВЛЕНИЕ: Безопасная настройка mock environment
+        // ✅ ИСПРАВЛЕНИЕ: Правильная структура для mockTelegramEnv согласно документации v3.x
         if (process.env.NODE_ENV === 'development') {
           try {
+            // ✅ Правильная структура согласно официальной документации SDK v3.x
             mockTelegramEnv({
-              launchParams: {
-                tgWebAppThemeParams: themeParams,
-                tgWebAppData: {
-                  user: mockUser,
-                  authDate: new Date(Date.now()),
-                  signature: '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31',
-                  hash: '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31',
-                  startParam: 'debug',
-                  chatType: 'sender',
-                  chatInstance: '8428209589180549439'
-                },
-                tgWebAppVersion: '8.0',
-                tgWebAppPlatform: 'tdesktop',
-                tgWebAppStartParam: 'debug',
-                tgWebAppBotInline: false
-              }
+              themeParams: themeParams,
+              initDataRaw: new URLSearchParams([
+                ['user', JSON.stringify(mockUser)],
+                ['hash', '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31'],
+                ['auth_date', Math.floor(Date.now() / 1000).toString()],
+                ['start_param', 'debug'],
+                ['chat_type', 'sender'],
+                ['chat_instance', '8428209589180549439'],
+              ]).toString(),
+              version: '8.0',
+              platform: 'tdesktop',
+              startParam: 'debug'
             });
             console.log('✅ Mock environment успешно настроен');
           } catch (mockError) {
@@ -260,35 +271,26 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
         }
 
         user = mockUser;
-        // ✅ Правильная структура для SDK v3.x с обязательными полями
+        // ✅ Правильная структура для SDK v3.x
         processedInitData = {
           user: mockUser,
           authDate: new Date(Date.now()),
-          signature: '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31',
           hash: '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31',
           startParam: 'debug',
           chatType: 'sender',
           chatInstance: '8428209589180549439',
           isMock: true,
           isDevFallback: !isLikelyTelegram
-        };
+        } as TelegramInitDataV3;
         
         finalLaunchParams = {
-          tgWebAppData: {
-            user: mockUser,
-            authDate: new Date(Date.now()),
-            signature: '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31',
-            hash: '89d6079ad6762351f38c6dbbc41bb53048019256a9443988af7a48bcad16ba31',
-            startParam: 'debug',
-            chatType: 'sender',
-            chatInstance: '8428209589180549439'
-          },
+          tgWebAppData: processedInitData,
           tgWebAppVersion: '8.0',
           tgWebAppPlatform: 'tdesktop',
           tgWebAppStartParam: 'debug',
           tgWebAppBotInline: false,
           tgWebAppThemeParams: themeParams
-        };
+        } as TelegramLaunchParamsV3;
         
         // В реальном Telegram не считаем mock режимом
         isTelegramEnvironment = isLikelyTelegram;
@@ -368,10 +370,10 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
           initData: {
             user: mockUser,
             authDate: new Date(Date.now()),
-            signature: 'mock_signature_for_error_fallback',
+            hash: 'mock_hash_for_error_fallback',
             isMock: true,
             isLaunchParamsError: true
-          },
+          } as TelegramInitDataV3,
           launchParams: null
         });
         
@@ -421,33 +423,15 @@ export function TelegramProvider({ children }: PropsWithChildren) {
       try {
         console.log('🔧 Инициализация базового SDK...');
         
-        // ✅ ИСПРАВЛЕНИЕ: Обработка различных сценариев init()
+        // ✅ ИСПРАВЛЕНИЕ: Простая инициализация SDK v3.x
         try {
+          // В SDK v3.x init() не принимает параметров или принимает минимальную конфигурацию
           await init();
-          console.log('✅ Базовый SDK инициализирован через init()');
+          console.log('✅ Базовый SDK v3.x инициализирован');
         } catch (initSDKError) {
-          console.warn('⚠️ init() выдал ошибку, пробуем альтернативный подход:', initSDKError);
-          
-          // ✅ ИСПРАВЛЕНИЕ: Альтернативная инициализация с пользовательскими launchParams
-          const customLaunchParams = {
-            tgWebAppVersion: '8.0',
-            tgWebAppPlatform: 'unknown',
-            tgWebAppBotInline: false,
-            tgWebAppData: 'user=%7B%22id%22%3A123456%7D',
-            tgWebAppStartParam: '',
-            tgWebAppThemeParams: {}
-          };
-          
-          try {
-            await init({
-              acceptCustomStyles: true,
-              launchParams: customLaunchParams
-            });
-            console.log('✅ Базовый SDK инициализирован с пользовательскими параметрами');
-          } catch (customInitError) {
-            console.warn('⚠️ Альтернативная инициализация не удалась:', customInitError);
-            // Продолжаем работу без SDK init - приложение все равно может работать
-          }
+          console.warn('⚠️ init() выдал ошибку (это нормально вне Telegram):', initSDKError);
+          // В режиме разработки или вне Telegram это ожидаемое поведение
+          // SDK все равно может частично функционировать
         }
         
         setIsSDKInitialized(true);
