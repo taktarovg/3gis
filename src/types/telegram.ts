@@ -65,7 +65,7 @@ export interface TelegramContextValue {
   isTelegramEnvironment: boolean;
   error: string | null;
   initData: TelegramInitData | null;
-  launchParams: LaunchParams | unknown | null;
+  launchParams: LaunchParams | null; // ✅ ИСПРАВЛЕНО: убрали unknown для лучшей типизации
   rawInitData: string | null;
   sdkVersion: string;
   environmentInfo: {

@@ -107,8 +107,8 @@ export default function ThreeGISHomePage() {
       return;
     }
     
-    // ✅ ИСПРАВЛЕНО: SDK v3.x безопасная проверка наличия tgWebAppStartParam
-    const startParam = (launchParams as any)?.tgWebAppStartParam;
+    // ✅ ИСПРАВЛЕНО: SDK v3.x с правильной типизацией LaunchParams
+    const startParam = launchParams?.tgWebAppStartParam;
     
     if (startParam && typeof startParam === 'string') {
       console.log('🚀 Start param detected:', startParam);
