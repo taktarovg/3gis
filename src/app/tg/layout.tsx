@@ -5,13 +5,13 @@ import { TelegramProvider, TelegramStatus } from '@/components/providers/Telegra
 import { TelegramRedirectHandler } from '@/components/telegram/TelegramRedirectHandler';
 import { NavigationLayout } from '@/components/navigation/BottomNavigation';
 import { useTelegram } from '@/components/providers/TelegramProvider';
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 
 /**
  * ✅ Компонент для обертки контента с проверками готовности
- * Совместимо с обновленным TelegramProvider и SDK v3.x
+ * ИСПРАВЛЕН: Переписан для избежания SSR проблем
  */
-function TelegramContent({ children }: { children: React.ReactNode }) {
+function TelegramContent({ children }: { children: ReactNode }) {
   const { isReady, error, isTelegramEnvironment } = useTelegram();
   
   // ✅ Дополнительная настройка после инициализации
@@ -101,17 +101,18 @@ function TelegramContent({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * ✅ Главный Layout для Telegram Mini App v2.0 с обработкой редиректов
+ * ✅ Главный Layout для Telegram Mini App с правильной структурой провайдеров
  * 
- * Исправления для SDK v3.x:
- * - TelegramRedirectHandler для автоматического открытия в Telegram при доступе через браузер
- * - Правильная инициализация SDK v3.x с SSR поддержкой
- * - Улучшенная UX для пользователей, заходящих через веб-ссылки
+ * ИСПРАВЛЕНИЯ:
+ * - TelegramRedirectHandler обернут правильно
+ * - TelegramProvider инициализируется только один раз
+ * - TelegramContent получает контекст через useTelegram корректно
+ * - Нет дублирования провайдеров
  */
 export default function TelegramLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <TelegramRedirectHandler>
