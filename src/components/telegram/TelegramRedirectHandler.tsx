@@ -10,12 +10,11 @@ interface TelegramRedirectHandlerProps {
 }
 
 /**
- * ✅ УЛУЧШЕННЫЙ компонент для обработки открытия /tg ссылок в браузере
- * Исправления для корректной работы с https://www.3gis.biz/tg:
- * - Автоматический редирект в Telegram с задержкой
- * - Улучшенная UX для пользователей
- * - Правильная обработка LaunchParamsRetrieveError
- * - Поддержка всех типов устройств
+ * ✅ ИСПРАВЛЕННЫЙ компонент для обработки открытия /tg ссылок в браузере
+ * Исправления для правильной работы с LaunchParamsRetrieveError:
+ * - Не полагается на SDK хуки для определения среды
+ * - Использует нативные проверки Telegram WebApp
+ * - Правильно обрабатывает LaunchParamsRetrieveError как нормальное поведение
  */
 export function TelegramRedirectHandler({ children }: TelegramRedirectHandlerProps) {
   const [isTelegramEnvironment, setIsTelegramEnvironment] = useState<boolean | null>(null);
@@ -25,7 +24,7 @@ export function TelegramRedirectHandler({ children }: TelegramRedirectHandlerPro
   const [redirectAttempted, setRedirectAttempted] = useState(false);
   const [autoRedirectCountdown, setAutoRedirectCountdown] = useState(3);
 
-  // ✅ Улучшенное определение Telegram среды
+  // ✅ ИСПРАВЛЕНИЕ: Нативное определение Telegram среды БЕЗ использования SDK хуков
   const detectTelegramEnvironment = useCallback(() => {
     if (typeof window === 'undefined') return false;
 
@@ -33,55 +32,64 @@ export function TelegramRedirectHandler({ children }: TelegramRedirectHandlerPro
     const urlParams = new URLSearchParams(window.location.search);
     const href = window.location.href;
     
-    // ✅ РАСШИРЕННЫЕ проверки для надежного определения
+    // ✅ ИСПРАВЛЕНИЕ: Сначала проверяем нативный Telegram WebApp объект
+    const telegramWebApp = (window as any)?.Telegram?.WebApp;
+    
+    // ✅ КРИТИЧНО: Основные проверки без полагания на SDK
     const checks = {
-      // Проверка 1: Telegram WebApp объект доступен
-      hasWebApp: !!(window as any)?.Telegram?.WebApp,
+      // Проверка 1: Telegram WebApp объект существует и готов
+      hasWebApp: !!telegramWebApp,
       
-      // Проверка 2: initData в WebApp (главный индикатор)
-      hasInitData: !!(window as any)?.Telegram?.WebApp?.initData,
+      // Проверка 2: WebApp имеет initData (главный индикатор работы в Telegram)
+      hasInitData: !!telegramWebApp?.initData && telegramWebApp.initData.length > 0,
       
-      // Проверка 3: URL параметры от Telegram
+      // Проверка 3: WebApp version указывает на реальный Telegram
+      hasVersion: !!telegramWebApp?.version && telegramWebApp.version !== 'dev',
+      
+      // Проверка 4: WebApp platform определен
+      hasPlatform: !!telegramWebApp?.platform,
+      
+      // Проверка 5: WebApp готов к работе
+      isReady: telegramWebApp?.isExpanded !== undefined,
+      
+      // Проверка 6: URL параметры от Telegram (резервная проверка)
       hasUrlParams: urlParams.has('tgWebAppData') || 
                    urlParams.has('tgWebAppVersion') || 
                    urlParams.has('tgWebAppPlatform'),
       
-      // Проверка 4: User Agent содержит Telegram
+      // Проверка 7: User Agent содержит Telegram
       hasTelegramUA: ua.includes('TelegramBot') || 
                     ua.includes('Telegram') ||
                     ua.includes('tgWebApp'),
       
-      // Проверка 5: URL содержит tgWebApp параметры
+      // Проверка 8: URL содержит tgWebApp параметры
       hasWebAppInUrl: href.includes('tgWebApp'),
       
-      // Проверка 6: Referrer от Telegram
+      // Проверка 9: Referrer от Telegram
       hasTelegramReferrer: document.referrer.includes('telegram') || 
                           document.referrer.includes('t.me'),
       
-      // Проверка 7: WebApp ready состояние
-      isWebAppReady: !!(window as any)?.Telegram?.WebApp?.ready,
-      
-      // Проверка 8: Telegram platform detection
-      isPlatformTelegram: !!(window as any)?.Telegram?.WebApp?.platform
+      // Проверка 10: Специфичные для Telegram методы доступны
+      hasTelegramMethods: typeof telegramWebApp?.ready === 'function' &&
+                         typeof telegramWebApp?.expand === 'function'
     };
     
-    console.log('🔍 Детальные проверки Telegram среды:', checks);
-    console.log('🔍 User Agent:', ua);
-    console.log('🔍 URL:', href);
-    console.log('🔍 URL Params:', Object.fromEntries(urlParams.entries()));
-    console.log('🔍 Referrer:', document.referrer);
+    console.log('🔍 ИСПРАВЛЕННЫЕ проверки Telegram среды:', checks);
+    console.log('🔍 Telegram WebApp object:', telegramWebApp);
+    console.log('🔍 WebApp initData present:', !!telegramWebApp?.initData);
+    console.log('🔍 WebApp version:', telegramWebApp?.version);
+    console.log('🔍 WebApp platform:', telegramWebApp?.platform);
     
-    // ✅ Считаем что в Telegram если есть хотя бы 2 положительные проверки
-    // ИЛИ если есть критичные индикаторы (initData, WebApp ready)
-    const positiveChecks = Object.values(checks).filter(Boolean).length;
-    const hasCriticalIndicators = checks.hasInitData || 
-                                 (checks.hasWebApp && checks.isWebAppReady);
+    // ✅ ИСПРАВЛЕНИЕ: Более строгие критерии определения Telegram
+    // Считаем что в Telegram, только если есть WebApp с initData ИЛИ достаточно положительных проверок
+    const criticalIndicators = checks.hasWebApp && (checks.hasInitData || checks.hasVersion);
+    const additionalChecks = Object.values(checks).filter(Boolean).length;
     
-    const isInTelegram = positiveChecks >= 2 || hasCriticalIndicators;
+    const isInTelegram = criticalIndicators || additionalChecks >= 4;
     
-    console.log('🔍 Результат определения среды:', {
-      positiveChecks,
-      hasCriticalIndicators,
+    console.log('🔍 ИСПРАВЛЕННЫЙ результат определения среды:', {
+      criticalIndicators,
+      additionalChecks,
       isInTelegram,
       environment: isInTelegram ? 'Telegram' : 'Browser'
     });
@@ -99,7 +107,7 @@ export function TelegramRedirectHandler({ children }: TelegramRedirectHandlerPro
       : `https://t.me/${botUsername}/${appName}`;
   }, [startParam]);
 
-  // ✅ НОВОЕ: Автоматический редирект с обратным отсчетом
+  // ✅ Автоматический редирект с обратным отсчетом
   const handleAutomaticRedirect = useCallback(() => {
     if (redirectAttempted) return;
     
@@ -154,7 +162,7 @@ export function TelegramRedirectHandler({ children }: TelegramRedirectHandlerPro
     
   }, [redirectAttempted, getTelegramLink, userAgent]);
 
-  // ✅ Основная логика определения и обработки
+  // ✅ ИСПРАВЛЕНИЕ: Основная логика определения среды БЕЗ полагания на SDK
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -166,12 +174,14 @@ export function TelegramRedirectHandler({ children }: TelegramRedirectHandlerPro
     const urlStartParam = urlParams.get('startapp') || urlParams.get('start') || '';
     setStartParam(urlStartParam);
 
-    console.log('🚀 TelegramRedirectHandler: начало инициализации');
+    console.log('🚀 TelegramRedirectHandler: ИСПРАВЛЕННАЯ инициализация');
     console.log('📱 User Agent:', ua);
     console.log('🔗 Start Param:', urlStartParam);
 
-    // ✅ Даем время для полной загрузки Telegram WebApp
+    // ✅ ИСПРАВЛЕНИЕ: Даем больше времени для инициализации Telegram WebApp
+    // но не полагаемся на SDK хуки которые могут выдавать ошибки
     const detectWithDelay = () => {
+      // Используем нашу нативную функцию определения
       const isInTelegram = detectTelegramEnvironment();
       setIsTelegramEnvironment(isInTelegram);
       setDetectionComplete(true);
@@ -179,13 +189,28 @@ export function TelegramRedirectHandler({ children }: TelegramRedirectHandlerPro
       // Если НЕ в Telegram, запускаем автоматический редирект
       if (!isInTelegram) {
         console.log('🔍 Не в Telegram среде - запускаем автоматический редирект');
-        setTimeout(handleAutomaticRedirect, 1000); // Задержка перед началом отсчета
+        setTimeout(handleAutomaticRedirect, 1000);
+      } else {
+        console.log('📱 В Telegram среде - продолжаем с детьми');
       }
     };
 
-    // ✅ Увеличиваем задержку для надежности определения
-    const timeoutId = setTimeout(detectWithDelay, 1500);
-    return () => clearTimeout(timeoutId);
+    // ✅ ИСПРАВЛЕНИЕ: Увеличиваем задержку и добавляем дополнительные проверки
+    let timeoutId: NodeJS.Timeout;
+    
+    // Проверяем сразу
+    const initialCheck = detectTelegramEnvironment();
+    if (initialCheck) {
+      // Если сразу определили Telegram - используем сразу
+      detectWithDelay();
+    } else {
+      // Если не определили - даем время для загрузки
+      timeoutId = setTimeout(detectWithDelay, 2000); // Увеличиваем до 2 секунд
+    }
+    
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [detectTelegramEnvironment, handleAutomaticRedirect]);
 
   const isIOS = userAgent.includes('iPhone') || userAgent.includes('iPad');
@@ -203,9 +228,9 @@ export function TelegramRedirectHandler({ children }: TelegramRedirectHandlerPro
               <span className="text-xl font-bold text-white">3GIS</span>
             </div>
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-700 font-medium">Проверяем среду выполнения...</p>
+            <p className="text-gray-700 font-medium">Определяем среду выполнения...</p>
             <p className="text-gray-500 text-sm mt-2">
-              Определяем способ запуска приложения
+              Проверяем доступность Telegram WebApp
             </p>
           </div>
         </div>
@@ -215,6 +240,7 @@ export function TelegramRedirectHandler({ children }: TelegramRedirectHandlerPro
 
   // Если в Telegram - показываем детей (основное приложение)
   if (isTelegramEnvironment) {
+    console.log('✅ Показываем основное приложение в Telegram');
     return (
       <>
         <TelegramMetaTags startParam={startParam} />
@@ -223,7 +249,8 @@ export function TelegramRedirectHandler({ children }: TelegramRedirectHandlerPro
     );
   }
 
-  // Если не в Telegram - показываем экран для открытия в Telegram
+  // ✅ ИСПРАВЛЕНИЕ: Если не в Telegram - показываем экран для открытия в Telegram
+  console.log('🌐 Показываем экран "Открыть в Telegram"');
   return (
     <>
       <TelegramMetaTags startParam={startParam} />
@@ -405,6 +432,8 @@ export function TelegramRedirectHandler({ children }: TelegramRedirectHandlerPro
                   <p><strong>Start Param:</strong> {startParam || 'отсутствует'}</p>
                   <p><strong>Telegram WebApp:</strong> {(window as any)?.Telegram?.WebApp ? 'доступен' : 'недоступен'}</p>
                   <p><strong>Init Data:</strong> {(window as any)?.Telegram?.WebApp?.initData ? 'есть' : 'нет'}</p>
+                  <p><strong>WebApp Version:</strong> {(window as any)?.Telegram?.WebApp?.version || 'нет'}</p>
+                  <p><strong>WebApp Platform:</strong> {(window as any)?.Telegram?.WebApp?.platform || 'нет'}</p>
                   <p><strong>Redirect Attempted:</strong> {redirectAttempted ? 'да' : 'нет'}</p>
                 </div>
               </details>
