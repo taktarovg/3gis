@@ -393,3 +393,34 @@ export function useTelegram() {
   }
   return context;
 }
+
+/**
+ * ✅ Компонент для отладки состояния Telegram SDK в development
+ */
+export function TelegramStatus() {
+  const { isReady, user, isTelegramEnvironment, error, sdkVersion, environmentInfo } = useTelegram();
+  
+  // Показываем только в development
+  if (process.env.NODE_ENV !== 'development') {
+    return null;
+  }
+  
+  return (
+    <div className="fixed bottom-4 right-4 z-50 max-w-xs">
+      <details className="bg-black/80 text-white text-xs p-3 rounded-lg backdrop-blur-sm">
+        <summary className="cursor-pointer font-medium mb-2">
+          🔧 Telegram Debug Info
+        </summary>
+        <div className="space-y-1 mt-2">
+          <div>SDK: v{sdkVersion}</div>
+          <div>Ready: {isReady ? '✅' : '❌'}</div>
+          <div>Environment: {isTelegramEnvironment ? '📱 Telegram' : '🌐 Browser'}</div>
+          <div>User: {user ? `${user.first_name} (${user.id})` : 'None'}</div>
+          <div>WebApp: {environmentInfo.hasWebApp ? '✅' : '❌'}</div>
+          <div>InitData: {environmentInfo.hasInitData ? '✅' : '❌'}</div>
+          {error && <div className="text-red-300">Error: {error}</div>}
+        </div>
+      </details>
+    </div>
+  );
+}

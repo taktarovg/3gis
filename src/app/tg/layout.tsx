@@ -127,7 +127,7 @@ export default function TelegramLayout({
         </TelegramContent>
         
         {/* ✅ Статус отладки только в development */}
-        <TelegramStatus />
+        {process.env.NODE_ENV === 'development' && <TelegramStatus />}
       </TelegramProvider>
     </TelegramRedirectHandler>
   );
