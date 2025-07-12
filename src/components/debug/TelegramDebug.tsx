@@ -451,7 +451,7 @@ export const TelegramNativeUtils = {
    */
   getUser() {
     if (!this.isAvailable()) return null;
-    return window.Telegram!.WebApp.initDataUnsafe?.user || null;
+    return window.Telegram?.WebApp?.initDataUnsafe?.user || null;
   },
 
   /**
@@ -459,7 +459,7 @@ export const TelegramNativeUtils = {
    */
   getInitData(): string | null {
     if (!this.isAvailable()) return null;
-    return window.Telegram!.WebApp.initData || null;
+    return window.Telegram?.WebApp?.initData || null;
   },
 
   /**
@@ -467,7 +467,7 @@ export const TelegramNativeUtils = {
    */
   getStartParam(): string | null {
     if (!this.isAvailable()) return null;
-    return (window.Telegram!.WebApp.initDataUnsafe as any)?.start_param || null; // ✅ Type assertion
+    return (window.Telegram?.WebApp?.initDataUnsafe as any)?.start_param || null; // ✅ Type assertion
   },
 
   /**
@@ -475,7 +475,7 @@ export const TelegramNativeUtils = {
    */
   hapticFeedback(type: 'light' | 'medium' | 'heavy' = 'light'): void {
     if (this.isAvailable()) {
-      window.Telegram!.WebApp?.HapticFeedback?.impactOccurred(type);
+      window.Telegram?.WebApp?.HapticFeedback?.impactOccurred(type);
     }
   },
 
@@ -484,7 +484,7 @@ export const TelegramNativeUtils = {
    */
   showAlert(message: string): void {
     if (this.isAvailable()) {
-      window.Telegram!.WebApp.showAlert(message);
+      window.Telegram?.WebApp?.showAlert(message);
     } else {
       alert(message);
     }
@@ -495,7 +495,7 @@ export const TelegramNativeUtils = {
    */
   close(): void {
     if (this.isAvailable()) {
-      window.Telegram!.WebApp.close();
+      window.Telegram?.WebApp?.close();
     }
   }
 };
