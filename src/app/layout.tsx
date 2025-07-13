@@ -110,12 +110,8 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         
-        {/* Telegram WebApp script - загружается только для /tg маршрутов */}
-        <Script 
-          src="https://telegram.org/js/telegram-web-app.js"
-          strategy="beforeInteractive"
-          id="telegram-web-app"
-        />
+        {/* УДАЛЕНО: telegram-web-app.js script - заменен на @telegram-apps/sdk v3.x в /tg/layout.tsx */}
+        {/* Старый скрипт конфликтует с новым SDK v3.x, поэтому убираем глобальную загрузку */}
         
         {/* JSON-LD структурированные данные */}
         <Script

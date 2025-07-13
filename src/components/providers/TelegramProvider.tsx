@@ -43,13 +43,13 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
       let user: TelegramUser | null = null;
       let isTelegramEnv = false;
 
-      // ✅ ИСПРАВЛЕНИЕ #3: Безопасная типизация для SDK v3.x
+      // ✅ ИСПРАВЛЕНИЕ: Правильная структура данных для SDK v3.x
       if (launchParams && typeof launchParams === 'object') {
         const params = launchParams as any; // Временное приведение типа
         
-        // Проверяем наличие пользователя в структуре SDK v3.x
-        if (params.tgWebAppData?.user) {
-          const telegramUser = params.tgWebAppData.user;
+        // В SDK v3.x пользователь находится в initData, не в tgWebAppData
+        if (params.initData?.user) {
+          const telegramUser = params.initData.user;
           
           user = {
             id: telegramUser.id,
