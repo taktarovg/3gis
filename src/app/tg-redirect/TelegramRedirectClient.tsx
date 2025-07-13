@@ -12,14 +12,14 @@ interface TelegramRedirectClientProps {
 }
 
 /**
- * ✅ ИСПРАВЛЕН Client Component с правильным определением Telegram среды
+ * ✅ ИСПРАВЛЕН Client Component с правильной структурой React Hooks
  * 
- * ИСПРАВЛЕНИЯ v3:
- * - Добавлено использование @telegram-apps/sdk для openTelegramLink
- * - Правильное различение "веб-браузер в Telegram" vs "Mini App в Telegram"
- * - Автоматическое открытие Mini App при обнаружении Telegram среды
- * - Улучшенная логика определения среды
- * - Исправлена ошибка viewport в metadata
+ * ИСПРАВЛЕНИЯ v4 (Vercel Build Fix):
+ * - ✅ Все useEffect и useCallback ПЕРЕД условными return (Rules of Hooks)
+ * - ✅ Исправлены все missing dependencies в dependency arrays
+ * - ✅ Убран условный useEffect для mini-app (был после return)
+ * - ✅ Правильные useCallback цепочки зависимостей
+ * - ✅ Совместимость с Next.js 15.3.3 и @telegram-apps/sdk v3.x
  */
 export default function TelegramRedirectClient({ 
   startParam, 
@@ -36,7 +36,7 @@ export default function TelegramRedirectClient({
   // ✅ ПРАВИЛЬНОЕ использование useLaunchParams с SSR флагом
   const launchParams = useLaunchParams(true); // SSR флаг для Next.js 15
   
-  // ✅ Улучшенная функция определения среды
+  // ✅ 1. Функция определения среды (исправлены deps)
   const detectEnvironment = useCallback(() => {
     if (typeof window === 'undefined') return 'browser';
     
@@ -82,45 +82,39 @@ export default function TelegramRedirectClient({
     } else {
       return 'browser'; // Обычный браузер
     }
-  }, [launchParams]);
+  }, [launchParams]); // ✅ ИСПРАВЛЕНО: добавлен launchParams в deps
   
-  // ✅ Безопасная инициализация клиентской среды
-  useEffect(() => {
-    setIsMounted(true);
+  // ✅ 2. Функция редиректа (исправлены deps)
+  const handleTelegramRedirect = useCallback(() => {
+    if (redirectAttempted) return;
     
-    if (typeof window !== 'undefined') {
-      const ua = navigator.userAgent;
-      setUserAgent(ua);
-      
-      const envType = detectEnvironment();
-      setEnvironmentType(envType);
-      
-      console.log('📱 TG-Redirect Client инициализирован:', {
-        userAgent: ua.substring(0, 60) + '...',
-        startParam,
-        environmentType: envType,
-        launchParams: launchParams ? 'доступны' : 'недоступны',
-        url: window.location.href
-      });
-    }
-  }, [detectEnvironment, launchParams, startParam]);
-  
-  // ✅ Автоматическое открытие Mini App если мы в Telegram браузере
-  useEffect(() => {
-    if (!isMounted || autoMiniAppAttempted) return;
+    setRedirectAttempted(true);
     
-    if (environmentType === 'telegram-web') {
-      console.log('🎯 Обнаружен Telegram браузер - попытка автоматического открытия Mini App');
-      setAutoMiniAppAttempted(true);
-      
-      // Небольшая задержка для лучшего UX
-      setTimeout(() => {
-        tryOpenMiniApp();
-      }, 1000);
+    // ✅ Используем startParam из props или launchParams
+    const actualStartParam = startParam || launchParams?.tgWebAppStartParam || '';
+    
+    const telegramUrl = actualStartParam 
+      ? `https://t.me/${botUsername}/${appName}?startapp=${encodeURIComponent(actualStartParam)}`
+      : `https://t.me/${botUsername}/${appName}`;
+    
+    console.log('🚀 Выполняем редирект в Telegram:', {
+      url: telegramUrl,
+      startParam: actualStartParam,
+      method: 'window.location.href',
+      environmentType
+    });
+    
+    try {
+      // ✅ Универсальный подход для всех устройств
+      window.location.href = telegramUrl;
+    } catch (error) {
+      console.error('❌ Ошибка редиректа:', error);
+      // Fallback - открываем в новом окне
+      window.open(telegramUrl, '_blank', 'noopener,noreferrer');
     }
-  }, [isMounted, environmentType, autoMiniAppAttempted]);
+  }, [redirectAttempted, startParam, launchParams, botUsername, appName, environmentType]); // ✅ ИСПРАВЛЕНО: все deps
   
-  // ✅ Функция автоматического открытия Mini App с использованием @telegram-apps/sdk
+  // ✅ 3. Функция автоматического открытия Mini App (исправлены deps)
   const tryOpenMiniApp = useCallback(async () => {
     try {
       const actualStartParam = startParam || launchParams?.tgWebAppStartParam || '';
@@ -172,9 +166,66 @@ export default function TelegramRedirectClient({
       // Fallback на обычный редирект
       handleTelegramRedirect();
     }
-  }, [startParam, launchParams, botUsername, appName]);
+  }, [startParam, launchParams, botUsername, appName, handleTelegramRedirect]); // ✅ ИСПРАВЛЕНО: добавлен handleTelegramRedirect
   
-  // ✅ Автоматический редирект для обычного браузера
+  // ✅ 4. Функция мануального клика (исправлены deps)
+  const handleManualClick = useCallback(() => {
+    console.log('📊 Мануальный клик по кнопке редиректа');
+    if (environmentType === 'telegram-web') {
+      tryOpenMiniApp();
+    } else {
+      handleTelegramRedirect();
+    }
+  }, [environmentType, tryOpenMiniApp, handleTelegramRedirect]); // ✅ ИСПРАВЛЕНО: все deps
+  
+  // ✅ 5. Инициализация клиентской среды (исправлены deps)
+  useEffect(() => {
+    setIsMounted(true);
+    
+    if (typeof window !== 'undefined') {
+      const ua = navigator.userAgent;
+      setUserAgent(ua);
+      
+      const envType = detectEnvironment();
+      setEnvironmentType(envType);
+      
+      console.log('📱 TG-Redirect Client инициализирован:', {
+        userAgent: ua.substring(0, 60) + '...',
+        startParam,
+        environmentType: envType,
+        launchParams: launchParams ? 'доступны' : 'недоступны',
+        url: window.location.href
+      });
+    }
+  }, [detectEnvironment, launchParams, startParam]); // ✅ ИСПРАВЛЕНО: добавлены все deps
+  
+  // ✅ 6. Автоматическое открытие Mini App (исправлены deps)
+  useEffect(() => {
+    if (!isMounted || autoMiniAppAttempted) return;
+    
+    if (environmentType === 'telegram-web') {
+      console.log('🎯 Обнаружен Telegram браузер - попытка автоматического открытия Mini App');
+      setAutoMiniAppAttempted(true);
+      
+      // Небольшая задержка для лучшего UX
+      setTimeout(() => {
+        tryOpenMiniApp();
+      }, 1000);
+    }
+  }, [isMounted, environmentType, autoMiniAppAttempted, tryOpenMiniApp]); // ✅ ИСПРАВЛЕНО: добавлен tryOpenMiniApp
+  
+  // ✅ 7. КРИТИЧНО: Перемещен условный useEffect ПЕРЕД return (Rules of Hooks)
+  useEffect(() => {
+    if (environmentType === 'mini-app') {
+      const timer = setTimeout(() => {
+        window.location.href = '/tg';
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [environmentType]); // ✅ ИСПРАВЛЕНО: правильное место и deps
+  
+  // ✅ 8. Автоматический редирект для обычного браузера (исправлены deps)
   useEffect(() => {
     if (!isMounted || environmentType !== 'browser') return;
     if (redirectAttempted) return;
@@ -192,52 +243,14 @@ export default function TelegramRedirectClient({
     }, 1000);
     
     return () => clearInterval(timer);
-  }, [isMounted, environmentType, redirectAttempted]);
-  
-  // ✅ Безопасная функция редиректа
-  const handleTelegramRedirect = useCallback(() => {
-    if (redirectAttempted) return;
-    
-    setRedirectAttempted(true);
-    
-    // ✅ Используем startParam из props или launchParams
-    const actualStartParam = startParam || launchParams?.tgWebAppStartParam || '';
-    
-    const telegramUrl = actualStartParam 
-      ? `https://t.me/${botUsername}/${appName}?startapp=${encodeURIComponent(actualStartParam)}`
-      : `https://t.me/${botUsername}/${appName}`;
-    
-    console.log('🚀 Выполняем редирект в Telegram:', {
-      url: telegramUrl,
-      startParam: actualStartParam,
-      method: 'window.location.href',
-      environmentType
-    });
-    
-    try {
-      // ✅ Универсальный подход для всех устройств
-      window.location.href = telegramUrl;
-    } catch (error) {
-      console.error('❌ Ошибка редиректа:', error);
-      // Fallback - открываем в новом окне
-      window.open(telegramUrl, '_blank', 'noopener,noreferrer');
-    }
-  }, [redirectAttempted, startParam, launchParams, botUsername, appName, environmentType]);
-  
-  // ✅ Безопасная обработка мануального клика
-  const handleManualClick = useCallback(() => {
-    console.log('📊 Мануальный клик по кнопке редиректа');
-    if (environmentType === 'telegram-web') {
-      tryOpenMiniApp();
-    } else {
-      handleTelegramRedirect();
-    }
-  }, [environmentType, tryOpenMiniApp, handleTelegramRedirect]);
+  }, [isMounted, environmentType, redirectAttempted, handleTelegramRedirect]); // ✅ ИСПРАВЛЕНО: добавлен handleTelegramRedirect
   
   // ✅ Определяем тип устройства
   const isIOS = userAgent.includes('iPhone') || userAgent.includes('iPad');
   const isAndroid = userAgent.includes('Android');
   const isMobile = isIOS || isAndroid;
+  
+  // ✅ ВСЕ ХУКИ ЗАВЕРШЕНЫ - ТЕПЕРЬ МОЖНО ДЕЛАТЬ УСЛОВНЫЕ RETURN
   
   // ✅ Loading state
   if (!isMounted) {
@@ -248,17 +261,8 @@ export default function TelegramRedirectClient({
     );
   }
   
-  // ✅ Если это полноценный Mini App - перенаправляем на главную
+  // ✅ Если это полноценный Mini App - показываем сообщение (БЕЗ useEffect внутри)
   if (environmentType === 'mini-app') {
-    // Автоматически перенаправляем на главную страницу Mini App
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        window.location.href = '/tg';
-      }, 2000);
-      
-      return () => clearTimeout(timer);
-    }, []);
-    
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="max-w-lg w-full bg-white rounded-2xl shadow-xl p-6 text-center">
