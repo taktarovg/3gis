@@ -15,12 +15,39 @@ export function CookieBanner() {
   
   const pathname = usePathname();
   
-  // НЕ показываем cookie баннер в Telegram Mini App
-  const isTelegramApp = pathname.startsWith('/tg');
+  // ✅ УЛУЧШЕНО: Не показываем cookie баннер там, где он не нужен
+  const shouldShowBanner = (() => {
+    // ❌ НЕ показываем в Telegram Mini App
+    if (pathname.startsWith('/tg')) return false;
+    
+    // ❌ НЕ показываем на странице редиректа
+    if (pathname.startsWith('/tg-redirect')) return false;
+    
+    // ❌ НЕ показываем в админке (внутренние страницы)
+    if (pathname.startsWith('/admin')) return false;
+    
+    // ❌ НЕ показываем на API endpoints
+    if (pathname.startsWith('/api')) return false;
+    
+    // ✅ Показываем ТОЛЬКО на публичных страницах:
+    const publicPaths = [
+      '/',              // Landing page
+      '/blog',          // Blog
+      '/business',      // Публичные страницы заведений
+      '/legal',         // Юридические страницы
+      '/about',         // О проекте
+      '/share',         // Публичные ссылки для шеринга
+    ];
+    
+    return publicPaths.some(path => 
+      pathname === path || pathname.startsWith(path + '/')
+    );
+  })();
   
   useEffect(() => {
-    // Не показываем в Telegram Mini App
-    if (isTelegramApp) {
+    // Не показываем где не нужно
+    if (!shouldShowBanner) {
+      console.log(`[CookieBanner] Скрыт для пути: ${pathname}`);
       return;
     }
     
@@ -28,11 +55,12 @@ export function CookieBanner() {
     const savedConsent = localStorage.getItem('3gis-cookie-consent');
     if (!savedConsent) {
       setIsVisible(true);
+      console.log(`[CookieBanner] Показан для пути: ${pathname}`);
     } else {
       const consent = JSON.parse(savedConsent);
       setPreferences(consent);
     }
-  }, [isTelegramApp]);
+  }, [shouldShowBanner, pathname]);
 
   const handleAcceptAll = () => {
     const fullConsent = {
@@ -87,8 +115,8 @@ export function CookieBanner() {
     }
   };
 
-  // Не рендерим в Telegram Mini App
-  if (isTelegramApp || !isVisible) {
+  // ✅ НЕ рендерим где не нужно ИЛИ если уже принято решение
+  if (!shouldShowBanner || !isVisible) {
     return null;
   }
 
