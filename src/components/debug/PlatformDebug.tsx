@@ -8,7 +8,8 @@ import { useTelegram } from '@/components/providers/TelegramProvider';
  * Показывается только в development режиме
  */
 export default function PlatformDebug() {
-  const { user, isReady, isTelegramEnvironment, launchParams, initData } = useTelegram();
+  // ✅ ИСПРАВЛЕНИЕ: Используем правильные свойства из TelegramContextValue
+  const { user, isReady, isTelegramEnvironment, launchParams, rawInitData } = useTelegram();
   
   // Не показываем в продакшене
   if (process.env.NODE_ENV !== 'development') {
@@ -28,9 +29,10 @@ export default function PlatformDebug() {
         <div>Platform: {launchParams?.tgWebAppPlatform || 'N/A'}</div>
         <div>Version: {launchParams?.tgWebAppVersion || 'N/A'}</div>
         <div>Start Param: {launchParams?.tgWebAppStartParam || 'None'}</div>
-        {initData?.isMock && <div className="text-yellow-300">Mock Data</div>}
-        {initData?.isDevFallback && <div className="text-blue-300">Dev Fallback</div>}
-        {initData?.isLaunchParamsError && <div className="text-orange-300">LaunchParams Error</div>}
+        {/* ✅ ИСПРАВЛЕНО: Используем launchParams вместо несуществующего initData */}
+        {process.env.NODE_ENV === 'development' && rawInitData && (
+          <div className="text-yellow-300">Has InitData</div>
+        )}
       </div>
     </div>
   );
