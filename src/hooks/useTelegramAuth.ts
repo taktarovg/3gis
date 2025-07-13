@@ -55,8 +55,8 @@ interface AuthActions {
 export function useTelegramAuth(): AuthState & AuthActions {
   const { setAuth, setLoading, setError, updateUserLocation, logout: clearAuth } = useAuthStore();
   
-  // ✅ Используем данные из нашего обновленного TelegramProvider
-  const { user: telegramUser, isAuthenticated: isTelegramAuth, initData, isReady } = useTelegram();
+  // ✅ ИСПРАВЛЕНИЕ: Используем только существующие свойства из TelegramContextValue
+  const { user: telegramUser, isAuthenticated: isTelegramAuth, rawInitData, isReady } = useTelegram();
 
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
@@ -71,12 +71,12 @@ export function useTelegramAuth(): AuthState & AuthActions {
    */
   const authenticateWithTelegram = useCallback(async (): Promise<{ user: UserWithRelations; token: string } | null> => {
     try {
-      if (!initData?.raw) {
-        throw new Error('No Telegram initData available');
+      if (!rawInitData) {
+        throw new Error('No Telegram rawInitData available');
       }
 
-      console.log('🚀 Начинаем аутентификацию с initData (новый Provider):', {
-        hasInitData: !!initData.raw,
+      console.log('🚀 Начинаем аутентификацию с rawInitData (новый Provider):', {
+        hasRawInitData: !!rawInitData,
         hasUser: !!telegramUser,
         userId: telegramUser?.id
       });
@@ -88,7 +88,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          initData: initData.raw,
+          initData: rawInitData,
           debug: {
             hasUser: !!telegramUser,
             userId: telegramUser?.id
@@ -113,7 +113,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
       
       throw new Error('Не удалось выполнить авторизацию через Telegram');
     }
-  }, [initData, telegramUser]);
+  }, [rawInitData, telegramUser]);
 
   /**
    * Загрузка пользователя по токену из localStorage
@@ -278,7 +278,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
         }
 
         // Шаг 2: Пытаемся авторизоваться через Telegram (если есть данные)
-        if (isTelegramAuth && telegramUser && initData?.raw) {
+        if (isTelegramAuth && telegramUser && rawInitData) {
           console.log('🔐 Пытаемся авторизоваться через Telegram (новый Provider)');
           
           const authResult = await authenticateWithTelegram();
@@ -344,7 +344,7 @@ export function useTelegramAuth(): AuthState & AuthActions {
     isReady,
     isTelegramAuth,
     telegramUser,
-    initData,
+    rawInitData,
     setAuth,
     setLoading,
     setError,
