@@ -5,10 +5,10 @@ import { inter } from './fonts';
 import { Toaster } from '@/components/ui/toaster';
 import { GoogleAnalytics, PageViewTracker } from '@/components/analytics/GoogleAnalytics';
 import Script from 'next/script';
-import dynamic from 'next/dynamic';
+import dynamicImport from 'next/dynamic'; // ✅ ИСПРАВЛЕНО: переименован import для избежания конфликта
 
 // ✅ ИСПРАВЛЕНИЕ: Динамический импорт CookieBanner для предотвращения ошибки Server Component
-const CookieBanner = dynamic(
+const CookieBanner = dynamicImport(
   () => import('@/components/legal/CookieBanner').then(mod => ({ default: mod.CookieBanner })),
   { 
     ssr: false, // Отключаем SSR для этого компонента
@@ -93,7 +93,7 @@ export const viewport: Viewport = {
   colorScheme: 'light',
 };
 
-// Отключаем статическую оптимизацию для динамического контента
+// ✅ ИСПРАВЛЕНО: Отключаем статическую оптимизацию для динамического контента
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 export const revalidate = 0;
