@@ -214,11 +214,14 @@ export default function TelegramRedirectClient({
     }
   }, [isMounted, environmentType, autoMiniAppAttempted, tryOpenMiniApp]); // ✅ ИСПРАВЛЕНО: добавлен tryOpenMiniApp
   
-  // ✅ 7. КРИТИЧНО: Перемещен условный useEffect ПЕРЕД return (Rules of Hooks)
+  // ✅ 7. КРИТИЧНО: Исправлен редирект для Mini App - добавляем флаг предотвращения middleware
   useEffect(() => {
     if (environmentType === 'mini-app') {
       const timer = setTimeout(() => {
-        window.location.href = '/tg';
+        // ✅ ИСПРАВЛЕНО: Добавляем флаг _fromTelegram для предотвращения middleware редиректа
+        const targetUrl = '/tg?_fromTelegram=true';
+        console.log('🎯 Mini App редирект на главную:', targetUrl);
+        window.location.href = targetUrl;
       }, 2000);
       
       return () => clearTimeout(timer);
@@ -284,7 +287,12 @@ export default function TelegramRedirectClient({
               Если перенаправление не произошло, нажмите кнопку ниже
             </p>
             <button 
-              onClick={() => window.location.href = '/tg'}
+              onClick={() => {
+                // ✅ ИСПРАВЛЕНО: Добавляем флаг предотвращения middleware
+                const targetUrl = '/tg?_fromTelegram=true';
+                console.log('🎯 Мануальный переход на главную:', targetUrl);
+                window.location.href = targetUrl;
+              }}
               className="mt-3 text-sm text-blue-600 hover:text-blue-800 underline transition-colors"
             >
               Перейти к Mini App

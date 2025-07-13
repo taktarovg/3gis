@@ -49,6 +49,7 @@ interface PageProps {
 /**
  * ✅ БЕЗОПАСНЫЙ Server Component - только статика и метаданные
  * Все интерактивные элементы переданы в Client компонент
+ * ✅ ИСПРАВЛЕНО: НЕ передаем функции как props - только примитивные данные
  */
 export default async function TelegramRedirectPage({ searchParams }: PageProps) {
   // ✅ Безопасно извлекаем searchParams на сервере
@@ -60,7 +61,7 @@ export default async function TelegramRedirectPage({ searchParams }: PageProps) 
     hasParams: Object.keys(params).length > 0
   });
   
-  // ✅ Передаем данные в Client компонент как props (сериализуемо)
+  // ✅ Передаем ТОЛЬКО сериализуемые данные - не функции!
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* ✅ Весь интерактивный функционал в Client компоненте */}
