@@ -18,15 +18,17 @@ export function useTelegramEnvironment() {
  * ✅ Хук для обратной совместимости с авторизацией
  */
 export function useTelegramAuth() {
-  const { user, isAuthenticated, error, isReady, initData, launchParams, rawInitData } = useTelegram();
+  // ✅ ИСПРАВЛЕНИЕ: Убираем несуществующее свойство initData
+  const { user, isAuthenticated, error, isReady, launchParams, rawInitData } = useTelegram();
   
   return {
     user,
     isAuthenticated,
     error,
     isLoading: !isReady,
-    initData: initData,
-    webAppData: initData,
+    // ✅ ИСПРАВЛЕНО: Используем rawInitData вместо несуществующего initData
+    initData: rawInitData,
+    webAppData: rawInitData,
     launchParams: launchParams,
     rawInitData: rawInitData
   };
