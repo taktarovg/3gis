@@ -1,7 +1,8 @@
-import { Metadata } from 'next';
+import { Metadata, Viewport } from 'next';
 import TelegramRedirectClient from './TelegramRedirectClient';
 
 /**
+ * ✅ ИСПРАВЛЕНО: Убрано viewport из metadata (Next.js 15.3.3)
  * ✅ БЕЗОПАСНЫЙ Server Component для SEO и быстрой загрузки
  * - Без event handlers 
  * - Без useState/useEffect
@@ -13,7 +14,6 @@ export const metadata: Metadata = {
   description: 'Русскоязычный справочник организаций в США. Откройте в Telegram для лучшего опыта.',
   keywords: ['3GIS', 'Telegram Mini App', 'русскоязычный справочник', 'организации США'],
   robots: 'noindex, nofollow', // Не индексируем страницу редиректа
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
   
   // Open Graph для социальных сетей
   openGraph: {
@@ -32,6 +32,14 @@ export const metadata: Metadata = {
     'telegram:app:url:iphone': 'https://t.me/ThreeGIS_bot/app',
     'telegram:app:url:android': 'https://t.me/ThreeGIS_bot/app',
   }
+};
+
+// ✅ ИСПРАВЛЕНО: Viewport вынесен в отдельный export (Next.js 15.3.3)
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 interface PageProps {

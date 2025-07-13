@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { ExternalLink, Smartphone, Download, Timer, AlertCircle } from 'lucide-react';
+import { ExternalLink, Smartphone, Download, Timer, AlertCircle, CheckCircle } from 'lucide-react';
 import { useLaunchParams } from '@telegram-apps/sdk-react';
+import { openTelegramLink, openLink } from '@telegram-apps/sdk';
 
 interface TelegramRedirectClientProps {
   startParam: string;
@@ -11,13 +12,14 @@ interface TelegramRedirectClientProps {
 }
 
 /**
- * ✅ БЕЗОПАСНЫЙ Client Component с правильным использованием Telegram SDK v3.3.1
+ * ✅ ИСПРАВЛЕН Client Component с правильным определением Telegram среды
  * 
- * ИСПРАВЛЕНИЯ:
- * - useLaunchParams(true) для SSR совместимости  
- * - Правильная обработка Telegram среды
- * - Безопасные event handlers
- * - Нет зацикливания редиректов
+ * ИСПРАВЛЕНИЯ v3:
+ * - Добавлено использование @telegram-apps/sdk для openTelegramLink
+ * - Правильное различение "веб-браузер в Telegram" vs "Mini App в Telegram"
+ * - Автоматическое открытие Mini App при обнаружении Telegram среды
+ * - Улучшенная логика определения среды
+ * - Исправлена ошибка viewport в metadata
  */
 export default function TelegramRedirectClient({ 
   startParam, 
@@ -28,10 +30,59 @@ export default function TelegramRedirectClient({
   const [userAgent, setUserAgent] = useState('');
   const [countdown, setCountdown] = useState(5);
   const [redirectAttempted, setRedirectAttempted] = useState(false);
-  const [isInTelegram, setIsInTelegram] = useState(false);
+  const [environmentType, setEnvironmentType] = useState<'browser' | 'telegram-web' | 'mini-app'>('browser');
+  const [autoMiniAppAttempted, setAutoMiniAppAttempted] = useState(false);
   
   // ✅ ПРАВИЛЬНОЕ использование useLaunchParams с SSR флагом
   const launchParams = useLaunchParams(true); // SSR флаг для Next.js 15
+  
+  // ✅ Улучшенная функция определения среды
+  const detectEnvironment = useCallback(() => {
+    if (typeof window === 'undefined') return 'browser';
+    
+    const ua = navigator.userAgent;
+    const searchParams = new URLSearchParams(window.location.search);
+    const hasWebAppData = searchParams.has('tgWebAppData') || searchParams.has('tgWebAppVersion');
+    
+    // ✅ 1. Проверяем НАСТОЯЩИЙ Mini App (с инициализированным WebApp API)
+    const hasTelegramWebApp = !!(window as any)?.Telegram?.WebApp;
+    const webApp = (window as any)?.Telegram?.WebApp;
+    const isWebAppInitialized = webApp && webApp.initData && webApp.version;
+    
+    // ✅ 2. Проверяем launch params из SDK
+    const hasLaunchParams = launchParams && launchParams.tgWebAppData;
+    
+    // ✅ 3. Проверяем Telegram окружение (браузер внутри Telegram)
+    const isTelegramBrowser = 
+      ua.includes('TelegramBot') || 
+      ua.includes('Telegram/') ||
+      ua.includes('tgWebApp') ||
+      hasWebAppData ||
+      // Дополнительные проверки для Telegram браузера
+      ua.includes('TgWebView') ||
+      window.location.href.includes('tgWebAppPlatform=');
+    
+    console.log('🔍 Environment Detection:', {
+      userAgent: ua.substring(0, 60) + '...',
+      hasTelegramWebApp,
+      isWebAppInitialized,
+      hasLaunchParams,
+      isTelegramBrowser,
+      hasWebAppData,
+      webAppVersion: webApp?.version,
+      webAppInitData: webApp?.initData ? 'есть' : 'нет',
+      launchParams: launchParams ? 'есть' : 'нет'
+    });
+    
+    // ✅ Определяем тип среды
+    if (isWebAppInitialized && hasLaunchParams) {
+      return 'mini-app'; // НАСТОЯЩИЙ Mini App
+    } else if (isTelegramBrowser || hasTelegramWebApp) {
+      return 'telegram-web'; // Веб-браузер внутри Telegram
+    } else {
+      return 'browser'; // Обычный браузер
+    }
+  }, [launchParams]);
   
   // ✅ Безопасная инициализация клиентской среды
   useEffect(() => {
@@ -41,41 +92,94 @@ export default function TelegramRedirectClient({
       const ua = navigator.userAgent;
       setUserAgent(ua);
       
-      // ✅ Улучшенное определение Telegram среды
-      const telegramDetection = 
-        ua.includes('TelegramBot') || 
-        ua.includes('Telegram/') ||
-        ua.includes('tgWebApp') ||
-        window.location.search.includes('tgWebAppData') ||
-        window.location.search.includes('tgWebAppVersion') ||
-        // Проверяем наличие Telegram WebApp API
-        !!(window as any)?.Telegram?.WebApp ||
-        // Проверяем launch params из SDK
-        !!launchParams;
-      
-      setIsInTelegram(telegramDetection);
+      const envType = detectEnvironment();
+      setEnvironmentType(envType);
       
       console.log('📱 TG-Redirect Client инициализирован:', {
         userAgent: ua.substring(0, 60) + '...',
         startParam,
-        isInTelegram: telegramDetection,
+        environmentType: envType,
         launchParams: launchParams ? 'доступны' : 'недоступны',
         url: window.location.href
       });
     }
-  }, [launchParams, startParam]);
+  }, [detectEnvironment, launchParams, startParam]);
   
-  // ✅ Проверяем нужно ли перенаправление
+  // ✅ Автоматическое открытие Mini App если мы в Telegram браузере
   useEffect(() => {
-    if (!isMounted || isInTelegram) {
-      // Если мы УЖЕ в Telegram - не перенаправляем
-      console.log('🛡️ Редирект отменен - уже в Telegram среде');
-      return;
-    }
+    if (!isMounted || autoMiniAppAttempted) return;
     
+    if (environmentType === 'telegram-web') {
+      console.log('🎯 Обнаружен Telegram браузер - попытка автоматического открытия Mini App');
+      setAutoMiniAppAttempted(true);
+      
+      // Небольшая задержка для лучшего UX
+      setTimeout(() => {
+        tryOpenMiniApp();
+      }, 1000);
+    }
+  }, [isMounted, environmentType, autoMiniAppAttempted]);
+  
+  // ✅ Функция автоматического открытия Mini App с использованием @telegram-apps/sdk
+  const tryOpenMiniApp = useCallback(async () => {
+    try {
+      const actualStartParam = startParam || launchParams?.tgWebAppStartParam || '';
+      const miniAppUrl = actualStartParam 
+        ? `https://t.me/${botUsername}/${appName}?startapp=${encodeURIComponent(actualStartParam)}`
+        : `https://t.me/${botUsername}/${appName}`;
+      
+      console.log('🚀 Попытка открытия через @telegram-apps/sdk');
+      
+      // ✅ Попытка 1: Использование openTelegramLink из SDK
+      if (openTelegramLink.isAvailable()) {
+        openTelegramLink(miniAppUrl);
+        console.log('✅ openTelegramLink (SDK) выполнен:', miniAppUrl);
+        return;
+      }
+      
+      // ✅ Попытка 2: Использование openLink из SDK
+      if (openLink.isAvailable()) {
+        openLink(miniAppUrl);
+        console.log('✅ openLink (SDK) выполнен:', miniAppUrl);
+        return;
+      }
+      
+      // ✅ Попытка 3: Fallback на Telegram WebApp API
+      const webApp = (window as any)?.Telegram?.WebApp;
+      if (webApp) {
+        console.log('🔄 Fallback на Telegram WebApp API');
+        
+        if (webApp.openTelegramLink) {
+          webApp.openTelegramLink(miniAppUrl);
+          console.log('✅ webApp.openTelegramLink выполнен:', miniAppUrl);
+          return;
+        }
+        
+        if (webApp.openLink) {
+          webApp.openLink(miniAppUrl);
+          console.log('✅ webApp.openLink выполнен:', miniAppUrl);
+          return;
+        }
+      }
+      
+      // ✅ Попытка 4: Прямой редирект
+      console.log('🔄 Fallback на прямой редирект');
+      window.location.href = miniAppUrl;
+      console.log('✅ Прямой редирект выполнен:', miniAppUrl);
+      
+    } catch (error) {
+      console.error('❌ Ошибка автоматического открытия Mini App:', error);
+      // Fallback на обычный редирект
+      handleTelegramRedirect();
+    }
+  }, [startParam, launchParams, botUsername, appName]);
+  
+  // ✅ Автоматический редирект для обычного браузера
+  useEffect(() => {
+    if (!isMounted || environmentType !== 'browser') return;
     if (redirectAttempted) return;
     
-    // ✅ Автоматический редирект только если НЕ в Telegram
+    // ✅ Автоматический редирект только для обычного браузера
     const timer = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
@@ -88,11 +192,11 @@ export default function TelegramRedirectClient({
     }, 1000);
     
     return () => clearInterval(timer);
-  }, [isMounted, isInTelegram, redirectAttempted]);
+  }, [isMounted, environmentType, redirectAttempted]);
   
   // ✅ Безопасная функция редиректа
   const handleTelegramRedirect = useCallback(() => {
-    if (redirectAttempted || isInTelegram) return;
+    if (redirectAttempted) return;
     
     setRedirectAttempted(true);
     
@@ -106,7 +210,8 @@ export default function TelegramRedirectClient({
     console.log('🚀 Выполняем редирект в Telegram:', {
       url: telegramUrl,
       startParam: actualStartParam,
-      method: 'window.location.href'
+      method: 'window.location.href',
+      environmentType
     });
     
     try {
@@ -117,13 +222,17 @@ export default function TelegramRedirectClient({
       // Fallback - открываем в новом окне
       window.open(telegramUrl, '_blank', 'noopener,noreferrer');
     }
-  }, [redirectAttempted, isInTelegram, startParam, launchParams, botUsername, appName]);
+  }, [redirectAttempted, startParam, launchParams, botUsername, appName, environmentType]);
   
   // ✅ Безопасная обработка мануального клика
   const handleManualClick = useCallback(() => {
     console.log('📊 Мануальный клик по кнопке редиректа');
-    handleTelegramRedirect();
-  }, [handleTelegramRedirect]);
+    if (environmentType === 'telegram-web') {
+      tryOpenMiniApp();
+    } else {
+      handleTelegramRedirect();
+    }
+  }, [environmentType, tryOpenMiniApp, handleTelegramRedirect]);
   
   // ✅ Определяем тип устройства
   const isIOS = userAgent.includes('iPhone') || userAgent.includes('iPad');
@@ -139,34 +248,140 @@ export default function TelegramRedirectClient({
     );
   }
   
-  // ✅ Если уже в Telegram - показываем соответствующее сообщение
-  if (isInTelegram) {
+  // ✅ Если это полноценный Mini App - перенаправляем на главную
+  if (environmentType === 'mini-app') {
+    // Автоматически перенаправляем на главную страницу Mini App
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        window.location.href = '/tg';
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }, []);
+    
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="max-w-lg w-full bg-white rounded-2xl shadow-xl p-6 text-center">
           <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-lg">
-            <span className="text-2xl font-bold text-white">3GIS</span>
+            <CheckCircle className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-800 mb-2">
-            Вы уже в Telegram!
+            Mini App активен!
           </h1>
           <p className="text-gray-600 mb-4">
-            3GIS Mini App должен открыться автоматически
+            Перенаправляем на главную страницу...
           </p>
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="animate-pulse bg-green-50 border border-green-200 rounded-lg p-4">
             <div className="flex items-center justify-center text-green-700 mb-2">
-              <ExternalLink className="w-5 h-5 mr-2" />
-              <span className="font-medium">Mini App активен</span>
+              <Timer className="w-5 h-5 mr-2" />
+              <span className="font-medium">Загрузка интерфейса</span>
             </div>
             <p className="text-sm text-green-600">
-              Если Mini App не открылся, попробуйте перезапустить чат с @{botUsername}
+              Если перенаправление не произошло, нажмите кнопку ниже
             </p>
+            <button 
+              onClick={() => window.location.href = '/tg'}
+              className="mt-3 text-sm text-blue-600 hover:text-blue-800 underline transition-colors"
+            >
+              Перейти к Mini App
+            </button>
           </div>
         </div>
       </div>
     );
   }
   
+  // ✅ Если в Telegram браузере - показываем статус автоматического открытия
+  if (environmentType === 'telegram-web') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-lg w-full bg-white rounded-2xl shadow-xl p-6 text-center">
+          <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+            <span className="text-2xl font-bold text-white">3GIS</span>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">
+            Открываем Mini App
+          </h1>
+          <p className="text-gray-600 mb-4">
+            Вы в Telegram! Автоматически открываем 3GIS Mini App
+          </p>
+          
+          {autoMiniAppAttempted ? (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-center text-blue-700 mb-2">
+                <CheckCircle className="w-5 h-5 mr-2" />
+                <span className="font-medium">Команда отправлена</span>
+              </div>
+              <p className="text-sm text-blue-600 mb-3">
+                Mini App должен открыться автоматически
+              </p>
+              {startParam && (
+                <div className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                  Параметр: {startParam}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-center text-green-700 mb-2">
+                <Timer className="w-5 h-5 mr-2 animate-spin" />
+                <span className="font-medium">Подготовка к запуску</span>
+              </div>
+              <p className="text-sm text-green-600">
+                Инициализируем Mini App...
+              </p>
+            </div>
+          )}
+
+          {/* Мануальная кнопка на случай проблем */}
+          <div className="mb-4">
+            <button
+              onClick={handleManualClick}
+              className="w-full inline-flex items-center justify-center bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <ExternalLink className="w-5 h-5 mr-2" />
+              Открыть Mini App вручную
+            </button>
+          </div>
+
+          {/* Альтернативные способы */}
+          <div className="bg-gray-50 rounded-lg p-4 mb-4">
+            <h3 className="font-semibold text-gray-800 mb-3">
+              Если автоматическое открытие не сработало:
+            </h3>
+            <div className="text-sm text-gray-600 space-y-2">
+              <div>1. Найдите @{botUsername} в поиске Telegram</div>
+              <div>2. Нажмите кнопку "Запустить" или "Menu"</div>
+              <div>3. Выберите пункт меню для запуска Mini App</div>
+            </div>
+          </div>
+
+          {/* ✅ Техническая информация (только в development) */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-6 pt-4 border-t">
+              <details className="text-left">
+                <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">
+                  🔧 Техническая информация
+                </summary>
+                <div className="mt-2 text-xs text-gray-500 space-y-1">
+                  <p><strong>Environment Type:</strong> {environmentType}</p>
+                  <p><strong>Auto Mini App Attempted:</strong> {autoMiniAppAttempted ? 'да' : 'нет'}</p>
+                  <p><strong>User Agent:</strong> {userAgent.substring(0, 60)}...</p>
+                  <p><strong>Start Param:</strong> {startParam || 'отсутствует'}</p>
+                  <p><strong>Launch Params:</strong> {launchParams ? 'доступны' : 'недоступны'}</p>
+                  <p><strong>Telegram WebApp:</strong> {(window as any)?.Telegram?.WebApp ? 'доступен' : 'недоступен'}</p>
+                  <p><strong>openTelegramLink SDK:</strong> {openTelegramLink.isAvailable() ? 'доступен' : 'недоступен'}</p>
+                  <p><strong>openLink SDK:</strong> {openLink.isAvailable() ? 'доступен' : 'недоступен'}</p>
+                </div>
+              </details>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+  
+  // ✅ Обычный браузер - показываем стандартную страницу редиректа
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="max-w-lg w-full bg-white rounded-2xl shadow-xl p-6 text-center">
@@ -327,12 +542,13 @@ export default function TelegramRedirectClient({
                 🔧 Техническая информация
               </summary>
               <div className="mt-2 text-xs text-gray-500 space-y-1">
+                <p><strong>Environment Type:</strong> {environmentType}</p>
                 <p><strong>User Agent:</strong> {userAgent.substring(0, 60)}...</p>
                 <p><strong>Start Param (props):</strong> {startParam || 'отсутствует'}</p>
                 <p><strong>Launch Params (SDK):</strong> {launchParams ? 'доступны' : 'недоступны'}</p>
-                <p><strong>Is In Telegram:</strong> {isInTelegram ? 'да' : 'нет'}</p>
                 <p><strong>Redirect Attempted:</strong> {redirectAttempted ? 'да' : 'нет'}</p>
                 <p><strong>Countdown:</strong> {countdown}</p>
+                <p><strong>Telegram WebApp:</strong> {(window as any)?.Telegram?.WebApp ? 'доступен' : 'недоступен'}</p>
               </div>
             </details>
           </div>
