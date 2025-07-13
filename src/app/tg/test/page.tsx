@@ -3,7 +3,7 @@
 import { useTelegram } from '@/components/providers/TelegramProvider';
 
 export default function TestPage() {
-  const { user, initData, launchParams, isReady, isTelegramEnvironment, error } = useTelegram();
+  const { user, rawInitData, launchParams, isReady, isTelegramEnvironment, error } = useTelegram();
 
   if (!isReady) {
     return <div className="p-4">Loading...</div>;
@@ -30,8 +30,8 @@ export default function TestPage() {
       </div>
 
       <div className="bg-gray-100 p-3 rounded">
-        <h2 className="font-semibold">Init Data</h2>
-        <pre className="text-xs">{JSON.stringify(initData, null, 2)}</pre>
+        <h2 className="font-semibold">Raw Init Data</h2>
+        <pre className="text-xs">{rawInitData || 'No raw init data'}</pre>
       </div>
 
       <div className="bg-gray-100 p-3 rounded">
