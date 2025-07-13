@@ -1,53 +1,84 @@
-// src/middleware.ts - ИСПРАВЛЕННЫЙ редирект для Next.js 15.3.3
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+/**
+ * ✅ УЛУЧШЕННЫЙ middleware для безопасного редиректа
+ * - Точное определение Telegram WebApp
+ * - Защита от зацикливания  
+ * - Совместимость с Next.js 15.3.3
+ */
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
   const userAgent = request.headers.get('user-agent') || '';
   
-  // ✅ ИСПРАВЛЕНО: Более точное определение Telegram WebApp
+  // ✅ Улучшенное определение Telegram WebApp среды
   const isTelegramWebApp = 
+    // Telegram Bot User Agent
     userAgent.includes('TelegramBot') || 
     userAgent.includes('Telegram/') ||
     userAgent.includes('tgWebApp') ||
+    // Telegram WebApp параметры
     searchParams.has('tgWebAppData') ||
     searchParams.has('tgWebAppVersion') ||
     searchParams.has('tgWebAppPlatform') ||
-    request.headers.get('sec-fetch-site') === 'cross-site';
+    searchParams.has('tgWebAppThemeParams') ||
+    // Cross-site запросы от Telegram
+    request.headers.get('sec-fetch-site') === 'cross-site' ||
+    // Referer от Telegram
+    request.headers.get('referer')?.includes('telegram') ||
+    // Специальные заголовки от Telegram
+    request.headers.get('x-requested-with') === 'org.telegram.messenger';
   
-  // ✅ ИСПРАВЛЕНО: ПРОСТОЙ редирект без зацикливания
+  // ✅ Обрабатываем только /tg путь
   if (pathname === '/tg' && !isTelegramWebApp) {
-    // Проверяем флаги чтобы избежать зацикливания
-    const hasSpecialFlag = searchParams.has('_forceBrowser') || 
-                          searchParams.has('_fromTelegram') ||
-                          searchParams.has('_browser') ||
-                          searchParams.has('_redirected');
+    // ✅ Защита от зацикливания - проверяем специальные флаги
+    const preventRedirectFlags = [
+      '_forceBrowser',
+      '_fromTelegram', 
+      '_browser',
+      '_redirected',
+      '_noRedirect'
+    ];
     
-    // Если есть специальные флаги - НЕ редиректим
-    if (hasSpecialFlag) {
-      console.log(`[middleware] ${pathname} - ПОЗВОЛЯЕМ доступ из-за флага`);
+    const hasPreventFlag = preventRedirectFlags.some(flag => 
+      searchParams.has(flag)
+    );
+    
+    if (hasPreventFlag) {
+      console.log(`[middleware] ${pathname} - Доступ разрешен из-за флага предотвращения`);
       return NextResponse.next();
     }
     
-    // Делаем редирект только если НЕТ специальных флагов
+    // ✅ Создаем редирект URL
     const redirectUrl = new URL('/tg-redirect', request.url);
     
-    // Копируем ТОЛЬКО нужные параметры
-    const startParam = searchParams.get('startapp') || searchParams.get('start');
+    // ✅ Сохраняем ТОЛЬКО необходимые параметры
+    const startParam = searchParams.get('startapp') || 
+                      searchParams.get('start') || 
+                      searchParams.get('startParam');
+    
     if (startParam) {
       redirectUrl.searchParams.set('startapp', startParam);
     }
     
-    console.log(`[middleware] РЕДИРЕКТ ${pathname} -> /tg-redirect`);
+    // ✅ Добавляем флаг для предотвращения зацикливания
+    redirectUrl.searchParams.set('_redirected', 'true');
+    
+    console.log(`[middleware] РЕДИРЕКТ: ${pathname} -> /tg-redirect`, {
+      userAgent: userAgent.substring(0, 50) + '...',
+      startParam: startParam || 'отсутствует',
+      isTelegramWebApp,
+      preventFlags: hasPreventFlag
+    });
+    
     return NextResponse.redirect(redirectUrl);
   }
   
-  // Пропускаем все остальные запросы
+  // ✅ Все остальные запросы пропускаем без изменений
   return NextResponse.next();
 }
 
 export const config = {
-  // ТОЛЬКО /tg - НЕ трогаем /tg-redirect
+  // ✅ Применяем middleware ТОЛЬКО к /tg пути
   matcher: ['/tg']
 };
