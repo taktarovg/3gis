@@ -5,16 +5,7 @@ import { inter } from './fonts';
 import { Toaster } from '@/components/ui/toaster';
 import { GoogleAnalytics, PageViewTracker } from '@/components/analytics/GoogleAnalytics';
 import Script from 'next/script';
-import dynamicImport from 'next/dynamic'; // ✅ ИСПРАВЛЕНО: переименован import для избежания конфликта
-
-// ✅ ИСПРАВЛЕНИЕ: Динамический импорт CookieBanner для предотвращения ошибки Server Component
-const CookieBanner = dynamicImport(
-  () => import('@/components/legal/CookieBanner').then(mod => ({ default: mod.CookieBanner })),
-  { 
-    ssr: false, // Отключаем SSR для этого компонента
-    loading: () => null // Никакой loader не нужен
-  }
-);
+import { CookieBannerProvider } from '@/components/providers/CookieBannerProvider';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://3gis.biz'),
@@ -162,8 +153,8 @@ export default function RootLayout({
         {/* Глобальные уведомления */}
         <Toaster />
         
-        {/* ✅ ИСПРАВЛЕНО: Cookie Banner теперь динамический - НЕ в Telegram Mini App */}
-        <CookieBanner />
+        {/* ✅ ИСПРАВЛЕНО: Cookie Banner через Client Component - НЕ в Telegram Mini App */}
+        <CookieBannerProvider />
         
         {/* Google Analytics 4 - всегда включен для аналитики */}
         <GoogleAnalytics />
