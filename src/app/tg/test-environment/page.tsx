@@ -6,7 +6,7 @@ import { useTelegram } from '@/components/providers/TelegramProvider';
 import { useState, useEffect } from 'react';
 
 export default function TestEnvironmentPage() {
-  const { isReady, user, isTelegramEnvironment, error, initData } = useTelegram();
+  const { isReady, user, isTelegramEnvironment, error, launchParams, rawInitData } = useTelegram();
   const [environmentInfo, setEnvironmentInfo] = useState<any>({});
 
   useEffect(() => {
@@ -92,33 +92,33 @@ export default function TestEnvironmentPage() {
         </div>
       )}
 
-      {initData && (
+      {(launchParams || rawInitData) && (
         <div className="bg-white rounded-lg p-4 shadow border">
           <h2 className="text-lg font-semibold mb-2 flex items-center">
-            🔐 Init Data (SDK v3.x Structure)
+            🔐 Launch Data (SDK v3.x Structure)
           </h2>
           <div className="space-y-3">
-            {initData.parsed && (
+            {launchParams && (
               <div>
-                <h3 className="font-medium text-sm mb-1">tgWebAppData (Parsed):</h3>
+                <h3 className="font-medium text-sm mb-1">Launch Params (SDK v3.x):</h3>
                 <pre className="text-xs bg-gray-100 p-3 rounded overflow-auto border">
-                  {JSON.stringify(initData.parsed, null, 2)}
+                  {JSON.stringify(launchParams, null, 2)}
                 </pre>
               </div>
             )}
             
-            {initData.launchParams && (
+            {rawInitData && (
               <div>
-                <h3 className="font-medium text-sm mb-1">Full Launch Params:</h3>
+                <h3 className="font-medium text-sm mb-1">Raw Init Data:</h3>
                 <pre className="text-xs bg-blue-50 p-3 rounded overflow-auto border border-blue-200">
-                  {JSON.stringify(initData.launchParams, null, 2)}
+                  {rawInitData}
                 </pre>
               </div>
             )}
             
-            {initData.isMock && (
+            {process.env.NODE_ENV === 'development' && (
               <div className="p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-700 text-sm">
-                <strong>⚠️ Mock Mode:</strong> Используются тестовые данные для development
+                <strong>⚠️ Development Mode:</strong> Могут использоваться тестовые данные
               </div>
             )}
           </div>
