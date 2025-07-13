@@ -7,7 +7,8 @@ import { useTelegram } from '@/components/providers/TelegramProvider';
  * ✅ ИСПРАВЛЕНО: Улучшенный компонент отображения статуса (только в development)
  */
 export function TelegramStatus() {
-  const { isReady, user, isTelegramEnvironment, error, initData, sdkVersion, environmentInfo } = useTelegram();
+  // ✅ ИСПРАВЛЕНИЕ: Используем только существующие свойства из TelegramContextValue
+  const { isReady, user, isTelegramEnvironment, error, launchParams, rawInitData, sdkVersion } = useTelegram();
   
   // ✅ Не показываем в продакшене
   if (process.env.NODE_ENV === 'production') {
@@ -31,42 +32,38 @@ export function TelegramStatus() {
     );
   }
   
-  const isMock = (initData as any)?.isMock;
-  const isDevFallback = (initData as any)?.isDevFallback;
-  const isLaunchParamsError = (initData as any)?.isLaunchParamsError;
+  // ✅ ИСПРАВЛЕНО: Используем launchParams вместо несуществующего initData
+  const isDevelopmentMode = process.env.NODE_ENV === 'development';
+  const hasRawData = !!rawInitData;
+  const platformInfo = launchParams?.tgWebAppPlatform || 'unknown';
+  const versionInfo = launchParams?.tgWebAppVersion || 'unknown';
   
   return (
     <div className={`fixed bottom-4 left-4 px-3 py-2 rounded text-sm max-w-xs z-50 border ${
       isTelegramEnvironment 
         ? 'bg-green-100 border-green-400 text-green-700' 
-        : isLaunchParamsError
-        ? 'bg-yellow-100 border-yellow-400 text-yellow-700'
-        : isMock || isDevFallback
+        : isDevelopmentMode
         ? 'bg-blue-100 border-blue-400 text-blue-700'
         : 'bg-gray-100 border-gray-400 text-gray-700'
     }`}>
       <strong className="font-bold">
         {isTelegramEnvironment ? '✅ Telegram SDK v' + sdkVersion : 
-         isLaunchParamsError ? '⚠️ Browser Mode (LaunchParams Error)' :
-         isDevFallback ? '🌐 Browser Fallback' :
-         isMock ? '🔧 Mock Mode (v' + sdkVersion + ')' : '🖥️ Unknown Mode'}
+         isDevelopmentMode ? '🔧 Development Mode (v' + sdkVersion + ')' : 
+         '🖥️ Browser Mode (v' + sdkVersion + ')'}
       </strong>
       {user && (
         <span className="block text-xs mt-1">
-          {user.first_name || (user as any).firstName} {user.last_name || (user as any).lastName}
-          {(user.username) && ` (@${user.username})`}
+          {user.first_name} {user.last_name || ''}
+          {user.username && ` (@${user.username})`}
         </span>
       )}
-      {(isMock || isDevFallback || isLaunchParamsError) && (
+      {isDevelopmentMode && (
         <span className="block text-xs mt-1 text-blue-600">
-          {isLaunchParamsError ? 'SDK работает в fallback режиме' :
-           isDevFallback ? 'Development browser fallback' : 
-           'Development mock data'}
+          {hasRawData ? 'Has init data' : 'No init data'} | Development mode
         </span>
       )}
       <div className="text-xs mt-1 opacity-75">
-        Platform: {environmentInfo.platform || 'unknown'} | 
-        Version: {environmentInfo.version || 'unknown'}
+        Platform: {platformInfo} | Version: {versionInfo}
       </div>
     </div>
   );
