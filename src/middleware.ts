@@ -1,4 +1,4 @@
-// src/middleware.ts - Обработка редиректов для Next.js 15.3.3
+// src/middleware.ts - ИСПРАВЛЕННЫЙ редирект для Next.js 15.3.3
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -6,37 +6,48 @@ export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
   const userAgent = request.headers.get('user-agent') || '';
   
-  // Определяем, является ли запрос из Telegram WebApp
-  const isTelegramWebApp = userAgent.includes('TelegramBot') || 
-                          userAgent.includes('Telegram');
+  // ✅ ИСПРАВЛЕНО: Более точное определение Telegram WebApp
+  const isTelegramWebApp = 
+    userAgent.includes('TelegramBot') || 
+    userAgent.includes('Telegram/') ||
+    userAgent.includes('tgWebApp') ||
+    searchParams.has('tgWebAppData') ||
+    searchParams.has('tgWebAppVersion') ||
+    searchParams.has('tgWebAppPlatform') ||
+    request.headers.get('sec-fetch-site') === 'cross-site';
   
-  // Обработка редиректа для /tg когда открыто в браузере
+  // ✅ ИСПРАВЛЕНО: ПРОСТОЙ редирект без зацикливания
   if (pathname === '/tg' && !isTelegramWebApp) {
-    // Если есть query параметры, сохраняем их
+    // Проверяем флаги чтобы избежать зацикливания
+    const hasSpecialFlag = searchParams.has('_forceBrowser') || 
+                          searchParams.has('_fromTelegram') ||
+                          searchParams.has('_browser') ||
+                          searchParams.has('_redirected');
+    
+    // Если есть специальные флаги - НЕ редиректим
+    if (hasSpecialFlag) {
+      console.log(`[middleware] ${pathname} - ПОЗВОЛЯЕМ доступ из-за флага`);
+      return NextResponse.next();
+    }
+    
+    // Делаем редирект только если НЕТ специальных флагов
     const redirectUrl = new URL('/tg-redirect', request.url);
     
-    // Передаем исходные параметры в redirect страницу
-    searchParams.forEach((value, key) => {
-      redirectUrl.searchParams.set(key, value);
-    });
+    // Копируем ТОЛЬКО нужные параметры
+    const startParam = searchParams.get('startapp') || searchParams.get('start');
+    if (startParam) {
+      redirectUrl.searchParams.set('startapp', startParam);
+    }
     
-    console.log(`[redirect] ${pathname} -> /tg-redirect (browser detected)`);
+    console.log(`[middleware] РЕДИРЕКТ ${pathname} -> /tg-redirect`);
     return NextResponse.redirect(redirectUrl);
   }
   
-  // Логирование для admin панели
-  if (pathname.startsWith('/admin')) {
-    console.log(`[admin] ${pathname} status=200`);
-  }
-  
-  // Пропускаем все остальные запросы без модификации
+  // Пропускаем все остальные запросы
   return NextResponse.next();
 }
 
 export const config = {
-  // Обрабатываем /tg для редиректа и admin для логирования
-  matcher: [
-    '/tg',
-    '/admin/:path*'
-  ]
+  // ТОЛЬКО /tg - НЕ трогаем /tg-redirect
+  matcher: ['/tg']
 };
