@@ -2,14 +2,18 @@
 'use client';
 
 import { useTelegram } from '@/components/providers/TelegramProvider';
+import { useRawInitData } from '@telegram-apps/sdk-react'; // ✅ ИСПРАВЛЕНИЕ: Отдельный хук для SDK v3.x
 
 /**
  * ✅ Компонент для отладки информации о платформе
  * Показывается только в development режиме
  */
 export default function PlatformDebug() {
-  // ✅ ИСПРАВЛЕНИЕ: Используем правильные свойства из TelegramContextValue
-  const { user, isReady, isTelegramEnvironment, launchParams, rawInitData } = useTelegram();
+  // ✅ ИСПРАВЛЕНИЕ SDK v3.x: Убрали rawInitData из контекста
+  const { user, isReady, isTelegramEnvironment, launchParams } = useTelegram();
+  
+  // ✅ ИСПРАВЛЕНИЕ SDK v3.x: Используем отдельный хук для rawInitData
+  const rawInitData = useRawInitData();
   
   // Не показываем в продакшене
   if (process.env.NODE_ENV !== 'development') {
