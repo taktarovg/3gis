@@ -44,6 +44,7 @@ export interface TelegramContextValue {
  */
 export interface TelegramWebApp {
   version: string;
+  platform: string; // ✅ ДОБАВЛЕНО: platform для auth-test страницы
   isExpanded: boolean;
   viewportHeight: number;
   viewportStableHeight: number;
