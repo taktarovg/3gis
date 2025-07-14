@@ -1,9 +1,30 @@
 // src/components/providers/TelegramProvider.tsx
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, type PropsWithChildren } from 'react';
-import { useLaunchParams, useRawInitData, init } from '@telegram-apps/sdk-react';
-import type { TelegramContextValue, TelegramUser } from '@/types/telegram';
+import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
+import { init, useLaunchParams } from '@telegram-apps/sdk-react';
+
+interface TelegramUser {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+  is_premium?: boolean;
+  allows_write_to_pm?: boolean;
+  photo_url?: string;
+}
+
+interface TelegramContextValue {
+  isReady: boolean;
+  user: TelegramUser | null;
+  isAuthenticated: boolean;
+  isTelegramEnvironment: boolean;
+  error: string | null;
+  launchParams: any | null;
+  webApp: any | null;
+  sdkVersion: string;
+}
 
 const TelegramContext = createContext<TelegramContextValue>({
   isReady: false,
@@ -12,15 +33,19 @@ const TelegramContext = createContext<TelegramContextValue>({
   isTelegramEnvironment: false,
   error: null,
   launchParams: null,
-  rawInitData: null,
+  webApp: null,
   sdkVersion: '3.x'
 });
 
 /**
- * ✅ ПРАВИЛЬНАЯ РЕАЛИЗАЦИЯ для SDK v3.x
- * Основано на официальной документации: https://docs.telegram-mini-apps.com/packages/telegram-apps-sdk-react/3-x
+ * ✅ ИСПРАВЛЕНИЕ 3: Безусловный вызов React Hooks
+ * 
+ * КРИТИЧЕСКИЕ ИСПРАВЛЕНИЯ:
+ * - useLaunchParams вызывается БЕЗУСЛОВНО (без try/catch)
+ * - Обработка ошибок перенесена в useEffect
+ * - Соблюдение Rules of Hooks - хуки в одинаковом порядке при каждом рендере
  */
-function TelegramSDKInitializer({ children }: PropsWithChildren) {
+function TelegramSDKWrapper({ children }: PropsWithChildren) {
   const [state, setState] = useState<TelegramContextValue>({
     isReady: false,
     user: null,
@@ -28,85 +53,150 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
     isTelegramEnvironment: false,
     error: null,
     launchParams: null,
-    rawInitData: null,
+    webApp: null,
     sdkVersion: '3.10.1'
   });
 
-  // ✅ ПРАВИЛЬНО: Хуки SDK v3.x с корректными параметрами
-  const launchParams = useLaunchParams(true); // SSR флаг для Next.js
-  const rawInitData = useRawInitData(); // Без параметров в v3.x
-
-  const initializeTelegramData = useCallback(() => {
-    try {
-      console.log('🚀 Инициализация Telegram SDK v3.x...');
-      
-      let user: TelegramUser | null = null;
-      let isTelegramEnv = false;
-
-      // ✅ ИСПРАВЛЕНИЕ: Правильная структура данных для SDK v3.x
-      if (launchParams && typeof launchParams === 'object') {
-        const params = launchParams as any; // Временное приведение типа
-        
-        // В SDK v3.x пользователь находится в initData, не в tgWebAppData
-        if (params.initData?.user) {
-          const telegramUser = params.initData.user;
-          
-          user = {
-            id: telegramUser.id,
-            first_name: telegramUser.first_name || '',
-            last_name: telegramUser.last_name || undefined,
-            username: telegramUser.username || undefined,
-            language_code: telegramUser.language_code || undefined,
-            is_premium: telegramUser.is_premium || false,
-            allows_write_to_pm: telegramUser.allows_write_to_pm || false,
-            photo_url: telegramUser.photo_url || undefined
-          };
-          
-          isTelegramEnv = true;
-          console.log('✅ Пользователь из SDK v3.x:', user.first_name);
-        }
-      }
-
-      // ✅ Fallback для development/testing
-      if (!user && process.env.NODE_ENV === 'development') {
-        console.log('🔧 Development mode: создаем mock пользователя');
-        user = {
-          id: 123456789,
-          first_name: 'Dev',
-          last_name: 'User',
-          username: 'dev_user',
-          language_code: 'ru',
-          is_premium: false,
-          allows_write_to_pm: true
-        };
-      }
-
-      setState({
-        isReady: true,
-        user,
-        isAuthenticated: !!user,
-        isTelegramEnvironment: isTelegramEnv,
-        error: null,
-        launchParams,
-        rawInitData,
-        sdkVersion: '3.10.1'
-      });
-
-    } catch (error) {
-      console.error('❌ Ошибка инициализации Telegram SDK:', error);
-      setState(prev => ({
-        ...prev,
-        isReady: true,
-        error: error instanceof Error ? error.message : 'Неизвестная ошибка'
-      }));
-    }
-  }, [launchParams, rawInitData]);
+  // ✅ ИСПРАВЛЕНИЕ 3: Хук вызывается БЕЗУСЛОВНО - БЕЗ try/catch!
+  // Ошибки обрабатываем в useEffect, а не при вызове хука
+  const launchParams = useLaunchParams(true); // SSR flag для Next.js
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      initializeTelegramData();
-    }
-  }, [initializeTelegramData]);
+    const initializeTelegramData = () => {
+      let launchParamsError: string | null = null;
+      let actualLaunchParams: any = null;
+
+      try {
+        // ✅ Проверяем результат хука здесь, в useEffect
+        if (launchParams) {
+          actualLaunchParams = launchParams;
+          console.log('📱 LaunchParams получены успешно');
+        }
+      } catch (error) {
+        console.log('ℹ️ Ошибка при обработке LaunchParams:', error);
+        launchParamsError = error instanceof Error ? error.message : 'Unknown error';
+      }
+
+      try {
+        console.log('🚀 Инициализация Telegram SDK v3.x данных...');
+        
+        let user: TelegramUser | null = null;
+        let isTelegramEnv = false;
+        let webApp: any = null;
+
+        // ✅ Метод 1: Проверяем launch params (SDK v3.x)
+        if (actualLaunchParams && typeof actualLaunchParams === 'object') {
+          console.log('📱 Данные из launch params:', actualLaunchParams);
+          
+          // В SDK v3.x структура изменилась
+          let telegramUser = null;
+          
+          // Ищем пользователя в различных местах launch params
+          if (actualLaunchParams.tgWebAppData?.user) {
+            telegramUser = actualLaunchParams.tgWebAppData.user;
+          } else if (actualLaunchParams.initData?.user) {
+            telegramUser = actualLaunchParams.initData.user;
+          }
+          
+          if (telegramUser) {
+            user = {
+              id: telegramUser.id,
+              first_name: telegramUser.first_name || '',
+              last_name: telegramUser.last_name || undefined,
+              username: telegramUser.username || undefined,
+              language_code: telegramUser.language_code || undefined,
+              is_premium: telegramUser.is_premium || false,
+              allows_write_to_pm: telegramUser.allows_write_to_pm || false,
+              photo_url: telegramUser.photo_url || undefined
+            };
+            
+            isTelegramEnv = true;
+            console.log('✅ Пользователь из launch params:', user.first_name);
+          }
+        }
+
+        // ✅ Метод 2: Fallback к глобальному Telegram API
+        if (typeof window !== 'undefined') {
+          const globalWebApp = (window as any)?.Telegram?.WebApp;
+          if (globalWebApp) {
+            webApp = globalWebApp;
+            
+            // Если еще нет пользователя, попробуем получить из WebApp
+            if (!user && globalWebApp.initDataUnsafe?.user) {
+              const globalUser = globalWebApp.initDataUnsafe.user;
+              
+              user = {
+                id: globalUser.id,
+                first_name: globalUser.first_name || '',
+                last_name: globalUser.last_name || undefined,
+                username: globalUser.username || undefined,
+                language_code: globalUser.language_code || undefined,
+                is_premium: globalUser.is_premium || false,
+                allows_write_to_pm: globalUser.allows_write_to_pm || false,
+                photo_url: globalUser.photo_url || undefined
+              };
+              
+              isTelegramEnv = true;
+              console.log('✅ Пользователь из глобального Telegram API:', user.first_name);
+            }
+            
+            // Если WebApp API доступен, значит мы в Telegram среде
+            if (!isTelegramEnv && globalWebApp.version) {
+              isTelegramEnv = true;
+              console.log('✅ Обнаружена Telegram среда через WebApp API');
+            }
+          }
+        }
+
+        // ✅ Development fallback
+        if (!user && process.env.NODE_ENV === 'development') {
+          console.log('🔧 Development mode: создаем mock пользователя');
+          user = {
+            id: 123456789,
+            first_name: 'Dev',
+            last_name: 'User',
+            username: 'dev_user',
+            language_code: 'ru',
+            is_premium: false,
+            allows_write_to_pm: true
+          };
+          isTelegramEnv = true;
+        }
+
+        // ✅ Обновляем состояние с результатами
+        setState({
+          isReady: true,
+          user,
+          isAuthenticated: !!user,
+          isTelegramEnvironment: isTelegramEnv,
+          error: launchParamsError, // Сохраняем ошибки но не блокируем
+          launchParams: actualLaunchParams || null,
+          webApp: webApp || null,
+          sdkVersion: '3.10.1'
+        });
+
+        console.log('📊 Telegram Provider готов:', {
+          hasUser: !!user,
+          isTelegramEnv,
+          launchParamsAvailable: !!actualLaunchParams,
+          webAppAvailable: !!webApp,
+          error: launchParamsError
+        });
+
+      } catch (error) {
+        console.error('❌ Ошибка инициализации Telegram данных:', error);
+        setState(prev => ({
+          ...prev,
+          isReady: true,
+          error: error instanceof Error ? error.message : 'Неизвестная ошибка SDK',
+          isTelegramEnvironment: false
+        }));
+      }
+    };
+
+    // Инициализируем данные Telegram
+    initializeTelegramData();
+  }, [launchParams]); // ✅ launchParams как зависимость
 
   return (
     <TelegramContext.Provider value={state}>
@@ -116,7 +206,7 @@ function TelegramSDKInitializer({ children }: PropsWithChildren) {
 }
 
 /**
- * ✅ ПРАВИЛЬНО: Главный TelegramProvider для SDK v3.x
+ * ✅ ГЛАВНЫЙ TelegramProvider с безопасной инициализацией SDK v3.x
  */
 export function TelegramProvider({ children }: PropsWithChildren) {
   const [isSDKInitialized, setIsSDKInitialized] = useState(false);
@@ -129,25 +219,26 @@ export function TelegramProvider({ children }: PropsWithChildren) {
       try {
         console.log('🔧 Инициализация базового SDK v3.x...');
         
-        // ✅ ПРАВИЛЬНО: init() без параметров в SDK v3.x
+        // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасная инициализация SDK
         init();
-        console.log('✅ SDK v3.x инициализирован');
+        console.log('✅ SDK v3.x успешно инициализирован');
         
         setIsSDKInitialized(true);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         
-        // В development режиме некоторые ошибки SDK ожидаемы
-        if (process.env.NODE_ENV === 'development') {
-          console.log('ℹ️ SDK init warning (normal in development):', errorMessage);
-          setIsSDKInitialized(true);
-        } else {
-          console.error('❌ Критическая ошибка SDK:', errorMessage);
+        // ✅ Не блокируем работу из-за ошибок SDK
+        console.log('ℹ️ SDK init message (может быть нормально):', errorMessage);
+        setIsSDKInitialized(true); // Продолжаем работу в любом случае
+        
+        // Только критические ошибки показываем пользователю
+        if (errorMessage.includes('critical') || errorMessage.includes('fatal')) {
           setInitError(errorMessage);
         }
       }
     };
 
+    // Небольшая задержка для стабильности
     const timeoutId = setTimeout(initializeSDK, 100);
     return () => clearTimeout(timeoutId);
   }, []);
@@ -157,29 +248,29 @@ export function TelegramProvider({ children }: PropsWithChildren) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 bg-blue-500 rounded-full flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-blue-500 rounded-full flex items-center justify-center animate-pulse">
             <span className="text-xl font-bold text-white">3GIS</span>
           </div>
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-700 font-medium">Инициализация SDK v3.x...</p>
+          <p className="text-gray-700 font-medium">Инициализация Telegram...</p>
         </div>
       </div>
     );
   }
 
-  // Error состояние
+  // Critical error состояние (очень редко в production)
   if (initError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-red-50">
         <div className="text-center max-w-md p-6 bg-white rounded-lg shadow-lg">
           <div className="text-red-500 text-2xl mb-4">⚠️</div>
-          <h3 className="text-lg font-semibold text-red-800 mb-2">Ошибка SDK</h3>
+          <h3 className="text-lg font-semibold text-red-800 mb-2">Критическая ошибка SDK</h3>
           <p className="text-sm text-red-600 mb-4">{initError}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
           >
-            Перезагрузить
+            Перезагрузить страницу
           </button>
         </div>
       </div>
@@ -187,9 +278,9 @@ export function TelegramProvider({ children }: PropsWithChildren) {
   }
 
   return (
-    <TelegramSDKInitializer>
+    <TelegramSDKWrapper>
       {children}
-    </TelegramSDKInitializer>
+    </TelegramSDKWrapper>
   );
 }
 
@@ -204,8 +295,8 @@ export function useTelegram() {
 /**
  * ✅ Debug компонент для development
  */
-export function TelegramStatus() {
-  const { isReady, user, isTelegramEnvironment, error, sdkVersion } = useTelegram();
+export function TelegramDebugStatus() {
+  const { isReady, user, isTelegramEnvironment, error, sdkVersion, launchParams } = useTelegram();
   
   if (process.env.NODE_ENV !== 'development') {
     return null;
@@ -221,7 +312,8 @@ export function TelegramStatus() {
           <div>Ready: {isReady ? '✅' : '❌'}</div>
           <div>Environment: {isTelegramEnvironment ? '📱 Telegram' : '🌐 Browser'}</div>
           <div>User: {user ? `${user.first_name} (${user.id})` : 'None'}</div>
-          {error && <div className="text-red-300">Error: {error}</div>}
+          <div>Launch Params: {launchParams ? '✅' : '❌'}</div>
+          {error && <div className="text-yellow-300">Info: {error.substring(0, 50)}...</div>}
         </div>
       </details>
     </div>

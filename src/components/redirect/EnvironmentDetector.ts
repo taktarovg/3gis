@@ -1,5 +1,5 @@
 /**
- * ✅ ИСПРАВЛЕННЫЙ детектор среды для предотвращения бесконечных циклов
+ * ✅ ИСПРАВЛЕННЫЙ детектор среды с безопасной обработкой ошибок SDK
  */
 
 export type EnvironmentType = 'browser' | 'telegram-web' | 'mini-app';
@@ -13,15 +13,16 @@ export interface EnvironmentInfo {
   isRealMiniApp: boolean;
   webAppVersion?: string;
   webAppInitData: boolean;
+  launchParamsAvailable: boolean;
 }
 
 /**
- * ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Правильное определение среды
+ * ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасное определение среды
+ * - Обрабатываем LaunchParamsRetrieveError
  * - На странице /tg-redirect НЕ может быть Mini App
  * - Проверяем ТОЛЬКО реально инициализированные Mini App
- * - Предотвращаем ложные срабатывания
  */
-export function detectEnvironment(launchParams?: any): EnvironmentInfo {
+export function detectEnvironment(launchParams?: any, launchParamsAvailable = false): EnvironmentInfo {
   if (typeof window === 'undefined') {
     return {
       type: 'browser',
@@ -30,7 +31,8 @@ export function detectEnvironment(launchParams?: any): EnvironmentInfo {
       isRedirectPage: false,
       hasTelegramWebApp: false,
       isRealMiniApp: false,
-      webAppInitData: false
+      webAppInitData: false,
+      launchParamsAvailable: false
     };
   }
   
@@ -38,7 +40,7 @@ export function detectEnvironment(launchParams?: any): EnvironmentInfo {
   const searchParams = new URLSearchParams(window.location.search);
   const pathname = window.location.pathname;
   
-  // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: ТОЛЬКО РЕАЛЬНАЯ проверка Mini App
+  // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем Telegram WebApp API
   const hasTelegramWebApp = !!(window as any)?.Telegram?.WebApp;
   const webApp = (window as any)?.Telegram?.WebApp;
   
@@ -47,7 +49,8 @@ export function detectEnvironment(launchParams?: any): EnvironmentInfo {
                        webApp && 
                        webApp.initData && 
                        webApp.version &&
-                       typeof webApp.ready === 'function';
+                       typeof webApp.ready === 'function' &&
+                       launchParamsAvailable; // ✅ ВАЖНО: + launch params доступны
   
   // ✅ ВАЖНО: Если это СТРАНИЦА TG-REDIRECT, то НЕ считаем это Mini App
   const isRedirectPage = pathname === '/tg-redirect';
@@ -60,10 +63,11 @@ export function detectEnvironment(launchParams?: any): EnvironmentInfo {
     hasTelegramWebApp,
     isRealMiniApp,
     webAppVersion: webApp?.version,
-    webAppInitData: !!webApp?.initData
+    webAppInitData: !!webApp?.initData,
+    launchParamsAvailable
   };
   
-  console.log('🔍 Environment Detection (исправлено):', {
+  console.log('🔍 Environment Detection (безопасно):', {
     userAgent: ua.substring(0, 60) + '...',
     pathname,
     isRedirectPage,
@@ -71,6 +75,7 @@ export function detectEnvironment(launchParams?: any): EnvironmentInfo {
     isRealMiniApp,
     webAppVersion: webApp?.version,
     webAppInitData: webApp?.initData ? 'есть' : 'нет',
+    launchParamsAvailable,
     launchParams: launchParams ? 'есть' : 'нет'
   });
   
@@ -85,7 +90,8 @@ export function detectEnvironment(launchParams?: any): EnvironmentInfo {
       ua.includes('tgWebApp') ||
       ua.includes('TgWebView') ||
       searchParams.has('tgWebAppData') ||
-      searchParams.has('tgWebAppVersion');
+      searchParams.has('tgWebAppVersion') ||
+      hasTelegramWebApp; // WebApp API может быть доступен
     
     info.type = isTelegramBrowser ? 'telegram-web' : 'browser';
     return info;
@@ -94,6 +100,21 @@ export function detectEnvironment(launchParams?: any): EnvironmentInfo {
   // ✅ Только для НЕ-redirect страниц проверяем Mini App
   if (isRealMiniApp) {
     info.type = 'mini-app';
+    return info;
+  }
+  
+  // ✅ Проверяем Telegram браузер (но без launch params или без полной инициализации)
+  const isTelegramBrowser = 
+    ua.includes('TelegramBot') || 
+    ua.includes('Telegram/') ||
+    ua.includes('tgWebApp') ||
+    ua.includes('TgWebView') ||
+    searchParams.has('tgWebAppData') ||
+    searchParams.has('tgWebAppVersion') ||
+    hasTelegramWebApp;
+  
+  if (isTelegramBrowser) {
+    info.type = 'telegram-web';
     return info;
   }
   

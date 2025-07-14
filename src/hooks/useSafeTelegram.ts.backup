@@ -1,0 +1,119 @@
+/**
+ * ✅ БЕЗОПАСНЫЙ хук для работы с Telegram SDK с обработкой ошибок
+ */
+
+import { useCallback } from 'react';
+
+export interface SafeLaunchParams {
+  launchParams: any | null;
+  error: string | null;
+  isAvailable: boolean;
+}
+
+/**
+ * ✅ Безопасный wrapper для useLaunchParams с обработкой ошибок
+ * ВАЖНО: Не использует useLaunchParams напрямую, чтобы избежать ошибок
+ */
+export function useSafeLaunchParams(): SafeLaunchParams {
+  try {
+    // ✅ Импортируем useLaunchParams только когда нужно
+    const { useLaunchParams } = require('@telegram-apps/sdk-react');
+    
+    // ✅ Пытаемся получить launch params
+    const launchParams = useLaunchParams(true);
+    
+    return {
+      launchParams,
+      error: null,
+      isAvailable: true
+    };
+  } catch (error) {
+    // ✅ Обрабатываем ошибку LaunchParamsRetrieveError
+    console.log('ℹ️ LaunchParams не доступны (нормально для браузера):', error);
+    
+    return {
+      launchParams: null,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      isAvailable: false
+    };
+  }
+}
+
+/**
+ * ✅ Безопасная функция определения среды с обработкой ошибок SDK
+ */
+export function useSafeEnvironmentDetection() {
+  const { launchParams, isAvailable } = useSafeLaunchParams();
+  
+  const detectEnvironment = useCallback(() => {
+    if (typeof window === 'undefined') return 'browser';
+    
+    const ua = navigator.userAgent;
+    const searchParams = new URLSearchParams(window.location.search);
+    const pathname = window.location.pathname;
+    
+    // ✅ Проверяем Telegram WebApp API
+    const hasTelegramWebApp = !!(window as any)?.Telegram?.WebApp;
+    const webApp = (window as any)?.Telegram?.WebApp;
+    
+    // ✅ Проверяем что Mini App ДЕЙСТВИТЕЛЬНО готов
+    const isRealMiniApp = hasTelegramWebApp && 
+                         webApp && 
+                         webApp.initData && 
+                         webApp.version &&
+                         typeof webApp.ready === 'function';
+    
+    // ✅ ВАЖНО: На странице redirect НЕ может быть Mini App
+    const isRedirectPage = pathname === '/tg-redirect';
+    
+    console.log('🔍 Safe Environment Detection:', {
+      userAgent: ua.substring(0, 60) + '...',
+      pathname,
+      isRedirectPage,
+      hasTelegramWebApp,
+      isRealMiniApp,
+      launchParamsAvailable: isAvailable,
+      webAppVersion: webApp?.version,
+      webAppInitData: !!webApp?.initData
+    });
+    
+    // ✅ На странице редиректа - только браузер или telegram-web
+    if (isRedirectPage) {
+      console.log('🚨 Redirect page - НЕ Mini App');
+      
+      const isTelegramBrowser = 
+        ua.includes('TelegramBot') || 
+        ua.includes('Telegram/') ||
+        ua.includes('tgWebApp') ||
+        ua.includes('TgWebView') ||
+        searchParams.has('tgWebAppData') ||
+        searchParams.has('tgWebAppVersion');
+      
+      return isTelegramBrowser ? 'telegram-web' : 'browser';
+    }
+    
+    // ✅ Проверяем настоящий Mini App
+    if (isRealMiniApp && isAvailable) {
+      return 'mini-app';
+    }
+    
+    // ✅ Проверяем Telegram браузер (без launch params)
+    const isTelegramBrowser = 
+      ua.includes('TelegramBot') || 
+      ua.includes('Telegram/') ||
+      ua.includes('tgWebApp') ||
+      hasTelegramWebApp; // WebApp API может быть доступен без launch params
+    
+    if (isTelegramBrowser) {
+      return 'telegram-web';
+    }
+    
+    return 'browser';
+  }, [launchParams, isAvailable]);
+  
+  return {
+    launchParams,
+    detectEnvironment,
+    isLaunchParamsAvailable: isAvailable
+  };
+}

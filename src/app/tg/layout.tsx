@@ -1,7 +1,7 @@
 // src/app/tg/layout.tsx - ИСПРАВЛЕННЫЙ Layout для Telegram Mini App
 'use client';
 
-import { TelegramProvider, TelegramStatus } from '@/components/providers/TelegramProvider';
+import { TelegramProvider, TelegramDebugStatus } from '@/components/providers/TelegramProvider';
 import { NavigationLayout } from '@/components/navigation/BottomNavigation';
 import { type ReactNode } from 'react';
 
@@ -27,7 +27,7 @@ export default function TelegramLayout({
       </NavigationLayout>
       
       {/* ✅ Статус отладки только в development */}
-      {process.env.NODE_ENV === 'development' && <TelegramStatus />}
+      {process.env.NODE_ENV === 'development' && <TelegramDebugStatus />}
     </TelegramProvider>
   );
 }

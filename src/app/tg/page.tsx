@@ -8,7 +8,7 @@ import { MessageSquare } from 'lucide-react';
 import { useTelegram } from '@/components/providers/TelegramProvider';
 import dynamic from 'next/dynamic';
 
-// ✅ Динамические импорты компонентов с правильными экспортами
+// ✅ Динамические импорты компонентов
 const DonationWidget = dynamic(
   () => import('@/components/donations/DonationWidget').then(mod => ({ default: mod.DonationWidget })),
   { 
@@ -36,13 +36,8 @@ const CategoryGrid = dynamic(
   { ssr: false }
 );
 
-const PlatformDebug = dynamic(
-  () => import('@/components/debug/PlatformDebug'), 
-  { ssr: false }
-);
-
-const TelegramRedirectTest = dynamic(
-  () => import('@/components/test/TelegramRedirectTest').then(mod => ({ default: mod.TelegramRedirectTest })), 
+const TelegramDebugStatus = dynamic(
+  () => import('@/components/providers/TelegramProvider').then(mod => ({ default: mod.TelegramDebugStatus })), 
   { ssr: false }
 );
 
@@ -102,21 +97,38 @@ export default function ThreeGISHomePage() {
   const router = useRouter();
   const { categories, loading } = useCategories();
   
-  // ✅ Используем данные из TelegramProvider вместо прямых хуков SDK
-  const { launchParams, isReady } = useTelegram();
+  // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасное использование Telegram Provider
+  const { launchParams, isReady, isTelegramEnvironment } = useTelegram();
   
-  // ✅ Обрабатываем startapp параметры для навигации
+  // ✅ ИСПРАВЛЕНО: Обработка start параметров без бесконечных редиректов
   useEffect(() => {
-    if (!isReady || !launchParams) {
-      console.log('🔄 Waiting for Telegram data...');
+    // ✅ Только если мы в настоящем Telegram окружении и данные готовы
+    if (!isReady || !isTelegramEnvironment || !launchParams) {
+      console.log('🔄 Waiting for Telegram data or not in Telegram environment');
       return;
     }
     
-    // ✅ ИСПРАВЛЕНО: SDK v3.x с правильной типизацией LaunchParams
-    const startParam = launchParams?.tgWebAppStartParam;
+    // ✅ ИСПРАВЛЕНО: SDK v3.x правильное получение start параметра
+    let startParam: string | undefined;
+    
+    // Проверяем различные места где может быть startParam в SDK v3.x
+    if (launchParams.tgWebAppStartParam) {
+      startParam = launchParams.tgWebAppStartParam;
+    } else if (launchParams.startParam) {
+      startParam = launchParams.startParam;
+    } else if (launchParams.tgWebAppData?.start_param) {
+      startParam = launchParams.tgWebAppData.start_param;
+    }
     
     if (startParam && typeof startParam === 'string') {
-      console.log('🚀 Start param detected:', startParam);
+      console.log('🚀 Processing start param:', startParam);
+      
+      // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем флаг для предотвращения повторных редиректов
+      const hasRedirected = sessionStorage.getItem('3gis_has_redirected');
+      if (hasRedirected) {
+        console.log('⏭️ Already redirected, skipping...');
+        return;
+      }
       
       try {
         // Отдельные заведения: business_123
@@ -124,6 +136,7 @@ export default function ThreeGISHomePage() {
           const businessId = startParam.replace('business_', '');
           if (businessId && /^\d+$/.test(businessId)) {
             console.log('🏢 Redirecting to business:', businessId);
+            sessionStorage.setItem('3gis_has_redirected', 'true');
             router.push(`/tg/business/${businessId}`);
             return;
           }
@@ -134,6 +147,7 @@ export default function ThreeGISHomePage() {
           const chatId = startParam.replace('chat_', '');
           if (chatId && /^\d+$/.test(chatId)) {
             console.log('💬 Redirecting to chat:', chatId);
+            sessionStorage.setItem('3gis_has_redirected', 'true');
             router.push(`/tg/chats/${chatId}`);
             return;
           }
@@ -144,42 +158,44 @@ export default function ThreeGISHomePage() {
           const category = startParam.replace('businesses_', '');
           if (category && category !== 'businesses') {
             console.log('🏪 Redirecting to businesses with category:', category);
+            sessionStorage.setItem('3gis_has_redirected', 'true');
             router.push(`/tg/businesses?category=${category}`);
             return;
           }
         }
         
-        // Список всех заведений: businesses
+        // Другие параметры...
         if (startParam === 'businesses') {
           console.log('🏪 Redirecting to all businesses');
+          sessionStorage.setItem('3gis_has_redirected', 'true');
           router.push('/tg/businesses');
           return;
         }
         
-        // Список чатов: chats
         if (startParam === 'chats') {
           console.log('💬 Redirecting to chats');
+          sessionStorage.setItem('3gis_has_redirected', 'true');
           router.push('/tg/chats');
           return;
         }
         
-        // Избранное: favorites
         if (startParam === 'favorites') {
           console.log('⭐ Redirecting to favorites');
+          sessionStorage.setItem('3gis_has_redirected', 'true');
           router.push('/tg/favorites');
           return;
         }
         
-        // Профиль: profile
         if (startParam === 'profile') {
           console.log('👤 Redirecting to profile');
+          sessionStorage.setItem('3gis_has_redirected', 'true');
           router.push('/tg/profile');
           return;
         }
         
-        // Добавление заведения: add_business
         if (startParam === 'add_business') {
           console.log('➕ Redirecting to add business');
+          sessionStorage.setItem('3gis_has_redirected', 'true');
           router.push('/tg/add-business');
           return;
         }
@@ -190,11 +206,18 @@ export default function ThreeGISHomePage() {
         console.error('Error processing start param:', error);
       }
     } else {
-      console.log('ℹ️ No start parameter found in launch params');
+      console.log('ℹ️ No start parameter found');
     }
-  }, [launchParams, isReady, router]);
+  }, [launchParams, isReady, isTelegramEnvironment, router]);
   
-  // ✅ Показываем лоадер пока загружаются категории
+  // ✅ Сброс флага редиректа при размонтировании компонента
+  useEffect(() => {
+    return () => {
+      sessionStorage.removeItem('3gis_has_redirected');
+    };
+  }, []);
+  
+  // ✅ Показываем лоадер пока загружаются данные
   if (loading || !isReady) {
     return (
       <div className="threegis-app-container" data-scrollable>
@@ -264,11 +287,6 @@ export default function ThreeGISHomePage() {
           <DonationWidget />
         </div>
 
-        {/* Telegram Redirect Test (только в development) */}
-        <div className="px-4 mb-6">
-          <TelegramRedirectTest />
-        </div>
-
         {/* Дополнительная информация о проекте */}
         <div className="px-4 mb-6 text-center">
           <div className="bg-gray-50 rounded-lg p-4">
@@ -290,7 +308,7 @@ export default function ThreeGISHomePage() {
       </div>
       
       {/* Debug информация */}
-      <PlatformDebug />
+      <TelegramDebugStatus />
     </div>
   );
 }
