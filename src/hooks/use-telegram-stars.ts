@@ -2,12 +2,14 @@
 
 import { useCallback } from 'react';
 import { openInvoice, isInvoiceOpened } from '@telegram-apps/sdk';
+import { useRawInitData } from '@telegram-apps/sdk-react';
 import { useTelegram } from '@/components/providers/TelegramProvider';
 import { PremiumPlan, DonationType } from '@/lib/telegram-stars/plans';
 
 export function useTelegramStars() {
-  // ✅ ИСПРАВЛЕНИЕ: Используем правильный контекст вместо прямых хуков SDK
-  const { launchParams, rawInitData, user } = useTelegram();
+  // ✅ ИСПРАВЛЕНИЕ SDK v3.x: Используем отдельные хуки согласно документации
+  const { launchParams, user } = useTelegram();
+  const rawInitData = useRawInitData(); // ✅ Отдельный хук для raw init data в v3.x
   
   const openBusinessSubscription = useCallback(async (params: {
     businessId: number;
