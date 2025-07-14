@@ -114,8 +114,9 @@ export default function ThreeGISHomePage() {
     // Проверяем различные места где может быть startParam в SDK v3.x
     if (launchParams.tgWebAppStartParam) {
       startParam = launchParams.tgWebAppStartParam;
-    } else if (launchParams.startParam) {
-      startParam = launchParams.startParam;
+    } else if ((launchParams as any).startParam) {
+      // ✅ ИСПРАВЛЕНО: Безопасное обращение к свойству через any
+      startParam = (launchParams as any).startParam;
     } else if (launchParams.tgWebAppData?.start_param) {
       startParam = launchParams.tgWebAppData.start_param;
     }
