@@ -1,0 +1,153 @@
+// types/global.d.ts
+// ✅ Глобальные типы для 3GIS проекта с Telegram SDK v3.x
+
+/// <reference types="@telegram-apps/sdk" />
+/// <reference types="@telegram-apps/sdk-react" />
+/// <reference types="@types/google.maps" />
+
+import type { TelegramWebApp } from '@/types/telegram';
+
+declare global {
+  /**
+   * ✅ Расширение Window для Telegram WebApp API
+   */
+  interface Window {
+    Telegram?: {
+      WebApp?: TelegramWebApp;
+    };
+    
+    // Google Maps для геолокации
+    google?: typeof google;
+    
+    // Environment variables на клиенте
+    __NEXT_DATA__?: any;
+  }
+
+  /**
+   * ✅ Process.env типизация для Next.js
+   */
+  namespace NodeJS {
+    interface ProcessEnv {
+      // Database
+      DATABASE_URL: string;
+      SUPABASE_URL: string;
+      SUPABASE_SERVICE_ROLE_KEY: string;
+      
+      // Telegram
+      NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: string;
+      TELEGRAM_BOT_TOKEN: string;
+      
+      // Google Maps
+      NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: string;
+      
+      // Cloudinary
+      CLOUDINARY_URL: string;
+      NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: string;
+      
+      // AWS S3
+      AWS_REGION: string;
+      AWS_ACCESS_KEY_ID: string;
+      AWS_SECRET_ACCESS_KEY: string;
+      S3_BUCKET_NAME: string;
+      
+      // Auth
+      JWT_SECRET: string;
+      
+      // App config
+      NEXT_PUBLIC_APP_URL: string;
+      NEXT_PUBLIC_WEBSITE_NAME: string;
+      NODE_ENV: 'development' | 'production' | 'test';
+      
+      // Feature flags
+      SKIP_TELEGRAM_VALIDATION?: string;
+      ENABLE_TELEGRAM_STARS?: string;
+      
+      // Analytics
+      NEXT_PUBLIC_ANALYTICS_ID?: string;
+    }
+  }
+  
+  /**
+   * ✅ React типизация для специальных компонентов
+   */
+  namespace React {
+    interface HTMLAttributes<T> {
+      // Для поддержки data-* атрибутов в тестах
+      'data-testid'?: string;
+    }
+  }
+}
+
+/**
+ * ✅ Модуль расширения для Telegram SDK React
+ * Фикс для недостающих типов в v3.x
+ */
+declare module '@telegram-apps/sdk-react' {
+  // Убеждаемся что все основные хуки типизированы
+  export function useLaunchParams(transform?: boolean): any;
+  export function useRawInitData(): string | undefined;
+  export function useRawLaunchParams(): string | undefined;
+  export function useSignal<T>(signal: { (): T }): T;
+  
+  // Re-export от основного SDK
+  export * from '@telegram-apps/sdk';
+}
+
+/**
+ * ✅ CSS Modules типизация
+ */
+declare module '*.module.css' {
+  const classes: { [key: string]: string };
+  export default classes;
+}
+
+declare module '*.module.scss' {
+  const classes: { [key: string]: string };
+  export default classes;
+}
+
+/**
+ * ✅ Asset файлы
+ */
+declare module '*.svg' {
+  const content: React.FunctionComponent<React.SVGAttributes<SVGElement>>;
+  export default content;
+}
+
+declare module '*.png' {
+  const content: string;
+  export default content;
+}
+
+declare module '*.jpg' {
+  const content: string;
+  export default content;
+}
+
+declare module '*.jpeg' {
+  const content: string;
+  export default content;
+}
+
+declare module '*.webp' {
+  const content: string;
+  export default content;
+}
+
+/**
+ * ✅ Специальные модули
+ */
+declare module 'use-debounce' {
+  export function useDebounce<T>(value: T, delay: number): T;
+  export function useDebouncedCallback<T extends (...args: any[]) => any>(
+    callback: T,
+    delay: number,
+    options?: {
+      maxWait?: number;
+      leading?: boolean;
+      trailing?: boolean;
+    }
+  ): T;
+}
+
+export {};

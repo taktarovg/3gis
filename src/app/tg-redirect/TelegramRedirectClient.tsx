@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { ExternalLink, Smartphone, Download, Timer, CheckCircle } from 'lucide-react';
 
 interface TelegramRedirectClientProps {
@@ -103,66 +103,71 @@ export default function TelegramRedirectClient({
     return 'browser';
   }, []);
   
-  // ✅ Безопасные обработчики редиректов БЕЗ SDK
-  const redirectHandlers = {
-    tryOpenMiniApp: useCallback(() => {
-      try {
-        console.log('🎯 Попытка открыть Mini App через глобальный API');
-        
-        // Пытаемся использовать глобальный Telegram API
-        const webApp = (window as any)?.Telegram?.WebApp;
-        if (webApp && typeof webApp.openTelegramLink === 'function') {
-          const miniAppUrl = `https://t.me/${botUsername}/app?startapp=${startParam}`;
-          webApp.openTelegramLink(miniAppUrl);
-          console.log('✅ Mini App команда отправлена через WebApp API');
-          return true;
-        }
-        
-        // Fallback через прямую ссылку
-        const miniAppUrl = `https://t.me/${botUsername}/app?startapp=${startParam}`;
-        window.location.href = miniAppUrl;
-        console.log('✅ Fallback редирект на Mini App');
-        return true;
-        
-      } catch (error) {
-        console.error('❌ Ошибка открытия Mini App:', error);
-        return false;
-      }
-    }, [botUsername, startParam]),
-
-    handleTelegramRedirect: useCallback(() => {
-      if (redirectAttempted) {
-        console.log('⏭️ Редирект уже выполнен');
-        return;
-      }
-
-      console.log('🔄 Выполняем редирект в Telegram');
-      setRedirectAttempted(true);
-
-      try {
-        const telegramUrl = `https://t.me/${botUsername}/app?startapp=${startParam}`;
-        console.log('🚀 Открываем Telegram URL:', telegramUrl);
-        
-        // Пробуем разные методы открытия
-        if (typeof window !== 'undefined') {
-          // Метод 1: Прямое открытие
-          window.location.href = telegramUrl;
-        }
-      } catch (error) {
-        console.error('❌ Ошибка редиректа:', error);
-      }
-    }, [botUsername, startParam, redirectAttempted]),
-
-    handleManualClick: useCallback(() => {
-      console.log('👆 Ручное нажатие на кнопку');
+  // ✅ ИСПРАВЛЕНИЕ React Hooks: Мemoизация объекта redirectHandlers
+  const tryOpenMiniApp = useCallback(() => {
+    try {
+      console.log('🎯 Попытка открыть Mini App через глобальный API');
       
-      if (environmentType === 'telegram-web') {
-        redirectHandlers.tryOpenMiniApp();
-      } else {
-        redirectHandlers.handleTelegramRedirect();
+      // Пытаемся использовать глобальный Telegram API
+      const webApp = (window as any)?.Telegram?.WebApp;
+      if (webApp && typeof webApp.openTelegramLink === 'function') {
+        const miniAppUrl = `https://t.me/${botUsername}/app?startapp=${startParam}`;
+        webApp.openTelegramLink(miniAppUrl);
+        console.log('✅ Mini App команда отправлена через WebApp API');
+        return true;
       }
-    }, [environmentType])
-  };
+      
+      // Fallback через прямую ссылку
+      const miniAppUrl = `https://t.me/${botUsername}/app?startapp=${startParam}`;
+      window.location.href = miniAppUrl;
+      console.log('✅ Fallback редирект на Mini App');
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Ошибка открытия Mini App:', error);
+      return false;
+    }
+  }, [botUsername, startParam]);
+
+  const handleTelegramRedirect = useCallback(() => {
+    if (redirectAttempted) {
+      console.log('⏭️ Редирект уже выполнен');
+      return;
+    }
+
+    console.log('🔄 Выполняем редирект в Telegram');
+    setRedirectAttempted(true);
+
+    try {
+      const telegramUrl = `https://t.me/${botUsername}/app?startapp=${startParam}`;
+      console.log('🚀 Открываем Telegram URL:', telegramUrl);
+      
+      // Пробуем разные методы открытия
+      if (typeof window !== 'undefined') {
+        // Метод 1: Прямое открытие
+        window.location.href = telegramUrl;
+      }
+    } catch (error) {
+      console.error('❌ Ошибка редиректа:', error);
+    }
+  }, [botUsername, startParam, redirectAttempted]);
+
+  const handleManualClick = useCallback(() => {
+    console.log('👆 Ручное нажатие на кнопку');
+    
+    if (environmentType === 'telegram-web') {
+      tryOpenMiniApp();
+    } else {
+      handleTelegramRedirect();
+    }
+  }, [environmentType, tryOpenMiniApp, handleTelegramRedirect]);
+
+  // ✅ Мemoизированный объект обработчиков  
+  const redirectHandlers = useMemo(() => ({
+    tryOpenMiniApp,
+    handleTelegramRedirect,
+    handleManualClick
+  }), [tryOpenMiniApp, handleTelegramRedirect, handleManualClick]);
   
   // ✅ Инициализация БЕЗ SDK
   useEffect(() => {

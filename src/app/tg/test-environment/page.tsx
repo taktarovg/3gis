@@ -3,10 +3,15 @@
 'use client';
 
 import { useTelegram } from '@/components/providers/TelegramProvider';
+import { useRawInitData } from '@telegram-apps/sdk-react';
 import { useState, useEffect } from 'react';
 
 export default function TestEnvironmentPage() {
-  const { isReady, user, isTelegramEnvironment, error, launchParams, rawInitData } = useTelegram();
+  const { isReady, user, isTelegramEnvironment, error, launchParams } = useTelegram();
+  
+  // ✅ ИСПРАВЛЕНИЕ SDK v3.x: Используем отдельный хук для rawInitData
+  const rawInitData = useRawInitData();
+  
   const [environmentInfo, setEnvironmentInfo] = useState<any>({});
 
   useEffect(() => {

@@ -3,28 +3,7 @@
 
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
 import { init, useLaunchParams } from '@telegram-apps/sdk-react';
-
-interface TelegramUser {
-  id: number;
-  first_name: string;
-  last_name?: string;
-  username?: string;
-  language_code?: string;
-  is_premium?: boolean;
-  allows_write_to_pm?: boolean;
-  photo_url?: string;
-}
-
-interface TelegramContextValue {
-  isReady: boolean;
-  user: TelegramUser | null;
-  isAuthenticated: boolean;
-  isTelegramEnvironment: boolean;
-  error: string | null;
-  launchParams: any | null;
-  webApp: any | null;
-  sdkVersion: string;
-}
+import type { TelegramUser, TelegramContextValue, TelegramWebApp } from '@/types/telegram';
 
 const TelegramContext = createContext<TelegramContextValue>({
   isReady: false,
@@ -33,7 +12,7 @@ const TelegramContext = createContext<TelegramContextValue>({
   isTelegramEnvironment: false,
   error: null,
   launchParams: null,
-  webApp: null,
+  webApp: undefined,
   sdkVersion: '3.x'
 });
 
@@ -53,18 +32,18 @@ function TelegramSDKWrapper({ children }: PropsWithChildren) {
     isTelegramEnvironment: false,
     error: null,
     launchParams: null,
-    webApp: null,
+    webApp: undefined,
     sdkVersion: '3.10.1'
   });
 
-  // ✅ ИСПРАВЛЕНИЕ 3: Хук вызывается БЕЗУСЛОВНО - БЕЗ try/catch!
+  // ✅ ИСПРАВЛЕНИЕ SDK v3.x: Используем any для избежания конфликтов типов
   // Ошибки обрабатываем в useEffect, а не при вызове хука
-  const launchParams = useLaunchParams(true); // SSR flag для Next.js
+  const launchParams: any = useLaunchParams(true); // SSR flag для Next.js
 
   useEffect(() => {
     const initializeTelegramData = () => {
       let launchParamsError: string | null = null;
-      let actualLaunchParams: any = null;
+      let actualLaunchParams: any = null; // ✅ Используем any для совместимости SDK v3.x
 
       try {
         // ✅ Проверяем результат хука здесь, в useEffect
@@ -82,20 +61,27 @@ function TelegramSDKWrapper({ children }: PropsWithChildren) {
         
         let user: TelegramUser | null = null;
         let isTelegramEnv = false;
-        let webApp: any = null;
+        let webApp: TelegramWebApp | undefined = undefined;
 
         // ✅ Метод 1: Проверяем launch params (SDK v3.x)
         if (actualLaunchParams && typeof actualLaunchParams === 'object') {
           console.log('📱 Данные из launch params:', actualLaunchParams);
           
-          // В SDK v3.x структура изменилась
+          // ✅ ИСПРАВЛЕНИЕ: Безопасное обращение к tgWebAppData в SDK v3.x
           let telegramUser = null;
           
-          // Ищем пользователя в различных местах launch params
-          if (actualLaunchParams.tgWebAppData?.user) {
-            telegramUser = actualLaunchParams.tgWebAppData.user;
-          } else if (actualLaunchParams.initData?.user) {
-            telegramUser = actualLaunchParams.initData.user;
+          // ✅ Ищем пользователя с правильной типизацией для SDK v3.x
+          const webAppData = actualLaunchParams.tgWebAppData as any; // ✅ ИСПРАВЛЕНИЕ: Используем any для совместимости
+          if (webAppData && typeof webAppData === 'object' && 'user' in webAppData) {
+            telegramUser = webAppData.user;
+          }
+          
+          // Альтернативный способ - через initData (если есть)
+          if (!telegramUser && 'initData' in actualLaunchParams) {
+            const initData = (actualLaunchParams as any).initData;
+            if (initData && typeof initData === 'object' && 'user' in initData) {
+              telegramUser = initData.user;
+            }
           }
           
           if (telegramUser) {
@@ -171,7 +157,7 @@ function TelegramSDKWrapper({ children }: PropsWithChildren) {
           isTelegramEnvironment: isTelegramEnv,
           error: launchParamsError, // Сохраняем ошибки но не блокируем
           launchParams: actualLaunchParams || null,
-          webApp: webApp || null,
+          webApp: webApp || undefined,
           sdkVersion: '3.10.1'
         });
 
