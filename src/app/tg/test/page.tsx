@@ -1,9 +1,13 @@
 'use client';
 
 import { useTelegram } from '@/components/providers/TelegramProvider';
+import { useRawInitData } from '@telegram-apps/sdk-react'; // ✅ ИСПРАВЛЕНИЕ: Отдельный хук для SDK v3.x
 
 export default function TestPage() {
-  const { user, rawInitData, launchParams, isReady, isTelegramEnvironment, error } = useTelegram();
+  const { user, launchParams, isReady, isTelegramEnvironment, error } = useTelegram();
+  
+  // ✅ ИСПРАВЛЕНИЕ SDK v3.x: Используем отдельный хук для rawInitData
+  const rawInitData = useRawInitData();
 
   if (!isReady) {
     return <div className="p-4">Loading...</div>;
