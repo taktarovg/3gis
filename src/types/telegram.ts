@@ -1,18 +1,16 @@
 // src/types/telegram.ts
-// ✅ ЕДИНЫЙ файл типов для Telegram SDK v3.x и WebApp API
-// Объединяет все Telegram типы в одном месте для лучшего контроля
+// ✅ ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ файл типов для Telegram SDK v3.x
+// Убраны все конфликтующие импорты, используются собственные типы
 // Основано на официальной документации: https://docs.telegram-mini-apps.com/packages/telegram-apps-sdk-react/3-x
 
-import type { 
-  LaunchParams as SDKLaunchParams, 
-  InitData as SDKInitData, 
-  User as TelegramSDKUser 
-} from '@telegram-apps/sdk';
-
 /**
- * ✅ ПОЛЬЗОВАТЕЛЬСКИЕ ИНТЕРФЕЙСЫ ДЛЯ 3GIS (основано на SDK v3.x)
+ * ✅ ИСПРАВЛЕНИЕ ВСЕХ ОШИБОК: Определяем собственные типы без импортов
+ * В SDK v3.x структура типов изменилась, создаем совместимые интерфейсы
  */
 
+/**
+ * ✅ Пользователь Telegram (совместимо с SDK v3.x)
+ */
 export interface TelegramUser {
   id: number;
   first_name: string;
@@ -25,8 +23,54 @@ export interface TelegramUser {
 }
 
 /**
+ * ✅ Launch Parameters (основано на SDK v3.x структуре)
+ */
+export interface LaunchParams {
+  tgWebAppBotInline?: boolean;
+  tgWebAppData?: {
+    user?: TelegramUser;
+    auth_date?: Date;
+    query_id?: string;
+    hash?: string;
+    start_param?: string;
+    chat_type?: string;
+    chat_instance?: string;
+  };
+  tgWebAppThemeParams?: {
+    accent_text_color?: string;
+    bg_color?: string;
+    button_color?: string;
+    button_text_color?: string;
+    destructive_text_color?: string;
+    header_bg_color?: string;
+    hint_color?: string;
+    link_color?: string;
+    secondary_bg_color?: string;
+    section_bg_color?: string;
+    section_header_text_color?: string;
+    subtitle_text_color?: string;
+    text_color?: string;
+  };
+  tgWebAppVersion?: string;
+  tgWebAppPlatform?: string;
+  tgWebAppStartParam?: string;
+}
+
+/**
+ * ✅ Init Data (совместимо с SDK v3.x)
+ */
+export interface InitData {
+  user?: TelegramUser;
+  auth_date?: Date;
+  query_id?: string;
+  hash?: string;
+  start_param?: string;
+  chat_type?: string;
+  chat_instance?: string;
+}
+
+/**
  * ✅ Контекст TelegramProvider - используется в приложении
- * ВАЖНО: Основано на SDK v3.x - rawInitData удалено, используйте useRawInitData() хук
  */
 export interface TelegramContextValue {
   isReady: boolean;
@@ -34,54 +78,13 @@ export interface TelegramContextValue {
   isAuthenticated: boolean;
   isTelegramEnvironment: boolean;
   error: string | null;
-  launchParams: SDKLaunchParams | null;
+  launchParams: LaunchParams | null;
   webApp: TelegramWebApp | null;
   sdkVersion: string;
-  // ❌ rawInitData убрано в v3.x - используйте useRawInitData() хук из @telegram-apps/sdk-react
-}
-
-/**
- * ✅ Расширенные типы для SDK (совместимость с v3.x)
- * Основано на официальной документации useLaunchParams
- */
-export interface InitData extends SDKInitData {
-  user?: TelegramUser;
-  receiver?: TelegramUser & { is_bot?: boolean };
-  chat?: {
-    id: number;
-    type: string;
-    title?: string;
-    username?: string;
-    photo_url?: string;
-  };
-  // ✅ В v3.x эти поля автоматически преобразуются
-  authDate: Date;    // Автоматически Date из auth_date
-  queryId?: string;  // Автоматически из query_id
-  hash?: string;
-  startParam?: string; // Автоматически из start_param
-  chatType?: string;
-  chatInstance?: string;
-  canSendAfter?: number;
-  // ✅ ДОБАВЛЕНО: Обязательные поля из backup файла для полной совместимости
-  signature: string; // Обязательное поле для SDK v3.x
-}
-
-/**
- * ✅ LaunchParams согласно SDK v3.x документации
- * Теперь содержит параметры с префиксом tgWebApp
- */
-export interface LaunchParams extends SDKLaunchParams {
-  tgWebAppData?: InitData;     // ✅ Основные данные приложения
-  tgWebAppVersion?: string;    // ✅ Версия WebApp
-  tgWebAppPlatform?: string;   // ✅ Платформа (ios/android/etc)
-  tgWebAppStartParam?: string; // ✅ Стартовый параметр
-  tgWebAppBotInline?: boolean; // ✅ Режим inline бота
-  tgWebAppThemeParams?: Record<string, any>; // ✅ Параметры темы
 }
 
 /**
  * ✅ Полный интерфейс Telegram WebApp API (window.Telegram.WebApp)
- * Обновлено с offClick методами для всех кнопок
  */
 export interface TelegramWebApp {
   version: string;
@@ -182,7 +185,7 @@ export interface TelegramWebApp {
     isProgressVisible: boolean;
     isActive: boolean;
     onClick(callback: () => void): void;
-    offClick(callback: () => void): void; // ✅ Обязательный метод
+    offClick(callback: () => void): void;
     show(): void;
     hide(): void;
     enable(): void;
@@ -202,7 +205,7 @@ export interface TelegramWebApp {
   BackButton: {
     isVisible: boolean;
     onClick(callback: () => void): void;
-    offClick(callback: () => void): void; // ✅ Обязательный метод
+    offClick(callback: () => void): void;
     show(): void;
     hide(): void;
   };
@@ -217,7 +220,7 @@ export interface TelegramWebApp {
     position: 'left' | 'right' | 'top' | 'bottom';
     setText(text: string): void;
     onClick(callback: () => void): void;
-    offClick(callback: () => void): void; // ✅ Обязательный метод
+    offClick(callback: () => void): void;
     show(): void;
     hide(): void;
     enable(): void;
@@ -237,7 +240,7 @@ export interface TelegramWebApp {
   SettingsButton?: {
     isVisible: boolean;
     onClick(callback: () => void): void;
-    offClick(callback: () => void): void; // ✅ Обязательный метод
+    offClick(callback: () => void): void;
     show(): void;
     hide(): void;
   };
@@ -298,7 +301,7 @@ export interface TelegramWebApp {
 }
 
 /**
- * ✅ Утилитарные типы
+ * ✅ Утилитарные типы для 3GIS
  */
 export type EnvironmentType = 'browser' | 'telegram-web' | 'mini-app';
 
@@ -315,7 +318,7 @@ export interface EnvironmentInfo {
 }
 
 /**
- * ✅ Глобальные типы (объявляем здесь же для единообразия)
+ * ✅ Глобальные типы (расширяем Window для Telegram WebApp)
  */
 declare global {
   interface Window {
@@ -325,71 +328,5 @@ declare global {
   }
 }
 
-/**
- * ✅ Расширение модуля @telegram-apps/sdk-react для TypeScript
- * ВАЖНО: В SDK v3.x изменились названия свойств в LaunchParams
- * ОБНОВЛЕНО: Добавлены обязательные поля из backup файла
- */
-declare module '@telegram-apps/sdk-react' {
-  // ✅ Переопределяем интерфейсы для совместимости с v3.x
-  export interface InitData {
-    user?: TelegramUser;
-    receiver?: TelegramUser & { is_bot?: boolean };
-    chat?: {
-      id: number;
-      type: string;
-      title?: string;
-      username?: string;
-      photo_url?: string;
-    };
-    // ✅ Обязательные поля для SDK v3.x (из backup файла)
-    authDate: Date;      // Обязательное поле!
-    signature: string;   // Обязательное поле!
-    
-    // ✅ Дополнительные поля (автоматически преобразуются из snake_case)
-    queryId?: string;    // из query_id 
-    hash?: string;
-    startParam?: string; // из start_param
-    chatType?: string;   // из chat_type
-    chatInstance?: string; // из chat_instance
-    canSendAfter?: number; // из can_send_after
-  }
-
-  export interface LaunchParams {
-    // ✅ SDK v3.x использует префиксы tgWebApp
-    tgWebAppData?: InitData;
-    tgWebAppVersion?: string;
-    tgWebAppPlatform?: string;
-    tgWebAppStartParam?: string;
-    tgWebAppBotInline?: boolean;
-    tgWebAppThemeParams?: Record<string, any>;
-  }
-
-  // ✅ Переэкспортируем функции для корректной типизации
-  export function useLaunchParams(ssrSafe?: boolean): LaunchParams | null;
-  export function useRawInitData(): string | null;
-  export function init(config?: any): Promise<void>;
-  export function mockTelegramEnv(config: { launchParams: LaunchParams }): void;
-  export function retrieveLaunchParams(): LaunchParams;
-}
-
-/**
- * ✅ Re-export типов от SDK для удобства
- */
-export type { SDKLaunchParams, SDKInitData, TelegramSDKUser };
-
-/**
- * ✅ Экспорт всех типов для использования в приложении
- */
-export type {
-  // Основные интерфейсы
-  TelegramUser,
-  TelegramContextValue,
-  TelegramWebApp,
-  InitData,
-  LaunchParams,
-  
-  // Утилитарные типы
-  EnvironmentType,
-  EnvironmentInfo,
-};
+// ✅ ИСПРАВЛЕНО: Убран дублирующийся export type для TelegramUser
+// Все интерфейсы уже экспортированы выше как export interface
