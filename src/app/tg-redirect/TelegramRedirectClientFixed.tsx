@@ -47,10 +47,16 @@ export default function TelegramRedirectClientFixed({
                           telegramWebApp.version && 
                           typeof telegramWebApp.ready === 'function';
     
-    console.log('🔍 Environment Detection v8 (БЕЗ SDK):', {
+    // Проверяем Telegram Desktop/Mobile по User Agent (НОВОЕ!)
+    const isTelegramDesktop = ua.includes('TelegramDesktop') ||
+                             ua.includes('Telegram Desktop') ||
+                             ua.includes('Telegram/');
+    
+    console.log('🔍 Environment Detection v9 ФИКС (БЕЗ SDK):', {
       userAgent: ua.substring(0, 60) + '...',
       pathname,
       hasValidWebApp,
+      isTelegramDesktop, // НОВОЕ!
       webAppVersion: telegramWebApp?.version,
       hasInitData: !!telegramWebApp?.initData,
       hasInitDataUnsafe: !!telegramWebApp?.initDataUnsafe,
@@ -65,8 +71,8 @@ export default function TelegramRedirectClientFixed({
       
       // На редирект странице проверяем только Telegram браузер (НЕ Mini App)
       const isTelegramBrowser = hasValidWebApp || 
+        isTelegramDesktop ||  // НОВОЕ!
         ua.includes('TelegramBot') || 
-        ua.includes('Telegram/') ||
         ua.includes('tgWebApp') ||
         searchParams.has('tgWebAppData');
       
@@ -87,8 +93,8 @@ export default function TelegramRedirectClientFixed({
     
     // ✅ Telegram браузер (без Mini App функциональности)
     const isTelegramBrowser = hasValidWebApp ||
+      isTelegramDesktop ||  // НОВОЕ!
       ua.includes('TelegramBot') || 
-      ua.includes('Telegram/') ||
       ua.includes('tgWebApp') ||
       searchParams.has('tgWebAppData');
     

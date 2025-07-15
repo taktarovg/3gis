@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * ✅ ДИАГНОСТИЧЕСКИЙ middleware для отладки Telegram определения
- * - Детальное логирование для понимания проблемы
- * - Временно более агрессивное определение Telegram
+ * ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ v9: Telegram Desktop/Mobile поддержка
+ * - Добавлено распознавание Telegram Desktop по User Agent
+ * - Исправлены бесконечные редиректы из Mini App
+ * - Улучшенная диагностика для отладки
  * - Совместимость с Next.js 15.3.3
  */
 export function middleware(request: NextRequest) {
@@ -14,29 +15,39 @@ export function middleware(request: NextRequest) {
   const secFetchSite = request.headers.get('sec-fetch-site') || '';
   const xRequestedWith = request.headers.get('x-requested-with') || '';
   
-  // ✅ ИСПРАВЛЕНО: ТОЧНОЕ определение Telegram Mini App среды
-  // Только настоящие WebApp запросы, НЕ обычные браузерные запросы из Telegram
+  // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Правильное определение Telegram Desktop/Mobile
+  // Не все Telegram клиенты передают WebApp параметры!
   const isTelegramWebApp = 
-    // ОСНОВНЫЕ признаки Mini App (обязательные WebApp параметры)
+    // Метод 1: Настоящие WebApp параметры (приоритет)
     searchParams.has('tgWebAppData') ||
     searchParams.has('tgWebAppVersion') ||
     searchParams.has('tgWebAppStartParam') ||
     searchParams.has('tgWebAppPlatform') ||
     searchParams.has('tgWebAppThemeParams') ||
-    // TelegramBot User Agent ТОЛЬКО для Mini App (не для обычного браузера)
+    // Метод 2: Telegram Desktop/Mobile User Agent (без WebApp параметров)
+    userAgent.includes('TelegramDesktop') ||
+    userAgent.includes('Telegram Desktop') ||
+    userAgent.includes('Telegram/') ||
+    // Метод 3: TelegramBot с WebApp параметрами
     (userAgent.includes('TelegramBot') && (
       searchParams.has('tgWebAppData') || 
       searchParams.has('tgWebAppVersion')
     )) ||
-    // WebView паттерны ТОЛЬКО с WebApp параметрами
+    // Метод 4: WebView с WebApp параметрами
     ((userAgent.includes('TelegramWebView') || userAgent.includes('TgWebView')) && 
      searchParams.has('tgWebAppVersion'));
   
-  console.log(`[middleware] ДИАГНОСТИКА v8 ${pathname}:`, {
-    userAgent: userAgent.substring(0, 80) + (userAgent.length > 80 ? '...' : ''),
+  console.log(`[middleware] ДИАГНОСТИКА v9 ФИКС ${pathname}:`, {
+    userAgent: userAgent.substring(0, 100) + (userAgent.length > 100 ? '...' : ''),
     referer,
     secFetchSite,
     xRequestedWith,
+    telegramDetection: {
+      hasTelegramDesktop: userAgent.includes('TelegramDesktop') || userAgent.includes('Telegram Desktop'),
+      hasTelegramSlash: userAgent.includes('Telegram/'),
+      hasTelegramBot: userAgent.includes('TelegramBot'),
+      hasWebViewPatterns: userAgent.includes('TelegramWebView') || userAgent.includes('TgWebView')
+    },
     hasWebAppParams: {
       tgWebAppData: searchParams.has('tgWebAppData'),
       tgWebAppVersion: searchParams.has('tgWebAppVersion'), 
