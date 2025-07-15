@@ -12,7 +12,7 @@ const TelegramContext = createContext<TelegramContextValue>({
   isTelegramEnvironment: false,
   error: null,
   launchParams: null,
-  webApp: undefined,
+  webApp: null, // ✅ ИСПРАВЛЕНО: null вместо undefined согласно типу TelegramContextValue
   sdkVersion: '3.x'
 });
 
@@ -32,13 +32,13 @@ function TelegramSDKWrapper({ children }: PropsWithChildren) {
     isTelegramEnvironment: false,
     error: null,
     launchParams: null,
-    webApp: undefined,
+    webApp: null, // ✅ ИСПРАВЛЕНО: null вместо undefined согласно типу TelegramContextValue
     sdkVersion: '3.10.1'
   });
 
-  // ✅ ИСПРАВЛЕНИЕ SDK v3.x: Используем any для избежания конфликтов типов
-  // Ошибки обрабатываем в useEffect, а не при вызове хука
-  const launchParams: any = useLaunchParams(true); // SSR flag для Next.js
+  // ✅ ИСПРАВЛЕНИЕ SDK v3.x: Правильное использование без SSR параметра
+  // В SDK v3.x useLaunchParams не принимает SSR флаг как параметр
+  const launchParams: any = useLaunchParams(); // Согласно документации v3.x
 
   useEffect(() => {
     const initializeTelegramData = () => {
@@ -76,11 +76,12 @@ function TelegramSDKWrapper({ children }: PropsWithChildren) {
             telegramUser = webAppData.user;
           }
           
-          // Альтернативный способ - через initData (если есть)
-          if (!telegramUser && 'initData' in actualLaunchParams) {
-            const initData = (actualLaunchParams as any).initData;
-            if (initData && typeof initData === 'object' && 'user' in initData) {
-              telegramUser = initData.user;
+          // Альтернативный способ - проверяем другие возможные пути к данным пользователя в SDK v3.x
+          if (!telegramUser && actualLaunchParams.tgWebAppData) {
+            // В SDK v3.x данные находятся в tgWebAppData, а не в initData
+            const tgWebAppData = actualLaunchParams.tgWebAppData;
+            if (tgWebAppData && typeof tgWebAppData === 'object' && 'user' in tgWebAppData) {
+              telegramUser = tgWebAppData.user;
             }
           }
           
@@ -157,7 +158,7 @@ function TelegramSDKWrapper({ children }: PropsWithChildren) {
           isTelegramEnvironment: isTelegramEnv,
           error: launchParamsError, // Сохраняем ошибки но не блокируем
           launchParams: actualLaunchParams || null,
-          webApp: webApp || undefined,
+          webApp: webApp || null, // ✅ ИСПРАВЛЕНО: null вместо undefined
           sdkVersion: '3.10.1'
         });
 
@@ -205,8 +206,9 @@ export function TelegramProvider({ children }: PropsWithChildren) {
       try {
         console.log('🔧 Инициализация базового SDK v3.x...');
         
-        // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасная инициализация SDK
-        init();
+        // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Правильная инициализация SDK v3.x
+        // В SDK v3.x функция init() не принимает параметров конфигурации
+        init(); // Согласно документации v3.x
         console.log('✅ SDK v3.x успешно инициализирован');
         
         setIsSDKInitialized(true);

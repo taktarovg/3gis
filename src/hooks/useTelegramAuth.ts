@@ -1,9 +1,10 @@
-// src/hooks/use-telegram-auth.ts
+// src/hooks/useTelegramAuth.ts
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
 import { User, Prisma } from '@prisma/client';
 import { useAuthStore } from '@/store/auth-store';
+import { useRawInitData } from '@telegram-apps/sdk-react';
 
 // ✅ ИСПРАВЛЕНО: Убираем конфликтующие импорты хуков
 // Теперь используем наш обновленный TelegramProvider
@@ -56,7 +57,10 @@ export function useTelegramAuth(): AuthState & AuthActions {
   const { setAuth, setLoading, setError, updateUserLocation, logout: clearAuth } = useAuthStore();
   
   // ✅ ИСПРАВЛЕНИЕ: Используем только существующие свойства из TelegramContextValue
-  const { user: telegramUser, isAuthenticated: isTelegramAuth, rawInitData, isReady } = useTelegram();
+  const { user: telegramUser, isAuthenticated: isTelegramAuth, isReady } = useTelegram();
+  
+  // ✅ Используем отдельный хук для rawInitData
+  const rawInitData = useRawInitData();
 
   const [authState, setAuthState] = useState<AuthState>({
     user: null,

@@ -1,0 +1,64 @@
+// types/telegram.d.ts
+// Глобальные типы для Telegram SDK v3.x и нативного window.Telegram API
+
+// Расширяем типы для @telegram-apps/sdk-react v3.x
+declare module '@telegram-apps/sdk-react' {
+  // ✅ Правильная структура согласно документации v3.x
+  export interface InitData {
+    user?: {
+      id: number;
+      first_name: string;
+      last_name?: string;
+      username?: string;
+      language_code?: string;
+      is_premium?: boolean;
+      photo_url?: string;
+      allows_write_to_pm?: boolean;
+    };
+    receiver?: {
+      id: number;
+      first_name: string;
+      last_name?: string;
+      username?: string;
+      photo_url?: string;
+      is_bot?: boolean;
+      is_premium?: boolean;
+      language_code?: string;
+    };
+    chat?: {
+      id: number;
+      type: string;
+      title?: string;
+      username?: string;
+      photo_url?: string;
+    };
+    // ✅ Обязательные поля для SDK v3.x
+    authDate: Date;    // Обязательное поле!
+    signature: string; // Обязательное поле!
+    
+    // ✅ Дополнительные поля
+    queryId?: string;
+    hash?: string;
+    startParam?: string;
+    chatType?: string;
+    chatInstance?: string;
+    canSendAfter?: number;
+  }
+
+  export interface LaunchParams {
+    tgWebAppData?: InitData; // ✅ Только объект, не строка!
+    tgWebAppVersion?: string;
+    tgWebAppPlatform?: string;
+    tgWebAppStartParam?: string;
+    tgWebAppBotInline?: boolean;
+    tgWebAppThemeParams?: Record<string, any>;
+  }
+
+  export function useLaunchParams(ssrSafe?: boolean): LaunchParams | null;
+  export function useRawInitData(): string | null;
+  export function init(config?: any): Promise<void>;
+  export function mockTelegramEnv(config: { launchParams: LaunchParams }): void;
+  export function retrieveLaunchParams(): LaunchParams;
+}
+
+export {};
