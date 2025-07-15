@@ -1,12 +1,14 @@
 import { Metadata, Viewport } from 'next';
-import TelegramRedirectClient from './TelegramRedirectClient';
+import TelegramRedirectClientFixed from './TelegramRedirectClientFixed';
 
 /**
- * ✅ ИСПРАВЛЕНО: Убрано viewport из metadata (Next.js 15.3.3)
+ * ✅ ПОЛНОСТЬЮ ИСПРАВЛЕНО: Убрано viewport из metadata (Next.js 15.3.3)
  * ✅ БЕЗОПАСНЫЙ Server Component для SEO и быстрой загрузки
- * - Без event handlers 
- * - Без useState/useEffect
+ * ✅ ИСПРАВЛЕНА ошибка "Event handlers cannot be passed to Client Component props"
+ * - Без event handlers в props
+ * - Без useState/useEffect в Server Component
  * - Только статичные метаданные и передача управления Client компоненту
+ * - Client компонент БЕЗ @telegram-apps/sdk-react (источник ошибок)
  */
 
 export const metadata: Metadata = {
@@ -47,16 +49,16 @@ interface PageProps {
 }
 
 /**
- * ✅ БЕЗОПАСНЫЙ Server Component - только статика и метаданные
- * Все интерактивные элементы переданы в Client компонент
- * ✅ ИСПРАВЛЕНО: НЕ передаем функции как props - только примитивные данные
+ * ✅ ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ Server Component v8 - только статика и метаданные
+ * Все интерактивные элементы переданы в Client компонент БЕЗ SDK
+ * ✅ ИСПРАВЛЕНО: НЕ передаем функции как props - только примитивные данные!
  */
 export default async function TelegramRedirectPage({ searchParams }: PageProps) {
   // ✅ Безопасно извлекаем searchParams на сервере
   const params = await searchParams;
   const startParam = (params.startapp as string) || (params.start as string) || '';
   
-  console.log('🖥️ TG-Redirect Server Component загружен:', {
+  console.log('🖥️ TG-Redirect Server Component v8 загружен:', {
     startParam,
     hasParams: Object.keys(params).length > 0
   });
@@ -64,8 +66,8 @@ export default async function TelegramRedirectPage({ searchParams }: PageProps) 
   // ✅ Передаем ТОЛЬКО сериализуемые данные - не функции!
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* ✅ Весь интерактивный функционал в Client компоненте */}
-      <TelegramRedirectClient 
+      {/* ✅ Весь интерактивный функционал в ИСПРАВЛЕННОМ Client компоненте БЕЗ SDK ошибок */}
+      <TelegramRedirectClientFixed 
         startParam={startParam}
         botUsername="ThreeGIS_bot"
         appName="app"

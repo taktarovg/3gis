@@ -108,17 +108,30 @@ export default function ThreeGISHomePage() {
       return;
     }
     
-    // ✅ ИСПРАВЛЕНО: SDK v3.x правильное получение start параметра
+    // ✅ ИСПРАВЛЕНО ДЛЯ SDK v3.x: правильное получение start параметра
     let startParam: string | undefined;
     
-    // Проверяем различные места где может быть startParam в SDK v3.x
-    if (launchParams.tgWebAppStartParam) {
-      startParam = launchParams.tgWebAppStartParam;
-    } else if ((launchParams as any).startParam) {
-      // ✅ ИСПРАВЛЕНО: Безопасное обращение к свойству через any
-      startParam = (launchParams as any).startParam;
-    } else if (launchParams.tgWebAppData?.start_param) {
-      startParam = launchParams.tgWebAppData.start_param;
+    // В SDK v3.x структура launchParams изменилась
+    if (launchParams && typeof launchParams === 'object') {
+      // Метод 1: tgWebAppStartParam (основной в SDK v3.x)
+      if ('tgWebAppStartParam' in launchParams && launchParams.tgWebAppStartParam) {
+        startParam = launchParams.tgWebAppStartParam as string;
+      }
+      // Метод 2: в составе tgWebAppData 
+      else if ('tgWebAppData' in launchParams && 
+               launchParams.tgWebAppData && 
+               typeof launchParams.tgWebAppData === 'object' &&
+               'start_param' in launchParams.tgWebAppData) {
+        startParam = (launchParams.tgWebAppData as any).start_param;
+      }
+      // Метод 3: fallback к URL параметрам
+      else {
+        const urlParams = new URLSearchParams(window.location.search);
+        startParam = urlParams.get('startapp') || 
+                    urlParams.get('start') || 
+                    urlParams.get('startParam') || 
+                    undefined;
+      }
     }
     
     if (startParam && typeof startParam === 'string') {

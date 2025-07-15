@@ -14,37 +14,26 @@ export function middleware(request: NextRequest) {
   const secFetchSite = request.headers.get('sec-fetch-site') || '';
   const xRequestedWith = request.headers.get('x-requested-with') || '';
   
-  // ✅ РАСШИРЕННОЕ определение Telegram WebApp среды
+  // ✅ ИСПРАВЛЕНО: ТОЧНОЕ определение Telegram Mini App среды
+  // Только настоящие WebApp запросы, НЕ обычные браузерные запросы из Telegram
   const isTelegramWebApp = 
-    // Telegram Bot User Agent (основные паттерны)
-    userAgent.includes('TelegramBot') || 
-    userAgent.includes('Telegram/') ||
-    userAgent.includes('tgWebApp') ||
-    userAgent.includes('TelegramWebView') ||
-    userAgent.includes('TgWebView') ||
-    // Telegram WebApp параметры
+    // ОСНОВНЫЕ признаки Mini App (обязательные WebApp параметры)
     searchParams.has('tgWebAppData') ||
     searchParams.has('tgWebAppVersion') ||
+    searchParams.has('tgWebAppStartParam') ||
     searchParams.has('tgWebAppPlatform') ||
     searchParams.has('tgWebAppThemeParams') ||
-    searchParams.has('tgWebAppStartParam') ||
-    // ✅ НОВОЕ: расширенные проверки для нативных приложений
-    searchParams.has('_tgWebAppVersion') ||
-    // Cross-site запросы от Telegram
-    secFetchSite === 'cross-site' ||
-    // Referer от Telegram
-    referer.includes('telegram') ||
-    referer.includes('t.me') ||
-    // Специальные заголовки от Telegram
-    xRequestedWith === 'org.telegram.messenger' ||
-    // ✅ НОВОЕ: дополнительные паттерны для Desktop и Mobile
-    userAgent.includes('Telegram-Desktop') ||
-    userAgent.includes('Telegram-iOS') ||
-    userAgent.includes('Telegram-Android');
+    // TelegramBot User Agent ТОЛЬКО для Mini App (не для обычного браузера)
+    (userAgent.includes('TelegramBot') && (
+      searchParams.has('tgWebAppData') || 
+      searchParams.has('tgWebAppVersion')
+    )) ||
+    // WebView паттерны ТОЛЬКО с WebApp параметрами
+    ((userAgent.includes('TelegramWebView') || userAgent.includes('TgWebView')) && 
+     searchParams.has('tgWebAppVersion'));
   
-  // ✅ ДЕТАЛЬНОЕ логирование для диагностики
-  console.log(`[middleware] ДИАГНОСТИКА ${pathname}:`, {
-    userAgent: userAgent.substring(0, 100) + (userAgent.length > 100 ? '...' : ''),
+  console.log(`[middleware] ДИАГНОСТИКА v8 ${pathname}:`, {
+    userAgent: userAgent.substring(0, 80) + (userAgent.length > 80 ? '...' : ''),
     referer,
     secFetchSite,
     xRequestedWith,

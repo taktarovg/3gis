@@ -36,9 +36,9 @@ function TelegramSDKWrapper({ children }: PropsWithChildren) {
     sdkVersion: '3.10.1'
   });
 
-  // ✅ ИСПРАВЛЕНИЕ SDK v3.x: Правильное использование без SSR параметра
-  // В SDK v3.x useLaunchParams не принимает SSR флаг как параметр
-  const launchParams: any = useLaunchParams(); // Согласно документации v3.x
+  // ✅ ИСПРАВЛЕНИЕ SDK v3.x: Правильное использование SSR флага
+  // В SDK v3.x useLaunchParams(true) для SSR совместимости с Next.js
+  const launchParams: any = useLaunchParams(true); // ✅ SSR флаг для Next.js
 
   useEffect(() => {
     const initializeTelegramData = () => {
