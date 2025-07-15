@@ -110,9 +110,11 @@ export function BottomNavigation() {
           }
         };
         
+        // Добавляем обработчик нажатия
         backBtn.onClick(handleBackClick);
         
         return () => {
+          // Удаляем обработчик через offClick
           backBtn.offClick(handleBackClick);
         };
       } else {
