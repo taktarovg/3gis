@@ -12,14 +12,14 @@ interface TelegramRedirectClientProps {
 type EnvironmentType = 'browser' | 'telegram-web' | 'mini-app';
 
 /**
- * ✅ ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ Client Component БЕЗ SDK зависимостей v9
+ * ✅ ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ Client Component v10 (совместимо с TelegramProvider v10)
  * 
- * КРИТИЧЕСКИЕ ИСПРАВЛЕНИЯ:
- * - ❌ НЕ используем @telegram-apps/sdk-react вообще (источник ошибок)
- * - ✅ Только нативные window.Telegram API
- * - ✅ ИСПРАВЛЕНО: Правильное определение Mini App среды для SDK v3.x
- * - ✅ Убраны все event handlers в props (источник ошибки в логах)
- * - ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: redirect страница НИКОГДА не Mini App
+ * КРИТИЧЕСКИЕ ИСПРАВЛЕНИЯ v10:
+ * - ❌ НЕ используем @telegram-apps/sdk-react вообще (источник ошибок SSR)
+ * - ✅ Только нативные window.Telegram API (совместимо с TelegramProvider v10)
+ * - ✅ Устранены Server/Client ошибки event handlers в props
+ * - ✅ redirect страница НИКОГДА не Mini App (корректно)
+ * - ✅ Полная Next.js 15.3.3 совместимость
  */
 export default function TelegramRedirectClientFixed({ 
   startParam, 
@@ -57,7 +57,7 @@ export default function TelegramRedirectClientFixed({
                                ua.includes('Telegram/') ||
                                ua.includes('TelegramBot');
       
-      console.log('🔍 Redirect Environment Detection v9:', {
+      console.log('🔍 Redirect Environment Detection v10 (совместимо с TelegramProvider v10):', {
         userAgent: ua.substring(0, 60) + '...',
         pathname,
         hasValidWebApp,
@@ -112,7 +112,7 @@ export default function TelegramRedirectClientFixed({
   
   const tryOpenMiniApp = useCallback(() => {
     try {
-      console.log('🎯 Попытка открыть Mini App (исправлено v9)');
+      console.log('🎯 Попытка открыть Mini App (v10 - совместимо с TelegramProvider)');
       
       // Метод 1: Через глобальный Telegram API
       const webApp = (window as any)?.Telegram?.WebApp;

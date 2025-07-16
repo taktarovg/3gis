@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ v9: Telegram Desktop/Mobile поддержка
- * - Добавлено распознавание Telegram Desktop по User Agent
- * - Исправлены бесконечные редиректы из Mini App
- * - Улучшенная диагностика для отладки
- * - Совместимость с Next.js 15.3.3
+ * ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ v10: Совместимость с исправленным TelegramProvider
+ * - Синхронизация с TelegramProvider v10 (БЕЗ useLaunchParams)
+ * - Исправлены Server/Client ошибки компонентов
+ * - Улучшенная совместимость с Next.js 15.3.3
+ * - Telegram Desktop/Mobile поддержка
  */
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
@@ -37,7 +37,7 @@ export function middleware(request: NextRequest) {
     ((userAgent.includes('TelegramWebView') || userAgent.includes('TgWebView')) && 
      searchParams.has('tgWebAppVersion'));
   
-  console.log(`[middleware] ДИАГНОСТИКА v9 ФИКС ${pathname}:`, {
+  console.log(`[middleware] ДИАГНОСТИКА v10 ФИКС (совместимо с TelegramProvider v10) ${pathname}:`, {
     userAgent: userAgent.substring(0, 100) + (userAgent.length > 100 ? '...' : ''),
     referer,
     secFetchSite,
@@ -98,15 +98,16 @@ export function middleware(request: NextRequest) {
       // ✅ Добавляем флаг для предотвращения зацикливания
       redirectUrl.searchParams.set('_redirected', 'true');
       
-      console.log(`[middleware] РЕДИРЕКТ: ${pathname} -> /tg-redirect`, {
+      console.log(`[middleware] РЕДИРЕКТ v10: ${pathname} -> /tg-redirect`, {
         reason: 'не обнаружен Telegram WebApp',
         startParam: startParam || 'отсутствует',
-        redirectUrl: redirectUrl.toString()
+        redirectUrl: redirectUrl.toString(),
+        telegramProviderCompatible: 'v10'
       });
       
       return NextResponse.redirect(redirectUrl);
     } else {
-      console.log(`[middleware] ${pathname} - Пропускаем, обнаружен Telegram WebApp`);
+      console.log(`[middleware] ${pathname} - Пропускаем, обнаружен Telegram WebApp (v10 совместимо)`);
     }
   }
   

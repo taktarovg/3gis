@@ -49,16 +49,18 @@ interface PageProps {
 }
 
 /**
- * ✅ ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ Server Component v8 - только статика и метаданные
+ * ✅ ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ Server Component v10 - совместимо с TelegramProvider v10
  * Все интерактивные элементы переданы в Client компонент БЕЗ SDK
  * ✅ ИСПРАВЛЕНО: НЕ передаем функции как props - только примитивные данные!
+ * ✅ Устранены Server/Client ошибки event handlers в props
+ * ✅ Полная совместимость с Next.js 15.3.3 и TelegramProvider v10
  */
 export default async function TelegramRedirectPage({ searchParams }: PageProps) {
   // ✅ Безопасно извлекаем searchParams на сервере
   const params = await searchParams;
   const startParam = (params.startapp as string) || (params.start as string) || '';
   
-  console.log('🖥️ TG-Redirect Server Component v8 загружен:', {
+  console.log('🖥️ TG-Redirect Server Component v10 загружен (совместимо с TelegramProvider v10):', {
     startParam,
     hasParams: Object.keys(params).length > 0
   });

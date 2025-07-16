@@ -23,9 +23,11 @@ export interface TelegramUser {
 }
 
 /**
- * ✅ Launch Parameters (основано на SDK v3.x структуре)
+ * ✅ Launch Parameters (совместимо с нашей реализацией v10)
+ * ИСПРАВЛЕНО: Добавлено startParam для обратной совместимости
  */
 export interface LaunchParams {
+  // ✅ Основные параметры SDK v3.x
   tgWebAppBotInline?: boolean;
   tgWebAppData?: {
     user?: TelegramUser;
@@ -54,6 +56,13 @@ export interface LaunchParams {
   tgWebAppVersion?: string;
   tgWebAppPlatform?: string;
   tgWebAppStartParam?: string;
+  
+  // ✅ ИСПРАВЛЕНИЕ v10: Добавляем startParam для совместимости с нашей реализацией
+  startParam?: string;
+  platform?: string;
+  version?: string;
+  queryId?: string;
+  hash?: string;
 }
 
 /**
