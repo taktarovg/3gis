@@ -116,31 +116,31 @@ export default function ThreeGISHomePage() {
       // Метод 1: tgWebAppStartParam (основной в SDK v3.x)
       if ('tgWebAppStartParam' in launchParams && launchParams.tgWebAppStartParam) {
         startParam = launchParams.tgWebAppStartParam as string;
+        console.log('📱 Start param из tgWebAppStartParam (SDK v3.x):', startParam);
       }
-      // Метод 2: в составе tgWebAppData 
-      else if ('tgWebAppData' in launchParams && 
-               launchParams.tgWebAppData && 
-               typeof launchParams.tgWebAppData === 'object' &&
-               'start_param' in launchParams.tgWebAppData) {
-        startParam = (launchParams.tgWebAppData as any).start_param;
-      }
-      // Метод 3: fallback к URL параметрам
+      // Метод 2: fallback к URL параметрам для совместимости
       else {
         const urlParams = new URLSearchParams(window.location.search);
         startParam = urlParams.get('startapp') || 
                     urlParams.get('start') || 
                     urlParams.get('startParam') || 
                     undefined;
+        
+        if (startParam) {
+          console.log('📱 Start param из URL fallback:', startParam);
+        }
       }
     }
     
     if (startParam && typeof startParam === 'string') {
-      console.log('🚀 Processing start param:', startParam);
+      console.log('🚀 Processing start param (SDK v3.x):', startParam);
       
       // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем флаг для предотвращения повторных редиректов
-      const hasRedirected = sessionStorage.getItem('3gis_has_redirected');
+      const redirectKey = `3gis_redirected_${startParam}`;
+      const hasRedirected = sessionStorage.getItem(redirectKey);
+      
       if (hasRedirected) {
-        console.log('⏭️ Already redirected, skipping...');
+        console.log('⏭️ Already redirected for this startParam, skipping...');
         return;
       }
       
@@ -150,7 +150,7 @@ export default function ThreeGISHomePage() {
           const businessId = startParam.replace('business_', '');
           if (businessId && /^\d+$/.test(businessId)) {
             console.log('🏢 Redirecting to business:', businessId);
-            sessionStorage.setItem('3gis_has_redirected', 'true');
+            sessionStorage.setItem(redirectKey, 'true');
             router.push(`/tg/business/${businessId}`);
             return;
           }
@@ -161,7 +161,7 @@ export default function ThreeGISHomePage() {
           const chatId = startParam.replace('chat_', '');
           if (chatId && /^\d+$/.test(chatId)) {
             console.log('💬 Redirecting to chat:', chatId);
-            sessionStorage.setItem('3gis_has_redirected', 'true');
+            sessionStorage.setItem(redirectKey, 'true');
             router.push(`/tg/chats/${chatId}`);
             return;
           }
@@ -172,7 +172,7 @@ export default function ThreeGISHomePage() {
           const category = startParam.replace('businesses_', '');
           if (category && category !== 'businesses') {
             console.log('🏪 Redirecting to businesses with category:', category);
-            sessionStorage.setItem('3gis_has_redirected', 'true');
+            sessionStorage.setItem(redirectKey, 'true');
             router.push(`/tg/businesses?category=${category}`);
             return;
           }
@@ -181,53 +181,59 @@ export default function ThreeGISHomePage() {
         // Другие параметры...
         if (startParam === 'businesses') {
           console.log('🏪 Redirecting to all businesses');
-          sessionStorage.setItem('3gis_has_redirected', 'true');
+          sessionStorage.setItem(redirectKey, 'true');
           router.push('/tg/businesses');
           return;
         }
         
         if (startParam === 'chats') {
           console.log('💬 Redirecting to chats');
-          sessionStorage.setItem('3gis_has_redirected', 'true');
+          sessionStorage.setItem(redirectKey, 'true');
           router.push('/tg/chats');
           return;
         }
         
         if (startParam === 'favorites') {
           console.log('⭐ Redirecting to favorites');
-          sessionStorage.setItem('3gis_has_redirected', 'true');
+          sessionStorage.setItem(redirectKey, 'true');
           router.push('/tg/favorites');
           return;
         }
         
         if (startParam === 'profile') {
           console.log('👤 Redirecting to profile');
-          sessionStorage.setItem('3gis_has_redirected', 'true');
+          sessionStorage.setItem(redirectKey, 'true');
           router.push('/tg/profile');
           return;
         }
         
         if (startParam === 'add_business') {
           console.log('➕ Redirecting to add business');
-          sessionStorage.setItem('3gis_has_redirected', 'true');
+          sessionStorage.setItem(redirectKey, 'true');
           router.push('/tg/add-business');
           return;
         }
         
-        console.log('❓ Unknown start param:', startParam);
+        console.log('❓ Unknown start param (SDK v3.x):', startParam);
         
       } catch (error) {
         console.error('Error processing start param:', error);
       }
     } else {
-      console.log('ℹ️ No start parameter found');
+      console.log('ℹ️ No start parameter found in SDK v3.x');
     }
   }, [launchParams, isReady, isTelegramEnvironment, router]);
   
-  // ✅ Сброс флага редиректа при размонтировании компонента
+  // ✅ Очищаем все флаги редиректа при размонтировании компонента
   useEffect(() => {
     return () => {
-      sessionStorage.removeItem('3gis_has_redirected');
+      // Очищаем все ключи редиректа для этой сессии
+      const keys = Object.keys(sessionStorage);
+      keys.forEach(key => {
+        if (key.startsWith('3gis_redirected_')) {
+          sessionStorage.removeItem(key);
+        }
+      });
     };
   }, []);
   

@@ -36,9 +36,9 @@ function TelegramSDKWrapper({ children }: PropsWithChildren) {
     sdkVersion: '3.10.1'
   });
 
-  // ✅ ИСПРАВЛЕНИЕ SDK v3.x: Правильное использование SSR флага
-  // В SDK v3.x useLaunchParams(true) для SSR совместимости с Next.js
-  const launchParams: any = useLaunchParams(true); // ✅ SSR флаг для Next.js
+  // ✅ ИСПРАВЛЕНИЕ SDK v3.x: useLaunchParams БЕЗ параметров согласно документации
+  // Документация: https://docs.telegram-mini-apps.com/packages/telegram-apps-sdk-react/3-x
+  const launchParams: any = useLaunchParams(); // ✅ БЕЗ параметров в SDK v3.x
 
   useEffect(() => {
     const initializeTelegramData = () => {
@@ -294,13 +294,14 @@ export function TelegramDebugStatus() {
     <div className="fixed bottom-4 right-4 z-50 max-w-xs">
       <details className="bg-black/80 text-white text-xs p-3 rounded-lg backdrop-blur-sm">
         <summary className="cursor-pointer font-medium mb-2">
-          🔧 Telegram Debug v{sdkVersion}
+          🔧 Telegram Debug v{sdkVersion} FIXED
         </summary>
         <div className="space-y-1 mt-2">
           <div>Ready: {isReady ? '✅' : '❌'}</div>
           <div>Environment: {isTelegramEnvironment ? '📱 Telegram' : '🌐 Browser'}</div>
           <div>User: {user ? `${user.first_name} (${user.id})` : 'None'}</div>
           <div>Launch Params: {launchParams ? '✅' : '❌'}</div>
+          <div>Start Param: {launchParams?.tgWebAppStartParam || 'None'}</div>
           {error && <div className="text-yellow-300">Info: {error.substring(0, 50)}...</div>}
         </div>
       </details>
