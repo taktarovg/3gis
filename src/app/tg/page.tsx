@@ -4,7 +4,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Settings, Bug, TestTube } from 'lucide-react';
 import { useTelegram } from '@/components/providers/TelegramProvider';
 import dynamic from 'next/dynamic';
 
@@ -102,6 +102,9 @@ export default function ThreeGISHomePage() {
   
   // ✅ Ref для предотвращения повторных редиректов
   const hasProcessedRedirect = useRef(false);
+
+  // ✅ State для показа панели разработчика
+  const [showDevPanel, setShowDevPanel] = React.useState(false);
   
   // ✅ ИСПРАВЛЕНО: SDK v3.x совместимая обработка start параметров без циклов
   useEffect(() => {
@@ -279,6 +282,48 @@ export default function ThreeGISHomePage() {
   return (
     <div className="threegis-app-container" data-scrollable>
       <div className="threegis-app-main">
+        {/* ✅ ПАНЕЛЬ РАЗРАБОТЧИКА - показывается в development или по клику */}
+        {(process.env.NODE_ENV === 'development' || showDevPanel) && (
+          <div className="px-4 mb-6 mt-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium text-yellow-800 flex items-center">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Панель разработчика
+                </h4>
+                <button
+                  onClick={() => setShowDevPanel(!showDevPanel)}
+                  className="text-yellow-600 hover:text-yellow-800 text-sm"
+                >
+                  {showDevPanel ? 'Скрыть' : 'Показать'}
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <Link
+                  href="/tg-debug"
+                  className="flex items-center justify-center px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                >
+                  <Bug className="w-4 h-4 mr-1" />
+                  Диагностика
+                </Link>
+                
+                <Link
+                  href="/middleware-test"
+                  className="flex items-center justify-center px-3 py-2 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors"
+                >
+                  <TestTube className="w-4 h-4 mr-1" />
+                  Тест middleware
+                </Link>
+              </div>
+              
+              <div className="mt-2 text-xs text-yellow-600">
+                🔧 Инструменты для отладки детекции Telegram клиентов
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Поиск */}
         <div className="px-4 mb-6 mt-6">
           <SearchBox placeholder="Поиск ресторанов, врачей, услуг..." />
@@ -339,6 +384,18 @@ export default function ThreeGISHomePage() {
               <span className="mr-4">🌎 По всей Америке</span>
               <span>🇷🇺 На русском языке</span>
             </div>
+            
+            {/* ✅ Скрытая кнопка для активации панели разработчика в production */}
+            {process.env.NODE_ENV === 'production' && !showDevPanel && (
+              <div className="mt-3">
+                <button
+                  onClick={() => setShowDevPanel(true)}
+                  className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  v12 debug
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

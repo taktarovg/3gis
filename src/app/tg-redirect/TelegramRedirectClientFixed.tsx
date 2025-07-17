@@ -332,7 +332,7 @@ export default function TelegramRedirectClientFixed({
             <div className="mt-4 pt-4 border-t">
               <details className="text-left">
                 <summary className="text-xs text-gray-400 cursor-pointer">
-                  🔧 Debug Info v11 (ИСПРАВЛЕНО)
+                  🔧 Debug Info v12 (ИСПРАВЛЕНО)
                 </summary>
                 <div className="mt-2 text-xs text-gray-500 space-y-1">
                   <p><strong>Environment:</strong> {environmentType}</p>
@@ -344,6 +344,21 @@ export default function TelegramRedirectClientFixed({
                   <p><strong>User Agent:</strong> {userAgent.substring(0, 40)}...</p>
                 </div>
               </details>
+              
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <a
+                  href="/tg-debug"
+                  className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-center"
+                >
+                  🔍 Диагностика
+                </a>
+                <a
+                  href="/middleware-test"
+                  className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors text-center"
+                >
+                  🧪 Тест middleware
+                </a>
+              </div>
             </div>
           )}
         </div>
@@ -454,6 +469,25 @@ export default function TelegramRedirectClientFixed({
             <Download className="w-4 h-4 mr-1" />
             Скачать Telegram
           </a>
+          
+          {/* Ссылки на диагностику для любого браузера */}
+          <div className="mt-4 pt-3 border-t">
+            <p className="text-xs text-gray-500 mb-2">Отладка:</p>
+            <div className="flex gap-2">
+              <a
+                href="/tg-debug"
+                className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+              >
+                🔍 Диагностика
+              </a>
+              <a
+                href="/middleware-test"
+                className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+              >
+                🧪 Тест middleware
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </div>

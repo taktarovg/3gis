@@ -2,113 +2,154 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: ПРАВИЛЬНОЕ ОПРЕДЕЛЕНИЕ TELEGRAM КЛИЕНТОВ
+ * ✅ ИСПРАВЛЕННЫЙ MIDDLEWARE v12 - ТОЧНАЯ ДЕТЕКЦИЯ (по образцу TIB3)
  * 
- * Основано на реальном тестировании с Telegram Desktop
- * 
- * ЛОГИКА:
- * 1. Проверяем User Agent на признаки Telegram
- * 2. Проверяем URL параметры WebApp
- * 3. Особые случаи (диагностика, флаги)
- * 4. ИНАЧЕ: Редирект на /tg-redirect только для обычных браузеров
+ * ПРИНЦИПИАЛЬНЫЕ ИЗМЕНЕНИЯ v12:
+ * 1. Применяем ТОЛЬКО к /tg пути (как было изначально)
+ * 2. Используем проверенные паттерны из TIB3
+ * 3. Убираем обработку всех остальных путей
+ * 4. Фокус на решении конкретной проблемы: нативное приложение → /tg-redirect
  */
-export function middleware(request: NextRequest) {
-  const { pathname, searchParams } = request.nextUrl;
-  const userAgent = request.headers.get('user-agent') || '';
+
+/**
+ * ✅ ТОЧНАЯ ДЕТЕКЦИЯ TELEGRAM (проверенные паттерны из TIB3)
+ */
+function isTelegramRequest(request: NextRequest): boolean {
+  const userAgentString = request.headers.get('user-agent') || '';
+  const url = request.nextUrl;
   
-  // ✅ Обрабатываем только /tg путь
-  if (pathname === '/tg') {
-    // ✅ ОСОБЫЕ СЛУЧАИ: Никогда не редиректим
-    const neverRedirectCases = [
-      // Диагностика
-      pathname.includes('/diagnostic'),
-      // Специальные флаги
-      searchParams.has('_forceBrowser'),
-      searchParams.has('_fromTelegram'),
-      searchParams.has('_browser'),
-      searchParams.has('_redirected'),
-      searchParams.has('_noRedirect'),
-      searchParams.has('_debug'),
-      // Development режим
-      process.env.NODE_ENV === 'development' && searchParams.has('dev')
-    ];
-    
-    if (neverRedirectCases.some(condition => condition)) {
-      console.log(`[middleware] Никогда не редиректим ${pathname} - особый случай`);
-      return NextResponse.next();
-    }
-    
-    // ✅ УЛУЧШЕННОЕ ОПРЕДЕЛЕНИЕ TELEGRAM КЛИЕНТОВ
-    const telegramIndicators = {
-      // Метод 1: WebApp параметры (надежные)
-      hasWebAppParams: searchParams.has('tgWebAppData') ||
-                      searchParams.has('tgWebAppVersion') ||
-                      searchParams.has('tgWebAppStartParam') ||
-                      searchParams.has('tgWebAppPlatform') ||
-                      searchParams.has('tgWebAppThemeParams'),
-      
-      // Метод 2: User Agent паттерны
-      hasTelegramUA: [
-        'TelegramDesktop',
-        'Telegram Desktop', 
-        'Telegram/',
-        'TelegramBot',
-        'TelegramWebView',
-        'TgWebView'
-      ].some(pattern => userAgent.includes(pattern)),
-      
-      // Метод 3: Особые Telegram параметры
-      hasTelegramSpecific: userAgent.toLowerCase().includes('telegram') ||
-                          searchParams.has('tg') ||
-                          request.headers.get('referer')?.includes('telegram'),
-    };
-    
-    // ✅ Определяем как Telegram клиент
-    const isTelegramClient = telegramIndicators.hasWebAppParams ||
-                            telegramIndicators.hasTelegramUA ||
-                            telegramIndicators.hasTelegramSpecific;
-    
-    // ✅ ЛОГИРОВАНИЕ ДЛЯ ОТЛАДКИ
-    console.log(`[middleware] УЛУЧШЕННАЯ ДИАГНОСТИКА ${pathname}:`, {
-      userAgent: userAgent.substring(0, 80) + (userAgent.length > 80 ? '...' : ''),
-      telegramIndicators,
-      decision: isTelegramClient ? '✅ TELEGRAM_CLIENT' : '🔄 REDIRECT_TO_TG_REDIRECT',
-      referer: request.headers.get('referer') || 'none',
-      startParam: searchParams.get('startapp') || searchParams.get('start') || 'none'
-    });
-    
-    // ✅ Если НЕ Telegram клиент - редиректим
-    if (!isTelegramClient) {
-      const redirectUrl = new URL('/tg-redirect', request.url);
-      
-      // Сохраняем start параметры
-      const startParam = searchParams.get('startapp') || 
-                        searchParams.get('start') || 
-                        searchParams.get('startParam');
-      
-      if (startParam) {
-        redirectUrl.searchParams.set('startapp', startParam);
-      }
-      
-      // Флаг против зацикливания
-      redirectUrl.searchParams.set('_redirected', 'true');
-      
-      console.log(`[middleware] РЕДИРЕКТ: Обычный браузер -> /tg-redirect`, {
-        redirectUrl: redirectUrl.toString(),
-        reason: 'не обнаружен Telegram клиент'
-      });
-      
-      return NextResponse.redirect(redirectUrl);
-    } else {
-      console.log(`[middleware] ПРОПУСК: Telegram клиент обнаружен -> разрешаем доступ`);
-    }
+  console.log(`[Middleware v12] Анализ запроса:`, {
+    userAgent: userAgentString.substring(0, 80) + '...',
+    pathname: url.pathname,
+    hasStartApp: url.searchParams.has('startapp'),
+    hasWebAppData: url.searchParams.has('tgWebAppData')
+  });
+  
+  // 1. Точная детекция TelegramBot (для превью ссылок)
+  if (/^TelegramBot/.test(userAgentString)) {
+    console.log(`[TG Detection v12] TelegramBot detected`);
+    return true;
   }
   
-  // ✅ Все остальные запросы пропускаем
-  return NextResponse.next();
+  // 2. Telegram Desktop приложения
+  if (/tdesktop/i.test(userAgentString)) {
+    console.log(`[TG Detection v12] TDesktop detected`);
+    return true;
+  }
+  
+  // 3. Telegram Mobile Apps (точные паттерны из документации)
+  if (/Telegram-Android\//.test(userAgentString)) {
+    console.log(`[TG Detection v12] Telegram Android detected`);
+    return true;
+  }
+  if (/Safari\/[\d.]+ Telegram [\d.]+/.test(userAgentString)) {
+    console.log(`[TG Detection v12] Telegram iOS detected`);
+    return true;
+  }
+  
+  // 4. Telegram параметры (самый надежный способ)
+  if (url.searchParams.has('startapp')) {
+    console.log(`[TG Detection v12] startapp parameter detected`);
+    return true;
+  }
+  if (url.searchParams.has('start_param')) {
+    console.log(`[TG Detection v12] start_param parameter detected`);
+    return true;
+  }
+  if (url.searchParams.has('tgWebAppData')) {
+    console.log(`[TG Detection v12] tgWebAppData parameter detected`);
+    return true;
+  }
+  if (url.searchParams.has('tgWebAppVersion')) {
+    console.log(`[TG Detection v12] tgWebAppVersion parameter detected`);
+    return true;
+  }
+  
+  // 5. Telegram заголовки
+  if (request.headers.get('x-telegram-bot-api-secret-token')) {
+    console.log(`[TG Detection v12] Telegram Bot API header detected`);
+    return true;
+  }
+  if (request.headers.get('x-telegram-app')) {
+    console.log(`[TG Detection v12] X-Telegram-App header detected`);
+    return true;
+  }
+  
+  // Если ни одна проверка не сработала - это НЕ Telegram
+  console.log(`[TG Detection v12] NOT Telegram - все проверки не прошли`);
+  return false;
+}
+
+export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  
+  // ✅ ОБРАБАТЫВАЕМ ТОЛЬКО /tg ПУТИ (как было изначально)
+  if (!pathname.startsWith('/tg')) {
+    return NextResponse.next();
+  }
+  
+  // ✅ СПЕЦИАЛЬНЫЕ ОБХОДЫ для отладки
+  const url = request.nextUrl;
+  if (
+    url.searchParams.has('_forceBrowser') ||
+    url.searchParams.has('_fromTelegram') ||
+    url.searchParams.has('_browser') ||
+    url.searchParams.has('_redirected') ||
+    url.searchParams.has('_noRedirect') ||
+    url.searchParams.has('_debug')
+  ) {
+    console.log(`[Middleware v12] Special bypass detected for ${pathname} - serving as is`);
+    return NextResponse.next();
+  }
+  
+  // ✅ ПРОПУСКАЕМ /tg-redirect и /tg-debug страницы
+  if (pathname.startsWith('/tg-redirect') || pathname.startsWith('/tg-debug')) {
+    console.log(`[Middleware v12] Serving redirect/debug page as is: ${pathname}`);
+    return NextResponse.next();
+  }
+  
+  // ✅ ОСНОВНАЯ ЛОГИКА: определяем Telegram клиент
+  const isTelegram = isTelegramRequest(request);
+  
+  console.log(`[Middleware v12] Результат для ${pathname}:`, {
+    isTelegram,
+    decision: isTelegram ? 'ПРОПУСТИТЬ' : 'РЕДИРЕКТ_НА_TG_REDIRECT'
+  });
+  
+  // ✅ Если это НЕ Telegram запрос на /tg - перенаправляем на /tg-redirect  
+  if (!isTelegram) {
+    console.log(`[Middleware v12] Non-Telegram request to ${pathname}, redirecting to /tg-redirect`);
+    const redirectUrl = new URL('/tg-redirect', request.url);
+    
+    // Сохраняем start параметры
+    const startParam = url.searchParams.get('startapp') || 
+                      url.searchParams.get('start') || 
+                      url.searchParams.get('startParam');
+    
+    if (startParam) {
+      redirectUrl.searchParams.set('startapp', startParam);
+    }
+    
+    // Флаг против зацикливания
+    redirectUrl.searchParams.set('_redirected', 'true');
+    
+    return NextResponse.redirect(redirectUrl);
+  }
+  
+  // ✅ Telegram клиент обнаружен - пропускаем запрос
+  console.log(`[Middleware v12] Telegram client detected - allowing access to ${pathname}`);
+  
+  const response = NextResponse.next();
+  
+  // Отключаем кэширование для динамических страниц
+  response.headers.set('Cache-Control', 'no-store, must-revalidate');
+  response.headers.set('Pragma', 'no-cache');
+  response.headers.set('Expires', '0');
+  
+  return response;
 }
 
 export const config = {
-  // ✅ Применяем middleware ТОЛЬКО к /tg пути
-  matcher: ['/tg']
+  // ✅ ПРИМЕНЯЕМ ТОЛЬКО К /tg ПУТЯМ (возвращаемся к исходному подходу)
+  matcher: ['/tg/:path*'],
 };
