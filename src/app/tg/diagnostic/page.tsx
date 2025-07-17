@@ -57,6 +57,15 @@ export default function TelegramDiagnosticPage() {
 
       setDiagnostic(data);
       
+      // ✅ Отправляем данные на сервер для анализа middleware
+      fetch('/api/diagnostic', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      }).catch(err => console.log('ℹ️ Не удалось отправить данные на сервер:', err));
+      
       // Также логируем в консоль для удобства
       console.log('🔍 ДИАГНОСТИКА TELEGRAM DESKTOP:', data);
     } catch (err) {
