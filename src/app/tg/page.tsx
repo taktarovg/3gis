@@ -1,7 +1,7 @@
 // src/app/tg/page.tsx
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MessageSquare } from 'lucide-react';
@@ -100,8 +100,17 @@ export default function ThreeGISHomePage() {
   // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасное использование Telegram Provider
   const { launchParams, isReady, isTelegramEnvironment } = useTelegram();
   
-  // ✅ ИСПРАВЛЕНО: Обработка start параметров без бесконечных редиректов
+  // ✅ Ref для предотвращения повторных редиректов
+  const hasProcessedRedirect = useRef(false);
+  
+  // ✅ ИСПРАВЛЕНО: SDK v3.x совместимая обработка start параметров без циклов
   useEffect(() => {
+    // Предотвращаем повторную обработку
+    if (hasProcessedRedirect.current) {
+      console.log('⏭️ Redirect already processed, skipping...');
+      return;
+    }
+    
     // ✅ Только если мы в настоящем Telegram окружении и данные готовы
     if (!isReady || !isTelegramEnvironment || !launchParams) {
       console.log('🔄 Waiting for Telegram data or not in Telegram environment');
@@ -111,129 +120,124 @@ export default function ThreeGISHomePage() {
     // ✅ ИСПРАВЛЕНО ДЛЯ SDK v3.x: правильное получение start параметра
     let startParam: string | undefined;
     
-    // В SDK v3.x структура launchParams изменилась
-    if (launchParams && typeof launchParams === 'object') {
-      // Метод 1: tgWebAppStartParam (основной в SDK v3.x)
-      if ('tgWebAppStartParam' in launchParams && launchParams.tgWebAppStartParam) {
-        startParam = launchParams.tgWebAppStartParam as string;
-        console.log('📱 Start param из tgWebAppStartParam (SDK v3.x):', startParam);
-      }
-      // Метод 2: fallback к URL параметрам для совместимости
-      else {
-        const urlParams = new URLSearchParams(window.location.search);
-        startParam = urlParams.get('startapp') || 
-                    urlParams.get('start') || 
-                    urlParams.get('startParam') || 
-                    undefined;
-        
-        if (startParam) {
-          console.log('📱 Start param из URL fallback:', startParam);
+    try {
+      // В SDK v3.x структура launchParams изменилась
+      if (launchParams && typeof launchParams === 'object') {
+        // Метод 1: tgWebAppStartParam (основной в SDK v3.x)
+        if ('tgWebAppStartParam' in launchParams && launchParams.tgWebAppStartParam) {
+          startParam = launchParams.tgWebAppStartParam as string;
+          console.log('📱 Start param из tgWebAppStartParam (SDK v3.x):', startParam);
         }
-      }
-    }
-    
-    if (startParam && typeof startParam === 'string') {
-      console.log('🚀 Processing start param (SDK v3.x):', startParam);
-      
-      // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем флаг для предотвращения повторных редиректов
-      const redirectKey = `3gis_redirected_${startParam}`;
-      const hasRedirected = sessionStorage.getItem(redirectKey);
-      
-      if (hasRedirected) {
-        console.log('⏭️ Already redirected for this startParam, skipping...');
-        return;
-      }
-      
-      try {
-        // Отдельные заведения: business_123
-        if (startParam.startsWith('business_')) {
-          const businessId = startParam.replace('business_', '');
-          if (businessId && /^\d+$/.test(businessId)) {
-            console.log('🏢 Redirecting to business:', businessId);
-            sessionStorage.setItem(redirectKey, 'true');
-            router.push(`/tg/business/${businessId}`);
-            return;
+        // Метод 2: startParam для совместимости
+        else if ('startParam' in launchParams && launchParams.startParam) {
+          startParam = launchParams.startParam as string;
+          console.log('📱 Start param из startParam (fallback):', startParam);
+        }
+        // Метод 3: fallback к URL параметрам
+        else {
+          const urlParams = new URLSearchParams(window.location.search);
+          startParam = urlParams.get('startapp') || 
+                      urlParams.get('start') || 
+                      urlParams.get('startParam') || 
+                      undefined;
+          
+          if (startParam) {
+            console.log('📱 Start param из URL fallback:', startParam);
           }
         }
-        
-        // Отдельные чаты: chat_123
-        if (startParam.startsWith('chat_')) {
-          const chatId = startParam.replace('chat_', '');
-          if (chatId && /^\d+$/.test(chatId)) {
-            console.log('💬 Redirecting to chat:', chatId);
-            sessionStorage.setItem(redirectKey, 'true');
-            router.push(`/tg/chats/${chatId}`);
-            return;
-          }
-        }
-        
-        // Список заведений с категорией: businesses_restaurants
-        if (startParam.startsWith('businesses_')) {
-          const category = startParam.replace('businesses_', '');
-          if (category && category !== 'businesses') {
-            console.log('🏪 Redirecting to businesses with category:', category);
-            sessionStorage.setItem(redirectKey, 'true');
-            router.push(`/tg/businesses?category=${category}`);
-            return;
-          }
-        }
-        
-        // Другие параметры...
-        if (startParam === 'businesses') {
-          console.log('🏪 Redirecting to all businesses');
-          sessionStorage.setItem(redirectKey, 'true');
-          router.push('/tg/businesses');
-          return;
-        }
-        
-        if (startParam === 'chats') {
-          console.log('💬 Redirecting to chats');
-          sessionStorage.setItem(redirectKey, 'true');
-          router.push('/tg/chats');
-          return;
-        }
-        
-        if (startParam === 'favorites') {
-          console.log('⭐ Redirecting to favorites');
-          sessionStorage.setItem(redirectKey, 'true');
-          router.push('/tg/favorites');
-          return;
-        }
-        
-        if (startParam === 'profile') {
-          console.log('👤 Redirecting to profile');
-          sessionStorage.setItem(redirectKey, 'true');
-          router.push('/tg/profile');
-          return;
-        }
-        
-        if (startParam === 'add_business') {
-          console.log('➕ Redirecting to add business');
-          sessionStorage.setItem(redirectKey, 'true');
-          router.push('/tg/add-business');
-          return;
-        }
-        
-        console.log('❓ Unknown start param (SDK v3.x):', startParam);
-        
-      } catch (error) {
-        console.error('Error processing start param:', error);
       }
-    } else {
-      console.log('ℹ️ No start parameter found in SDK v3.x');
+      
+      if (startParam && typeof startParam === 'string' && startParam.trim() !== '') {
+        console.log('🚀 Processing start param (SDK v3.x):', startParam);
+        
+        // Отмечаем что обработка началась
+        hasProcessedRedirect.current = true;
+        
+        // Добавляем небольшую задержку для стабильности
+        setTimeout(() => {
+          try {
+            // Отдельные заведения: business_123
+            if (startParam.startsWith('business_')) {
+              const businessId = startParam.replace('business_', '');
+              if (businessId && /^\d+$/.test(businessId)) {
+                console.log('🏢 Redirecting to business:', businessId);
+                router.push(`/tg/business/${businessId}`);
+                return;
+              }
+            }
+            
+            // Отдельные чаты: chat_123
+            if (startParam.startsWith('chat_')) {
+              const chatId = startParam.replace('chat_', '');
+              if (chatId && /^\d+$/.test(chatId)) {
+                console.log('💬 Redirecting to chat:', chatId);
+                router.push(`/tg/chats/${chatId}`);
+                return;
+              }
+            }
+            
+            // Список заведений с категорией: businesses_restaurants
+            if (startParam.startsWith('businesses_')) {
+              const category = startParam.replace('businesses_', '');
+              if (category && category !== 'businesses') {
+                console.log('🏪 Redirecting to businesses with category:', category);
+                router.push(`/tg/businesses?category=${category}`);
+                return;
+              }
+            }
+            
+            // Простые параметры
+            switch (startParam) {
+              case 'businesses':
+                console.log('🏪 Redirecting to all businesses');
+                router.push('/tg/businesses');
+                break;
+                
+              case 'chats':
+                console.log('💬 Redirecting to chats');
+                router.push('/tg/chats');
+                break;
+                
+              case 'favorites':
+                console.log('⭐ Redirecting to favorites');
+                router.push('/tg/favorites');
+                break;
+                
+              case 'profile':
+                console.log('👤 Redirecting to profile');
+                router.push('/tg/profile');
+                break;
+                
+              case 'add_business':
+                console.log('➕ Redirecting to add business');
+                router.push('/tg/add-business');
+                break;
+                
+              default:
+                console.log('❓ Unknown start param (SDK v3.x):', startParam);
+                // Сбрасываем флаг если неизвестный параметр
+                hasProcessedRedirect.current = false;
+                break;
+            }
+          } catch (error) {
+            console.error('Error in delayed redirect:', error);
+            hasProcessedRedirect.current = false;
+          }
+        }, 100); // 100ms задержка для стабильности
+        
+      } else {
+        console.log('ℹ️ No start parameter found in SDK v3.x');
+      }
+    } catch (error) {
+      console.error('Error processing start param:', error);
+      hasProcessedRedirect.current = false;
     }
   }, [launchParams, isReady, isTelegramEnvironment, router]);
   
-  // ✅ Очищаем все флаги редиректа при размонтировании компонента
+  // ✅ Сброс флага при размонтировании
   useEffect(() => {
     return () => {
-      // Очищаем все ключи редиректа для этой сессии
-      const keys = Object.keys(sessionStorage);
-      keys.forEach(key => {
-        if (key.startsWith('3gis_redirected_')) {
-          sessionStorage.removeItem(key);
-        }
-      });
+      hasProcessedRedirect.current = false;
     };
   }, []);
   
