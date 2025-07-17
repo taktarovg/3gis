@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Copy, CheckCircle, AlertTriangle, Smartphone, Monitor, RefreshCw } from 'lucide-react';
+import { Copy, CheckCircle, AlertTriangle, Smartphone, Monitor, RefreshCw, ExternalLink } from 'lucide-react';
 
 interface DiagnosticData {
   userAgent: string;
@@ -16,6 +16,7 @@ interface DiagnosticData {
     hasTelegramUA: boolean;
     hasTelegramSpecific: boolean;
     hasWebAppObject: boolean;
+    hasRefererTelegram: boolean;
     patterns: {
       telegramBot: boolean;
       tdesktop: boolean;
@@ -26,11 +27,13 @@ interface DiagnosticData {
   middlewareDecision: {
     wouldRedirect: boolean;
     reason: string;
+    suggestion?: string;
   };
 }
 
 /**
- * 🔍 ДИАГНОСТИЧЕСКАЯ СТРАНИЦА v12 для middleware отладки
+ * 🔍 ДИАГНОСТИЧЕСКАЯ СТРАНИЦА v13 для middleware отладки
+ * НОВОЕ: Добавлена детекция для Telegram Desktop + обходы
  */
 export default function TelegramDebugPage() {
   const [diagnosticData, setDiagnosticData] = useState<DiagnosticData | null>(null);
@@ -38,7 +41,7 @@ export default function TelegramDebugPage() {
   const [isMounted, setIsMounted] = useState(false);
 
   const analyzeTelegramDetection = (userAgent: string, searchParams: URLSearchParams) => {
-    // Точно те же проверки, что в middleware v12
+    // Точно та же логика что в middleware v13
     const patterns = {
       telegramBot: /^TelegramBot/.test(userAgent),
       tdesktop: /tdesktop/i.test(userAgent),
@@ -50,23 +53,42 @@ export default function TelegramDebugPage() {
       hasWebAppParams: searchParams.has('startapp') ||
                       searchParams.has('start_param') ||
                       searchParams.has('tgWebAppData') ||
-                      searchParams.has('tgWebAppVersion'),
+                      searchParams.has('tgWebAppVersion') ||
+                      searchParams.has('tgWebAppStartParam') ||
+                      searchParams.has('tgWebAppPlatform') ||
+                      searchParams.has('tgWebAppThemeParams') ||
+                      searchParams.has('tg') ||
+                      searchParams.has('telegram'),
       
       hasTelegramUA: patterns.telegramBot ||
                     patterns.tdesktop ||
                     patterns.telegramAndroid ||
-                    patterns.telegramIOS,
+                    patterns.telegramIOS ||
+                    userAgent.includes('TelegramDesktop'),
       
       hasTelegramSpecific: userAgent.toLowerCase().includes('telegram') ||
                           searchParams.has('tg') ||
                           document.referrer?.includes('telegram'),
       
       hasWebAppObject: !!(window as any)?.Telegram?.WebApp,
+      
+      hasRefererTelegram: document.referrer?.includes('telegram') || 
+                         document.referrer?.includes('tg://'),
+      
       patterns
     };
     
-    // Middleware logic simulation
-    const isTelegramByMiddleware = detectionResults.hasTelegramUA || detectionResults.hasWebAppParams;
+    // Middleware logic simulation v13
+    const isTelegramByMiddleware = detectionResults.hasTelegramUA || 
+                                  detectionResults.hasWebAppParams ||
+                                  detectionResults.hasRefererTelegram ||
+                                  detectionResults.hasWebAppObject;
+    
+    // ✅ НОВОЕ: Предложения для исправления
+    let suggestion = '';
+    if (!isTelegramByMiddleware && detectionResults.hasWebAppObject) {
+      suggestion = 'Добавьте ?tg=1 к URL для принудительного обхода middleware';
+    }
     
     return {
       detectionResults,
@@ -74,7 +96,8 @@ export default function TelegramDebugPage() {
         wouldRedirect: !isTelegramByMiddleware,
         reason: isTelegramByMiddleware 
           ? 'Telegram клиент обнаружен - middleware пропустит'
-          : 'Telegram НЕ обнаружен - middleware сделает редирект на /tg-redirect'
+          : 'Telegram НЕ обнаружен - middleware сделает редирект на /tg-redirect',
+        suggestion
       }
     };
   };
@@ -120,7 +143,7 @@ export default function TelegramDebugPage() {
       
       setDiagnosticData(data);
       
-      console.log('🔍 Telegram Debug Data v12:', data);
+      console.log('🔍 Telegram Debug Data v13:', data);
     }
   };
 
@@ -133,7 +156,7 @@ export default function TelegramDebugPage() {
     if (!diagnosticData) return;
     
     const debugText = `
-3GIS Telegram Debug Report v12
+3GIS Telegram Debug Report v13
 ==============================
 Timestamp: ${new Date().toISOString()}
 URL: ${diagnosticData.url}
@@ -142,27 +165,19 @@ Environment: ${diagnosticData.environment}
 User Agent:
 ${diagnosticData.userAgent}
 
-Middleware Decision:
+Middleware Decision v13:
 ${diagnosticData.middlewareDecision.reason}
 Would Redirect: ${diagnosticData.middlewareDecision.wouldRedirect}
+${diagnosticData.middlewareDecision.suggestion ? `Suggestion: ${diagnosticData.middlewareDecision.suggestion}` : ''}
 
-Detection Results:
+Detection Results v13:
 - WebApp Params: ${diagnosticData.detectionResults.hasWebAppParams}
 - Telegram UA: ${diagnosticData.detectionResults.hasTelegramUA}  
 - Telegram Specific: ${diagnosticData.detectionResults.hasTelegramSpecific}
 - WebApp Object: ${diagnosticData.detectionResults.hasWebAppObject}
-
-Patterns:
-- TelegramBot: ${diagnosticData.detectionResults.patterns.telegramBot}
-- TDesktop: ${diagnosticData.detectionResults.patterns.tdesktop}
-- Telegram Android: ${diagnosticData.detectionResults.patterns.telegramAndroid}
-- Telegram iOS: ${diagnosticData.detectionResults.patterns.telegramIOS}
+- Referer Telegram: ${diagnosticData.detectionResults.hasRefererTelegram}
 
 WebApp Object: ${JSON.stringify(diagnosticData.telegramWebApp, null, 2)}
-
-Search Params:
-${Array.from(diagnosticData.searchParams.entries()).map(([key, value]) => `- ${key}: ${value}`).join('\n')}
-
 Referer: ${diagnosticData.referer}
 `;
     
@@ -194,19 +209,6 @@ Referer: ${diagnosticData.referer}
     );
   }
 
-  const getEnvironmentIcon = () => {
-    switch (diagnosticData.environment) {
-      case 'mini-app':
-        return <Smartphone className="w-6 h-6 text-green-600" />;
-      case 'telegram-web':
-        return <Monitor className="w-6 h-6 text-blue-600" />;
-      case 'browser':
-        return <Monitor className="w-6 h-6 text-gray-600" />;
-      default:
-        return <AlertTriangle className="w-6 h-6 text-yellow-600" />;
-    }
-  };
-
   const getEnvironmentColor = () => {
     switch (diagnosticData.environment) {
       case 'mini-app':
@@ -230,8 +232,8 @@ Referer: ${diagnosticData.referer}
                 <span className="text-white font-bold">3GIS</span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">Telegram Debug v12</h1>
-                <p className="text-gray-600">Диагностика middleware детекции</p>
+                <h1 className="text-2xl font-bold text-gray-800">Telegram Debug v13</h1>
+                <p className="text-gray-600">Диагностика middleware + фикс Telegram Desktop</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -264,7 +266,10 @@ Referer: ${diagnosticData.referer}
           {/* Environment Status */}
           <div className={`rounded-lg border-2 p-4 mb-6 ${getEnvironmentColor()}`}>
             <div className="flex items-center mb-2">
-              {getEnvironmentIcon()}
+              {diagnosticData.environment === 'mini-app' && <Smartphone className="w-6 h-6 text-green-600" />}
+              {diagnosticData.environment === 'telegram-web' && <Monitor className="w-6 h-6 text-blue-600" />}
+              {diagnosticData.environment === 'browser' && <Monitor className="w-6 h-6 text-gray-600" />}
+              {diagnosticData.environment === 'unknown' && <AlertTriangle className="w-6 h-6 text-yellow-600" />}
               <h2 className="text-lg font-semibold ml-2">
                 Окружение: {diagnosticData.environment.toUpperCase()}
               </h2>
@@ -279,7 +284,7 @@ Referer: ${diagnosticData.referer}
 
           {/* Middleware Decision */}
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
-            <h3 className="font-semibold text-gray-800 mb-3">🔧 Решение Middleware v12:</h3>
+            <h3 className="font-semibold text-gray-800 mb-3">🔧 Решение Middleware v13:</h3>
             {diagnosticData.middlewareDecision.wouldRedirect ? (
               <div className="flex items-start text-orange-600">
                 <AlertTriangle className="w-5 h-5 mr-2 mt-0.5 flex-shrink-0" />
@@ -298,12 +303,39 @@ Referer: ${diagnosticData.referer}
               </div>
             )}
           </div>
+
+          {/* ✅ БЫСТРОЕ РЕШЕНИЕ для Telegram Desktop */}
+          {diagnosticData.detectionResults.hasWebAppObject && diagnosticData.middlewareDecision.wouldRedirect && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <h3 className="font-semibold text-blue-800 mb-3">🚀 Быстрое решение для Telegram Desktop:</h3>
+              <p className="text-sm text-blue-700 mb-3">
+                Обнаружен объект Telegram.WebApp, но middleware не распознал Telegram. 
+                Используйте эти ссылки для принудительного обхода:
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <a
+                  href="/tg?tg=1"
+                  className="inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  <ExternalLink className="w-4 h-4 mr-1" />
+                  /tg с обходом
+                </a>
+                <a
+                  href="/tg?telegram=1"
+                  className="inline-flex items-center justify-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                >
+                  <ExternalLink className="w-4 h-4 mr-1" />
+                  /tg альтернативный
+                </a>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Detection Results */}
         <div className="grid md:grid-cols-2 gap-6 mb-6">
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">🔍 Результаты детекции v12</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">🔍 Результаты детекции v13</h3>
             <div className="space-y-3">
               {Object.entries(diagnosticData.detectionResults).map(([key, value]) => {
                 if (key === 'patterns') return null;
@@ -322,7 +354,7 @@ Referer: ${diagnosticData.referer}
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">🔎 User Agent паттерны v12</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">🔎 User Agent паттерны v13</h3>
             <div className="space-y-3">
               {Object.entries(diagnosticData.detectionResults.patterns).map(([key, value]) => (
                 <div key={key} className="flex items-center justify-between">
@@ -338,9 +370,36 @@ Referer: ${diagnosticData.referer}
           </div>
         </div>
 
+        {/* Telegram WebApp Object */}
+        {diagnosticData.telegramWebApp && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">📱 Telegram WebApp Object v13</h3>
+            <div className="grid md:grid-cols-3 gap-4 mb-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="text-lg font-bold text-green-600">✅ Обнаружен</div>
+                <div className="text-sm text-green-700">window.Telegram.WebApp</div>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="text-lg font-bold text-blue-600">{diagnosticData.telegramWebApp.version || 'н/д'}</div>
+                <div className="text-sm text-blue-700">Версия WebApp</div>
+              </div>
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                <div className="text-lg font-bold text-purple-600">{diagnosticData.telegramWebApp.platform || 'н/д'}</div>
+                <div className="text-sm text-purple-700">Платформа</div>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 rounded p-3">
+              <pre className="text-sm overflow-x-auto">
+                {JSON.stringify(diagnosticData.telegramWebApp, null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
+
         {/* User Agent Analysis */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">🤖 User Agent Анализ</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">🤖 User Agent Анализ v13</h3>
           <div className="bg-gray-50 rounded p-3 text-sm font-mono break-all mb-4">
             {diagnosticData.userAgent}
           </div>
@@ -363,100 +422,75 @@ Referer: ${diagnosticData.referer}
             </div>
             
             <div>
-              <h4 className="font-medium text-gray-700 mb-2">Регулярные выражения:</h4>
+              <h4 className="font-medium text-gray-700 mb-2">Новые проверки v13:</h4>
               <div className="space-y-1">
                 <div className="flex items-center">
                   <span className="w-4 h-4 mr-2">
-                    {diagnosticData.detectionResults.patterns.telegramBot ? '✅' : '❌'}
+                    {diagnosticData.detectionResults.hasRefererTelegram ? '✅' : '❌'}
                   </span>
-                  <span className="font-mono text-xs">/^TelegramBot/</span>
+                  <span className="text-sm">Referer содержит telegram</span>
                 </div>
                 <div className="flex items-center">
                   <span className="w-4 h-4 mr-2">
-                    {diagnosticData.detectionResults.patterns.tdesktop ? '✅' : '❌'}
+                    {diagnosticData.detectionResults.hasWebAppObject ? '✅' : '❌'}
                   </span>
-                  <span className="font-mono text-xs">/tdesktop/i</span>
+                  <span className="text-sm">window.Telegram.WebApp</span>
                 </div>
                 <div className="flex items-center">
                   <span className="w-4 h-4 mr-2">
-                    {diagnosticData.detectionResults.patterns.telegramAndroid ? '✅' : '❌'}
+                    {diagnosticData.searchParams.has('tg') ? '✅' : '❌'}
                   </span>
-                  <span className="font-mono text-xs">/Telegram-Android\//</span>
+                  <span className="text-sm">URL параметр ?tg=1</span>
                 </div>
                 <div className="flex items-center">
                   <span className="w-4 h-4 mr-2">
-                    {diagnosticData.detectionResults.patterns.telegramIOS ? '✅' : '❌'}
+                    {diagnosticData.searchParams.has('telegram') ? '✅' : '❌'}
                   </span>
-                  <span className="font-mono text-xs">/Safari\/[\d.]+ Telegram [\d.]+/</span>
+                  <span className="text-sm">URL параметр ?telegram=1</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Search Params */}
-        {Array.from(diagnosticData.searchParams.entries()).length > 0 && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">📋 URL параметры</h3>
-            <div className="space-y-2">
-              {Array.from(diagnosticData.searchParams.entries()).map(([key, value]) => (
-                <div key={key} className="flex">
-                  <span className="font-medium text-gray-700 min-w-0 w-32">{key}:</span>
-                  <span className="text-gray-600 break-all">{value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* WebApp Object */}
-        {diagnosticData.telegramWebApp && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">📱 Telegram WebApp Object</h3>
-            <div className="bg-gray-50 rounded p-3">
-              <pre className="text-sm overflow-x-auto">
-                {JSON.stringify(diagnosticData.telegramWebApp, null, 2)}
-              </pre>
-            </div>
-          </div>
-        )}
-
         {/* Action Buttons */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">🔧 Тестовые действия</h3>
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">🔧 Тестовые ссылки v13</h2>
           <div className="grid md:grid-cols-4 gap-3">
             <a
               href="/tg"
               className="inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
             >
-              Перейти на /tg
+              Проверить /tg
             </a>
             <a
-              href="/tg?startapp=test"
+              href="/tg?tg=1"
               className="inline-flex items-center justify-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
             >
-              /tg с параметром
+              /tg с ?tg=1
             </a>
             <a
-              href="/tg-redirect"
-              className="inline-flex items-center justify-center px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm"
-            >
-              /tg-redirect
-            </a>
-            <a
-              href="/tg?_debug=true"
+              href="/tg?telegram=1"
               className="inline-flex items-center justify-center px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
             >
-              /tg debug режим
+              /tg с ?telegram=1
+            </a>
+            <a
+              href="/middleware-test"
+              className="inline-flex items-center justify-center px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm"
+            >
+              Тест middleware
             </a>
           </div>
           
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              <strong>Тестирование:</strong> Попробуйте открыть <code>/tg</code> в разных клиентах:
-              обычный браузер, Telegram Desktop, мобильный Telegram. Middleware v12 должен
-              правильно определить окружение и либо пропустить запрос, либо сделать редирект.
-            </p>
+            <h4 className="font-medium text-yellow-800 mb-2">📋 Инструкция для Telegram Desktop:</h4>
+            <ol className="text-sm text-yellow-700 space-y-1">
+              <li>1. Если middleware не распознает Telegram Desktop - используйте ссылки с параметрами</li>
+              <li>2. Параметр <code>?tg=1</code> или <code>?telegram=1</code> принудительно обходит middleware</li>
+              <li>3. Middleware v13 также проверяет Referer и дополнительные заголовки</li>
+              <li>4. При обнаружении window.Telegram.WebApp показываются быстрые ссылки</li>
+            </ol>
           </div>
         </div>
       </div>
