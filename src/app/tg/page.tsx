@@ -156,6 +156,13 @@ export default function ThreeGISHomePage() {
         // Добавляем небольшую задержку для стабильности
         setTimeout(() => {
           try {
+            // ✅ ИСПРАВЛЕНО: Дополнительная проверка что startParam не undefined
+            if (!startParam || typeof startParam !== 'string') {
+              console.log('⚠️ startParam недоступен в timeout callback');
+              hasProcessedRedirect.current = false;
+              return;
+            }
+            
             // Отдельные заведения: business_123
             if (startParam.startsWith('business_')) {
               const businessId = startParam.replace('business_', '');
@@ -186,38 +193,43 @@ export default function ThreeGISHomePage() {
               }
             }
             
-            // Простые параметры
-            switch (startParam) {
-              case 'businesses':
-                console.log('🏪 Redirecting to all businesses');
-                router.push('/tg/businesses');
-                break;
-                
-              case 'chats':
-                console.log('💬 Redirecting to chats');
-                router.push('/tg/chats');
-                break;
-                
-              case 'favorites':
-                console.log('⭐ Redirecting to favorites');
-                router.push('/tg/favorites');
-                break;
-                
-              case 'profile':
-                console.log('👤 Redirecting to profile');
-                router.push('/tg/profile');
-                break;
-                
-              case 'add_business':
-                console.log('➕ Redirecting to add business');
-                router.push('/tg/add-business');
-                break;
-                
-              default:
-                console.log('❓ Unknown start param (SDK v3.x):', startParam);
-                // Сбрасываем флаг если неизвестный параметр
-                hasProcessedRedirect.current = false;
-                break;
+            // Простые параметры (еще одна проверка для TypeScript)
+            if (startParam && typeof startParam === 'string') {
+              switch (startParam) {
+                case 'businesses':
+                  console.log('🏪 Redirecting to all businesses');
+                  router.push('/tg/businesses');
+                  break;
+                  
+                case 'chats':
+                  console.log('💬 Redirecting to chats');
+                  router.push('/tg/chats');
+                  break;
+                  
+                case 'favorites':
+                  console.log('⭐ Redirecting to favorites');
+                  router.push('/tg/favorites');
+                  break;
+                  
+                case 'profile':
+                  console.log('👤 Redirecting to profile');
+                  router.push('/tg/profile');
+                  break;
+                  
+                case 'add_business':
+                  console.log('➕ Redirecting to add business');
+                  router.push('/tg/add-business');
+                  break;
+                  
+                default:
+                  console.log('❓ Unknown start param (SDK v3.x):', startParam);
+                  // Сбрасываем флаг если неизвестный параметр
+                  hasProcessedRedirect.current = false;
+                  break;
+              }
+            } else {
+              console.log('⚠️ startParam невалиден в switch блоке');
+              hasProcessedRedirect.current = false;
             }
           } catch (error) {
             console.error('Error in delayed redirect:', error);
