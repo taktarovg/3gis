@@ -33,57 +33,68 @@ export default function TelegramRedirectClientFixed({
   const [environmentType, setEnvironmentType] = useState<EnvironmentType>('browser');
   const [autoMiniAppAttempted, setAutoMiniAppAttempted] = useState(false);
   
-  // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: правильная проверка среды БЕЗ SDK (ИСПРАВЛЕНА v9)
+  // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ v11: ПРАВИЛЬНАЯ логика определения среды
   const detectEnvironment = useCallback((): EnvironmentType => {
     if (typeof window === 'undefined') return 'browser';
     
     const ua = navigator.userAgent;
     const pathname = window.location.pathname;
+    const telegramWebApp = (window as any)?.Telegram?.WebApp;
     
-    // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ v9: На redirect странице НИКОГДА не может быть Mini App
+    console.log('🔍 v11: Определение среды для redirect страницы:', {
+      pathname,
+      userAgent: ua.substring(0, 60) + '...',
+      hasWebApp: !!telegramWebApp,
+      webAppVersion: telegramWebApp?.version,
+      hasInitData: !!telegramWebApp?.initData,
+      initDataUnsafe: !!telegramWebApp?.initDataUnsafe
+    });
+    
+    // ✅ ИСПРАВЛЕНИЕ v11: НА REDIRECT СТРАНИЦЕ мы ВСЕГДА в браузере Telegram Desktop
+    // Задача redirect страницы - перенаправить в НАСТОЯЩИЙ Mini App
     const isRedirectPage = pathname === '/tg-redirect' || pathname.includes('tg-redirect');
     if (isRedirectPage) {
-      console.log('🚨 REDIRECT PAGE - НИКОГДА НЕ Mini App (исправлено v9)');
+      console.log('📍 v11: Redirect страница - определяем тип Telegram клиента');
       
-      // ✅ ИСПРАВЛЕНО: Проверяем только Telegram браузер (НЕ Mini App на redirect странице)
-      const telegramWebApp = (window as any)?.Telegram?.WebApp;
-      const hasValidWebApp = telegramWebApp && 
-                            telegramWebApp.version && 
-                            typeof telegramWebApp.ready === 'function';
-      
-      // Проверяем Telegram Desktop/Mobile по User Agent
+      // Проверяем что пользователь в Telegram Desktop/Mobile
       const isTelegramDesktop = ua.includes('TelegramDesktop') ||
                                ua.includes('Telegram Desktop') ||
-                               ua.includes('Telegram/') ||
-                               ua.includes('TelegramBot');
+                               ua.includes('Telegram/');
       
-      console.log('🔍 Redirect Environment Detection v10 (совместимо с TelegramProvider v10):', {
-        userAgent: ua.substring(0, 60) + '...',
-        pathname,
-        hasValidWebApp,
+      const isTelegramBot = ua.includes('TelegramBot');
+      
+      const hasTelegramWebApp = telegramWebApp && 
+                               telegramWebApp.version && 
+                               typeof telegramWebApp.ready === 'function';
+      
+      console.log('🔍 v11: Telegram клиент детали:', {
         isTelegramDesktop,
-        webAppVersion: telegramWebApp?.version,
-        isRedirectPage: true // ✅ ВСЕГДА true для redirect страницы
+        isTelegramBot, 
+        hasTelegramWebApp,
+        webAppReady: telegramWebApp?.ready,
+        webAppVersion: telegramWebApp?.version
       });
       
-      // На редирект странице проверяем только Telegram браузер (НЕ Mini App)
-      const isTelegramBrowser = hasValidWebApp || 
-        isTelegramDesktop ||
-        ua.includes('tgWebApp');
-      
-      return isTelegramBrowser ? 'telegram-web' : 'browser';
+      // ✅ ИСПРАВЛЕНИЕ v11: Если в Telegram - возвращаем telegram-web для автоматического запуска Mini App
+      if (isTelegramDesktop || isTelegramBot || hasTelegramWebApp) {
+        console.log('✅ v11: Telegram клиент обнаружен - готов к запуску Mini App');
+        return 'telegram-web';
+      } else {
+        console.log('🌐 v11: Обычный браузер - показываем инструкции');
+        return 'browser';
+      }
     }
     
     // ✅ Для НЕ-redirect страниц проверяем настоящий Mini App (НЕ ВЫПОЛНИТСЯ на redirect странице)
-    const telegramWebApp = (window as any)?.Telegram?.WebApp;
-    const hasValidWebApp = telegramWebApp && 
-                          telegramWebApp.version && 
-                          typeof telegramWebApp.ready === 'function';
+    const webAppForMiniCheck = (window as any)?.Telegram?.WebApp;
+    const hasValidWebApp = webAppForMiniCheck && 
+                          webAppForMiniCheck.version && 
+                          typeof webAppForMiniCheck.ready === 'function';
     
-    if (hasValidWebApp && telegramWebApp.initDataUnsafe) {
+    if (hasValidWebApp && webAppForMiniCheck.initDataUnsafe) {
       // Дополнительная проверка что это РЕАЛЬНЫЙ Mini App, а не просто браузер в Telegram
-      const hasUserData = telegramWebApp.initDataUnsafe.user ||
-                         telegramWebApp.initData;
+      const hasUserData = webAppForMiniCheck.initDataUnsafe.user ||
+                         webAppForMiniCheck.initData;
       
       if (hasUserData) {
         console.log('✅ Настоящий Mini App обнаружен (НЕ redirect страница)');
@@ -112,25 +123,34 @@ export default function TelegramRedirectClientFixed({
   
   const tryOpenMiniApp = useCallback(() => {
     try {
-      console.log('🎯 Попытка открыть Mini App (v10 - совместимо с TelegramProvider)');
+      console.log('🎯 v11: Попытка открыть НАСТОЯЩИЙ Mini App из Telegram клиента');
       
-      // Метод 1: Через глобальный Telegram API
       const webApp = (window as any)?.Telegram?.WebApp;
+      const miniAppUrl = `https://t.me/${botUsername}/${appName}?startapp=${startParam}`;
+      
+      console.log('🔗 v11: Открываем Mini App URL:', miniAppUrl);
+      
+      // Метод 1: Через Telegram WebApp API (приоритет)
       if (webApp && typeof webApp.openTelegramLink === 'function') {
-        const miniAppUrl = `https://t.me/${botUsername}/${appName}?startapp=${startParam}`;
+        console.log('🎯 v11: Используем WebApp.openTelegramLink()');
         webApp.openTelegramLink(miniAppUrl);
-        console.log('✅ Mini App команда через WebApp API');
         return true;
       }
       
-      // Метод 2: Прямой редирект на Mini App
-      const miniAppUrl = `https://t.me/${botUsername}/${appName}?startapp=${startParam}`;
+      // Метод 2: Через WebApp.openLink (альтернатива)
+      if (webApp && typeof webApp.openLink === 'function') {
+        console.log('🎯 v11: Используем WebApp.openLink()');
+        webApp.openLink(miniAppUrl);
+        return true;
+      }
+      
+      // Метод 3: Прямой редирект (fallback)
+      console.log('🎯 v11: Прямой редирект window.location.href');
       window.location.href = miniAppUrl;
-      console.log('✅ Прямой редирект на Mini App');
       return true;
       
     } catch (error) {
-      console.error('❌ Ошибка открытия Mini App:', error);
+      console.error('❌ v11: Ошибка открытия Mini App:', error);
       return false;
     }
   }, [botUsername, appName, startParam]);
@@ -188,17 +208,23 @@ export default function TelegramRedirectClientFixed({
     }
   }, [detectEnvironment, startParam]);
   
-  // ✅ Автоматическое открытие Mini App для Telegram браузера
+  // ✅ v11: Автоматический запуск Mini App для Telegram клиентов
   useEffect(() => {
     if (!isMounted || autoMiniAppAttempted) return;
     
     if (environmentType === 'telegram-web') {
-      console.log('🎯 Telegram браузер - автоматическое открытие Mini App (v9)');
+      console.log('🚀 v11: Telegram клиент обнаружен - автоматически запускаем Mini App');
       setAutoMiniAppAttempted(true);
       
+      // Маленькая задержка для стабильности
       setTimeout(() => {
-        tryOpenMiniApp();
-      }, 1000);
+        const success = tryOpenMiniApp();
+        if (success) {
+          console.log('✅ v11: Команда запуска Mini App отправлена');
+        } else {
+          console.log('⚠️ v11: Не удалось запустить Mini App автоматически');
+        }
+      }, 800); // Немного увеличили задержку
     }
   }, [isMounted, environmentType, autoMiniAppAttempted, tryOpenMiniApp]);
   
@@ -242,7 +268,7 @@ export default function TelegramRedirectClientFixed({
     return null;
   }
   
-  // ✅ Telegram браузер (основной случай для redirect страницы)
+  // ✅ v11: Telegram клиент (основной случай для redirect страницы)
   if (environmentType === 'telegram-web') {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -251,28 +277,40 @@ export default function TelegramRedirectClientFixed({
             <span className="text-2xl font-bold text-white">3GIS</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-800 mb-2">
-            Открываем Mini App
+            Запускаем 3GIS Mini App
           </h1>
           <p className="text-gray-600 mb-4">
-            Вы в Telegram! Автоматически открываем 3GIS Mini App
+            Вы в Telegram! Автоматически открываем Mini App с русскоязычными заведениями
           </p>
           
+          {startParam && (
+            <div className="mt-3 mb-4 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+              Параметр запуска: {startParam}
+            </div>
+          )}
+          
           {autoMiniAppAttempted ? (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <div className="flex items-center justify-center text-blue-700 mb-2">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-center text-green-700 mb-2">
                 <CheckCircle className="w-5 h-5 mr-2" />
-                <span className="font-medium">Команда отправлена</span>
+                <span className="font-medium">✅ Команда запуска отправлена</span>
               </div>
-              <p className="text-sm text-blue-600">
-                Mini App должен открыться автоматически
+              <p className="text-sm text-green-600">
+                3GIS Mini App должен открыться автоматически через несколько секунд
+              </p>
+              <p className="text-xs text-green-500 mt-2">
+                Если не открылся - нажмите кнопку ниже
               </p>
             </div>
           ) : (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-              <div className="flex items-center justify-center text-green-700 mb-2">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-center text-blue-700 mb-2">
                 <Timer className="w-5 h-5 mr-2 animate-spin" />
-                <span className="font-medium">Подготовка к запуску</span>
+                <span className="font-medium">🚀 Подготовка к запуску</span>
               </div>
+              <p className="text-sm text-blue-600">
+                Инициализируем запуск Mini App...
+              </p>
             </div>
           )}
 
@@ -281,21 +319,28 @@ export default function TelegramRedirectClientFixed({
             className="w-full inline-flex items-center justify-center bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             <ExternalLink className="w-5 h-5 mr-2" />
-            Открыть Mini App вручную
+            Открыть 3GIS Mini App
           </button>
+          
+          <div className="mt-4 text-sm text-gray-500">
+            <p>📱 3GIS - русскоязычный справочник организаций в США</p>
+            <p className="text-xs mt-1">Рестораны • Врачи • Юристы • Красота • Авто • Финансы</p>
+          </div>
           
           {/* Debug info для development */}
           {process.env.NODE_ENV === 'development' && (
             <div className="mt-4 pt-4 border-t">
               <details className="text-left">
                 <summary className="text-xs text-gray-400 cursor-pointer">
-                  🔧 Debug Info v9 (ИСПРАВЛЕНО)
+                  🔧 Debug Info v11 (ИСПРАВЛЕНО)
                 </summary>
                 <div className="mt-2 text-xs text-gray-500 space-y-1">
                   <p><strong>Environment:</strong> {environmentType}</p>
                   <p><strong>WebApp Available:</strong> {(window as any)?.Telegram?.WebApp ? 'да' : 'нет'}</p>
                   <p><strong>WebApp Version:</strong> {(window as any)?.Telegram?.WebApp?.version || 'н/д'}</p>
-                  <p><strong>Is Redirect Page:</strong> да (правильно)</p>
+                  <p><strong>WebApp Ready:</strong> {typeof (window as any)?.Telegram?.WebApp?.ready === 'function' ? 'да' : 'нет'}</p>
+                  <p><strong>Start Param:</strong> {startParam || 'отсутствует'}</p>
+                  <p><strong>Auto Attempted:</strong> {autoMiniAppAttempted ? 'да' : 'нет'}</p>
                   <p><strong>User Agent:</strong> {userAgent.substring(0, 40)}...</p>
                 </div>
               </details>
