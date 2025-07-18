@@ -2,18 +2,15 @@ import { Metadata, Viewport } from 'next';
 import TelegramRedirectClientFixed from './TelegramRedirectClientFixed';
 
 /**
+ * ✅ ОБНОВЛЕНО ДЛЯ HYBRID MIDDLEWARE v15
  * ✅ ПОЛНОСТЬЮ ИСПРАВЛЕНО: Убрано viewport из metadata (Next.js 15.3.3)
  * ✅ БЕЗОПАСНЫЙ Server Component для SEO и быстрой загрузки
- * ✅ ИСПРАВЛЕНА ошибка "Event handlers cannot be passed to Client Component props"
- * - Без event handlers в props
- * - Без useState/useEffect в Server Component
- * - Только статичные метаданные и передача управления Client компоненту
- * - Client компонент БЕЗ @telegram-apps/sdk-react (источник ошибок)
+ * ✅ Поддержка новых флагов детекции от middleware v15
  */
 
 export const metadata: Metadata = {
-  title: '3GIS Mini App - Перенаправление в Telegram',
-  description: 'Русскоязычный справочник организаций в США. Откройте в Telegram для лучшего опыта.',
+  title: '3GIS - Откройте в Telegram для лучшего опыта',
+  description: 'Русскоязычный справочник организаций в США. Лучше всего работает в Telegram Mini App.',
   keywords: ['3GIS', 'Telegram Mini App', 'русскоязычный справочник', 'организации США'],
   robots: 'noindex, nofollow', // Не индексируем страницу редиректа
   
@@ -49,20 +46,23 @@ interface PageProps {
 }
 
 /**
- * ✅ ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ Server Component v10 - совместимо с TelegramProvider v10
- * Все интерактивные элементы переданы в Client компонент БЕЗ SDK
- * ✅ ИСПРАВЛЕНО: НЕ передаем функции как props - только примитивные данные!
- * ✅ Устранены Server/Client ошибки event handlers в props
- * ✅ Полная совместимость с Next.js 15.3.3 и TelegramProvider v10
+ * ✅ ОБНОВЛЕННЫЙ Server Component v15 - совместимо с Hybrid Middleware v15
+ * ✅ Поддержка новых флагов детекции (_detected=browser)
+ * ✅ Улучшенная обработка параметров от системы детекции
  */
 export default async function TelegramRedirectPage({ searchParams }: PageProps) {
   // ✅ Безопасно извлекаем searchParams на сервере
   const params = await searchParams;
   const startParam = (params.startapp as string) || (params.start as string) || '';
+  const detectedAs = (params._detected as string) || 'unknown';
+  const wasRedirected = (params._redirected as string) === 'true';
   
-  console.log('🖥️ TG-Redirect Server Component v10 загружен (совместимо с TelegramProvider v10):', {
+  console.log('🖥️ TG-Redirect Server Component v15 загружен:', {
     startParam,
-    hasParams: Object.keys(params).length > 0
+    detectedAs,
+    wasRedirected,
+    hasParams: Object.keys(params).length > 0,
+    middlewareVersion: 'v15-hybrid'
   });
   
   // ✅ Передаем ТОЛЬКО сериализуемые данные - не функции!
@@ -73,6 +73,8 @@ export default async function TelegramRedirectPage({ searchParams }: PageProps) 
         startParam={startParam}
         botUsername="ThreeGIS_bot"
         appName="app"
+        detectedAs={detectedAs}
+        wasRedirected={wasRedirected}
       />
     </div>
   );
